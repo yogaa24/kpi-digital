@@ -10,23 +10,7 @@
             <li class="nav-item d-none d-md-block">
                 <a href="dashboard" class="nav-link">Dashboard</a>
             </li>
-
-            <li class="nav-item d-none d-md-block">
-                <a href="home-kpi" class="nav-link">Detail KPI</a>
-            </li>
-
-            <?php if ($jabatan == "Kabag") { ?>
-                <li class="nav-item d-none d-md-block">
-                    <a href="kpikabag" class="nav-link">KPI Anggota</a>
-                </li>
-            <?php } ?>
-
-            <?php if ($leveel == 4) { ?>
-                <li class="nav-item d-none d-md-block">
-                    <a href="kpikadep" class="nav-link">KPI Anggota</a>
-                </li>
-            <?php } ?>
-
+   
            <!-- MENU SIMULASI (HANYA LEVEL 1 / KARYAWAN) -->
             <?php if ($leveel == 1) { ?>
                 <li class="nav-item d-none d-md-block">
@@ -37,8 +21,9 @@
             <?php } ?>
 
             <li class="nav-item d-none d-md-block">
-                <a href="skillstandard" class="nav-link">Skill Standard</a>
+                <a href="detailkpi-sl" class="nav-link">Detail KPI</a>
             </li>
+
         </ul>
         <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
                 
