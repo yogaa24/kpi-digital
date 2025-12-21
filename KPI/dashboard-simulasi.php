@@ -5,11 +5,11 @@ if (!isset($_SESSION['id_user'])) {
     header("Location: index");
     exit();
 } else {
-    require 'helper/config.php';
-    require 'helper/configarchive.php';
-    require 'helper/getUser.php';
-    require 'helper/getKPI.php';
-    require 'helper/getHow.php';
+    require 'helper/simulasi-db/config.php';
+    require 'helper/simulasi-db/configarchive.php';
+    require 'helper/simulasi-db/getUser.php';
+    require 'helper/simulasi-db/getKPI.php';
+    require 'helper/simulasi-db/getHow.php';
 
     $zboth = 0;
     $zbotw = 0;

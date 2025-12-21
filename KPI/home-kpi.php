@@ -58,44 +58,77 @@ if (isset($_POST['update2'])) {
     }
 }
 
+// Handler untuk tambah what dengan indikator
 if (isset($_POST['what_add'])) {
     $ids = $_SESSION['id_user'];
-    $tujuan = $_POST['tujuan'];
-    $hasil = $_POST['hasil'];
-    $nilai = $_POST['nilai'];
-    $bobot = $_POST['bobot'];
-    $idkpi = $_POST['idkpi'];
-    $totalwhat = number_format($_POST['nilai'] * $_POST['bobot'] / 100,2);
-    $indikatorwhat = $_POST['indikatorwhat'];
-    $sql = "INSERT INTO tb_whats 
-    VALUES (null, '$ids', '$idkpi','$tujuan','$bobot','$hasil','$nilai','$totalwhat','$indikatorwhat')";
-    $result = mysqli_query($conn, $sql);
-    if ($result) {
+    $tujuan = mysqli_real_escape_string($conn, $_POST['tujuan']);
+    $bobot = floatval($_POST['bobot']);
+    $idkpi = intval($_POST['idkpi']);
+    
+    // Insert ke tb_whats (nilai default 0, akan diupdate saat penilaian)
+    $sql = "INSERT INTO tb_whats (id_user, id_kpi, p_what, bobot, hasil, nilai, total, indikatorwhat) 
+            VALUES ('$ids', '$idkpi', '$tujuan', '$bobot', '', 0, 0, '')";
+    
+    if (mysqli_query($conn, $sql)) {
+        $id_what = mysqli_insert_id($conn);
+        
+        // Insert indikator-indikator
+        if (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai'])) {
+            $keterangans = $_POST['indikator_keterangan'];
+            $nilais = $_POST['indikator_nilai'];
+            
+            for ($i = 0; $i < count($keterangans); $i++) {
+                $ket = mysqli_real_escape_string($conn, $keterangans[$i]);
+                $nil = floatval($nilais[$i]);
+                $urutan = $i + 1;
+                
+                $sql_indikator = "INSERT INTO tb_indikator_whats (id_what, keterangan, nilai, urutan) 
+                                  VALUES ('$id_what', '$ket', '$nil', '$urutan')";
+                mysqli_query($conn, $sql_indikator);
+            }
+        }
+        
         header('Location: home-kpi');
-        echo "<script>alert('Berhasil, Tambah Poin')</script>";
+        exit();
     } else {
-        echo "<script>alert('Gagal, Tambah Poin')</script>";
+        echo "<script>alert('Gagal menambah What')</script>";
     }
 }
-if (isset($_POST['what_edit'])) {
-    $ids = $_SESSION['id_user'];
-    $idw = $_POST['idkw'];
-    $tujuan = $_POST['tujuanw'];
-    $hasil = $_POST['hasilw'];
-    $nilai = $_POST['nilaiw'];
-    $bobot = $_POST['bobotw'];
-    $total = number_format($_POST['nilaiw'] * $_POST['bobotw'] / 100,2);
-    $indikatorwhat = $_POST['indikatorwhat'];
-    $sql = "UPDATE tb_whats SET p_what='$tujuan',bobot=$bobot ,hasil='$hasil' ,nilai=$nilai ,total=$total  ,indikatorwhat='$indikatorwhat'  WHERE id_what=$idw";
-    $result = mysqli_query($conn, $sql);
-    if ($result) {
-        header('Location: home-kpi');
-        echo "<script>alert('Berhasil, Tambah Poin" . $result . "')</script>";
-    } else {
-        echo "<script>alert('Gagal, Tambah Poin')</script>";
-    }    
-}
 
+// Handler untuk penilaian what (pilih indikator)
+if (isset($_POST['nilai_what'])) {
+    $ids = $_SESSION['id_user'];
+    $id_what = intval($_POST['idkpi']);
+    $id_indikator = intval($_POST['nilaisi']); // ID indikator yang dipilih
+    
+    // Ambil nilai DAN keterangan dari indikator yang dipilih
+    $sql_get = "SELECT nilai, keterangan FROM tb_indikator_whats WHERE id_indikator = $id_indikator";
+    $result_get = mysqli_query($conn, $sql_get);
+    $data = mysqli_fetch_assoc($result_get);
+    $nilai = $data['nilai'];
+    $keterangan = mysqli_real_escape_string($conn, $data['keterangan']);
+    
+    // Ambil bobot what
+    $sql_bobot = "SELECT bobot FROM tb_whats WHERE id_what = $id_what";
+    $result_bobot = mysqli_query($conn, $sql_bobot);
+    $data_bobot = mysqli_fetch_assoc($result_bobot);
+    $bobot = $data_bobot['bobot'];
+    
+    // Hitung total
+    $total = number_format($nilai * $bobot / 100, 2);
+    
+    // Update tb_whats (nilai + keterangan di kolom hasil)
+    $sql_update = "UPDATE tb_whats 
+                   SET nilai = $nilai, hasil = '$keterangan', total = $total 
+                   WHERE id_what = $id_what AND id_user = '$ids'";
+    
+    if (mysqli_query($conn, $sql_update)) {
+        header('Location: home-kpi');
+        exit();
+    } else {
+        echo "<script>alert('Gagal menyimpan penilaian')</script>";
+    }
+}
 if (isset($_POST['how_add'])) {
     $ids = $_SESSION['id_user'];
     $tujuan = $_POST['tujuan'];
