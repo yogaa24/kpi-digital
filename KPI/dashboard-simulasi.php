@@ -6,8 +6,8 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 } else {
     require 'helper/simulasi-db/config.php';
-    require 'helper/simulasi-db/configarchive.php';
-    require 'helper/simulasi-db/getUser.php';
+    // require 'helper/simulasi-db/configarchive.php';
+    require 'helper/getUser.php';
     require 'helper/simulasi-db/getKPI.php';
     require 'helper/simulasi-db/getHow.php';
 
@@ -169,14 +169,14 @@ if (!isset($_SESSION['id_user'])) {
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
     <div class="app-wrapper">
-        <?php include("pages/dashboard/s_nav.php"); ?>
+        <?php include("pages/dashboard/s_nav_sim.php"); ?>
         <?php include("pages/part/p_aside.php"); ?>
         <main class="app-main">
             <div class="mt-3">
                 <div class="app-content">
                     <div class="container-fluid">
                         <div class="row">
-                            <?php include("pages/dashboard/p_mainProfile.php"); ?>
+                            <?php include("pages/dashboard/p_karyawanSim.php"); ?>
                             <?php include("pages/dashboard/p_mainSummary.php"); ?>
                         </div>
                     </div>

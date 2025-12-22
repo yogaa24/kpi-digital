@@ -1,23 +1,14 @@
+<!DOCTYPE html>
 <?php
 session_start();
 if (!isset($_SESSION['id_user'])) {
     header("Location: index");
     exit();
-}
+} else {
 
 require 'helper/simulasi-db/config.php';
-require 'helper/simulasi-db/getUser.php';
+require 'helper/getUser.php';
 require 'helper/simulasi-db/getKPI.php';
-
-// Function to redirect with message
-function redirectWithMessage($message, $type = 'success') {
-    $_SESSION['message'] = $message;
-    $_SESSION['message_type'] = $type;
-    header('Location: home-kpi');
-    exit();
-}
-
-// INSERT KPI
 if (isset($_POST['submit'])) {
     $ids = $_SESSION['id_user'];
     $poin = $_POST['poin'];
@@ -25,76 +16,119 @@ if (isset($_POST['submit'])) {
     $poin2 = $_POST['poin2'];
     $bobot2 = $_POST['bobot2'];
 
-    $stmt = $conn->prepare("INSERT INTO tb_simulasi (id_user, poin, bobot, poin2, bobot2) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("isdsd", $ids, $poin, $bobot, $poin2, $bobot2);
-    
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Tambah Poin');
+    $sql = "INSERT INTO tb_kpi (id_user,poin,bobot,poin2,bobot2)
+                    VALUES ('$ids', '$poin','$bobot','$poin2','$bobot2')";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
-        redirectWithMessage('Gagal Tambah Poin', 'error');
+        echo "<script>alert('Gagal, Tambah Poin')</script>";
     }
-    $stmt->close();
 }
 
-// UPDATE KPI (poin & bobot)
 if (isset($_POST['update'])) {
     $ids = $_SESSION['id_user'];
     $poin = $_POST['poin'];
     $bobot = $_POST['bobot'];
     $idk = $_POST['idk'];
 
-    $stmt = $conn->prepare("UPDATE tb_simulasi SET poin=?, bobot=? WHERE id=? AND id_user=?");
-    $stmt->bind_param("sdii", $poin, $bobot, $idk, $ids);
-    
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Edit Poin');
+    $sql = "UPDATE tb_kpi SET poin='$poin' ,bobot=$bobot  WHERE id=$idk AND id_user=$ids";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
-        redirectWithMessage('Gagal Edit Poin', 'error');
+        echo "<script>alert('Gagal, Tambah Poin" . $result . "')</script>";
     }
-    $stmt->close();
 }
-
-// UPDATE KPI (poin2 & bobot2)
 if (isset($_POST['update2'])) {
     $ids = $_SESSION['id_user'];
     $poin2 = $_POST['poin2'];
     $bobot2 = $_POST['bobot2'];
     $idk = $_POST['idk'];
 
-    $stmt = $conn->prepare("UPDATE tb_simulasi SET poin2=?, bobot2=? WHERE id=? AND id_user=?");
-    $stmt->bind_param("sdii", $poin2, $bobot2, $idk, $ids);
-    
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Edit Poin');
+    $sql = "UPDATE tb_kpi SET poin2='$poin2', bobot2=$bobot2 WHERE id=$idk AND id_user=$ids";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
-        redirectWithMessage('Gagal Edit Poin', 'error');
+        echo "<script>alert('Gagal, Tambah Poin" . $result . "')</script>";
     }
-    $stmt->close();
 }
 
-// ADD WHAT
+// Handler untuk tambah what dengan indikator
 if (isset($_POST['what_add'])) {
     $ids = $_SESSION['id_user'];
-    $tujuan = $_POST['tujuan'];
-    $hasil = $_POST['hasil'];
-    $nilai = $_POST['nilai'];
-    $bobot = $_POST['bobot'];
-    $idkpi = $_POST['idkpi'];
-    $totalwhat = number_format($nilai * $bobot / 100, 2);
-    $indikatorwhat = $_POST['indikatorwhat'];
+    $tujuan = mysqli_real_escape_string($conn, $_POST['tujuan']);
+    $bobot = floatval($_POST['bobot']);
+    $idkpi = intval($_POST['idkpi']);
     
-    $stmt = $conn->prepare("INSERT INTO tb_whats VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("iisdsids", $ids, $idkpi, $tujuan, $bobot, $hasil, $nilai, $totalwhat, $indikatorwhat);
+    // Insert ke tb_whats (nilai default 0, akan diupdate saat penilaian)
+    $sql = "INSERT INTO tb_whats (id_user, id_kpi, p_what, bobot, hasil, nilai, total, indikatorwhat) 
+            VALUES ('$ids', '$idkpi', '$tujuan', '$bobot', '', 0, 0, '')";
     
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Tambah What');
+    if (mysqli_query($conn, $sql)) {
+        $id_what = mysqli_insert_id($conn);
+        
+        // Insert indikator-indikator
+        if (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai'])) {
+            $keterangans = $_POST['indikator_keterangan'];
+            $nilais = $_POST['indikator_nilai'];
+            
+            for ($i = 0; $i < count($keterangans); $i++) {
+                $ket = mysqli_real_escape_string($conn, $keterangans[$i]);
+                $nil = floatval($nilais[$i]);
+                $urutan = $i + 1;
+                
+                $sql_indikator = "INSERT INTO tb_indikator_whats (id_what, keterangan, nilai, urutan) 
+                                  VALUES ('$id_what', '$ket', '$nil', '$urutan')";
+                mysqli_query($conn, $sql_indikator);
+            }
+        }
+        
+        header('Location: detailkpi-sl');
+        exit();
     } else {
-        redirectWithMessage('Gagal Tambah What', 'error');
+        echo "<script>alert('Gagal menambah What')</script>";
     }
-    $stmt->close();
 }
 
-// EDIT WHAT
+// Handler untuk penilaian what (pilih indikator)
+if (isset($_POST['nilai_what'])) {
+    $ids = $_SESSION['id_user'];
+    $id_what = intval($_POST['idkpi']);
+    $id_indikator = intval($_POST['nilaisi']); // ID indikator yang dipilih
+    
+    // Ambil nilai DAN keterangan dari indikator yang dipilih
+    $sql_get = "SELECT nilai, keterangan FROM tb_indikator_whats WHERE id_indikator = $id_indikator";
+    $result_get = mysqli_query($conn, $sql_get);
+    $data = mysqli_fetch_assoc($result_get);
+    $nilai = $data['nilai'];
+    $keterangan = mysqli_real_escape_string($conn, $data['keterangan']);
+    
+    // Ambil bobot what
+    $sql_bobot = "SELECT bobot FROM tb_whats WHERE id_what = $id_what";
+    $result_bobot = mysqli_query($conn, $sql_bobot);
+    $data_bobot = mysqli_fetch_assoc($result_bobot);
+    $bobot = $data_bobot['bobot'];
+    
+    // Hitung total
+    $total = number_format($nilai * $bobot / 100, 2);
+    
+    // Update tb_whats (nilai + keterangan di kolom hasil)
+    $sql_update = "UPDATE tb_whats 
+                   SET nilai = $nilai, hasil = '$keterangan', total = $total 
+                   WHERE id_what = $id_what AND id_user = '$ids'";
+    
+    if (mysqli_query($conn, $sql_update)) {
+        header('Location: detailkpi-sl');
+        exit();
+    } else {
+        echo "<script>alert('Gagal menyimpan penilaian')</script>";
+    }
+}
 if (isset($_POST['what_edit'])) {
     $ids = $_SESSION['id_user'];
     $idw = $_POST['idkw'];
@@ -102,37 +136,17 @@ if (isset($_POST['what_edit'])) {
     $hasil = $_POST['hasilw'];
     $nilai = $_POST['nilaiw'];
     $bobot = $_POST['bobotw'];
-    $total = number_format($nilai * $bobot / 100, 2);
+    $total = number_format($_POST['nilaiw'] * $_POST['bobotw'] / 100,2);
     $indikatorwhat = $_POST['indikatorwhat'];
-    
-    $stmt = $conn->prepare("UPDATE tb_whats SET p_what=?, bobot=?, hasil=?, nilai=?, total=?, indikatorwhat=? WHERE id_what=?");
-    $stmt->bind_param("sdsddsi", $tujuan, $bobot, $hasil, $nilai, $total, $indikatorwhat, $idw);
-    
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Edit What');
+    $sql = "UPDATE tb_whats SET p_what='$tujuan',bobot=$bobot ,hasil='$hasil' ,nilai=$nilai ,total=$total  ,indikatorwhat='$indikatorwhat'  WHERE id_what=$idw";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Tambah Poin" . $result . "')</script>";
     } else {
-        redirectWithMessage('Gagal Edit What', 'error');
-    }
-    $stmt->close();
+        echo "<script>alert('Gagal, Tambah Poin')</script>";
+    }    
 }
-
-// DELETE WHAT
-if (isset($_POST['what_hapus'])) {
-    $ids = $_SESSION['id_user'];
-    $idkpi = $_POST['idkwd'];
-
-    $stmt = $conn->prepare("DELETE FROM tb_whats WHERE id_what=? AND id_user=?");
-    $stmt->bind_param("ii", $idkpi, $ids);
-    
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Hapus What');
-    } else {
-        redirectWithMessage('Gagal Hapus What', 'error');
-    }
-    $stmt->close();
-}
-
-// ADD HOW
 if (isset($_POST['how_add'])) {
     $ids = $_SESSION['id_user'];
     $tujuan = $_POST['tujuan'];
@@ -140,21 +154,20 @@ if (isset($_POST['how_add'])) {
     $nilai = $_POST['nilai'];
     $bobot = $_POST['bobot'];
     $idkpi = $_POST['idkpi'];
-    $totalhow = number_format($nilai * $bobot / 100, 2);
+    $totalhow = number_format($_POST['nilai'] * $_POST['bobot'] / 100,2);
     $indikatorhow = $_POST['indikatorh'];
     
-    $stmt = $conn->prepare("INSERT INTO tb_hows VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("iisdsids", $ids, $idkpi, $tujuan, $bobot, $hasil, $nilai, $totalhow, $indikatorhow);
-    
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Tambah How');
-    } else {
-        redirectWithMessage('Gagal Tambah How', 'error');
-    }
-    $stmt->close();
-}
 
-// EDIT HOW
+    $sql = "INSERT INTO tb_hows 
+    VALUES (null, '$ids', '$idkpi','$tujuan','$bobot','$hasil','$nilai',$totalhow,'$indikatorhow')";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Tambah Poin')</script>";
+    } else {
+        echo "<script>alert('Gagal, Tambah Poin')</script>";
+    }
+}
 if (isset($_POST['how_edit'])) {
     $ids = $_SESSION['id_user'];
     $idw = $_POST['idkh'];
@@ -162,83 +175,116 @@ if (isset($_POST['how_edit'])) {
     $hasil = $_POST['hasilh'];
     $nilai = $_POST['nilaih'];
     $bobot = $_POST['boboth'];
-    $total = number_format($nilai * $bobot / 100, 2);
+    $total = number_format($_POST['nilaih'] * $_POST['boboth'] / 100,2);
     $indikator = $_POST['indikatorh'];
 
-    $stmt = $conn->prepare("UPDATE tb_hows SET p_how=?, bobot=?, hasil=?, nilai=?, total=?, indikatorhow=? WHERE id_how=?");
-    $stmt->bind_param("sdsddsi", $tujuan, $bobot, $hasil, $nilai, $total, $indikator, $idw);
-    
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Edit How');
+    $sql = "UPDATE tb_hows SET p_how='$tujuan',bobot=$bobot ,hasil='$hasil' ,nilai=$nilai ,total=$total ,indikatorhow='$indikator' WHERE id_how=$idw";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Tambah Poin" . $result . "')</script>";
     } else {
-        redirectWithMessage('Gagal Edit How', 'error');
+        echo "<script>alert('Gagal, Tambah Poin')</script>";
     }
-    $stmt->close();
 }
 
-// DELETE HOW
-if (isset($_POST['how_hapus'])) {
-    $ids = $_SESSION['id_user'];
-    $idkpi = $_POST['idkhd'];
-
-    $stmt = $conn->prepare("DELETE FROM tb_hows WHERE id_how=? AND id_user=?");
-    $stmt->bind_param("ii", $idkpi, $ids);
-    
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Hapus How');
-    } else {
-        redirectWithMessage('Gagal Hapus How', 'error');
-    }
-    $stmt->close();
-}
-
-// ADD WHAT INDICATOR
 if (isset($_POST['whatindi_add'])) {
     $ids = $_SESSION['id_user'];
     $idkpi = $_POST['idkpiindikator'];
     $idwhat = $_POST['idwhatindikator'];
     $whatindikator = $_POST['whatindikator'];
     $nilaiindi = $_POST['nilaiindi'];
-    
-    $stmt = $conn->prepare("INSERT INTO tb_indikatorwhats VALUES (null, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("iiisd", $ids, $idkpi, $idwhat, $whatindikator, $nilaiindi);
-    
-    if ($stmt->execute()) {
-        redirectWithMessage('Berhasil Tambah Indikator');
+    $sql = "INSERT INTO tb_indikatorwhats 
+    VALUES (null, '$ids', '$idkpi','$idwhat','$whatindikator','$nilaiindi')";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
-        redirectWithMessage('Gagal Tambah Indikator', 'error');
-    }
-    $stmt->close();
+        echo "<script>alert('Gagal, Tambah Poin')</script>";
+    } 
 }
+if (isset($_POST['how_hapus'])) {
+    $ids = $_SESSION['id_user'];
+    $idkpi = $_POST['idkhd'];
 
+    $sql = "delete from tb_hows where id_how=$idkpi and id_user=$ids";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Tambah Poin')</script>";
+    } else {
+        echo "<script>alert('Gagal, Tambah Poin')</script>";
+    }
+}
+if (isset($_POST['what_hapus'])) {
+    $ids = $_SESSION['id_user'];
+    $idkpi = $_POST['idkwd'];
+
+    $sql = "delete from tb_whats where id_what=$idkpi and id_user=$ids";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Tambah Poin')</script>";
+    } else {
+        echo "<script>alert('Gagal, Tambah Poin')</script>";
+    }
+}
+if (isset($_POST['update'])) {
+    $ids = $_SESSION['id_user'];
+    $idkpi = $_POST['idk'];
+    $poinn = $_POST['poin'];
+    $bobott = $_POST['bobot'];
+
+    $sql = "UPDATE `tb_kpi` set poin = '$poinn', bobot = $bobott where id=$idkpi and id_user=$ids";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Edit Poin')</script>";
+    } else {
+        echo "<script>alert('Gagal, Edit Poin')</script>";
+    }
+}
+if (isset($_POST['update2'])) {
+    $ids = $_SESSION['id_user'];
+    $idkpi = $_POST['idk'];
+    $poinn = $_POST['poin2'];
+    $bobott = $_POST['bobot2'];
+
+    $sql = "UPDATE `tb_kpi` set poin2 = '$poinn', bobot2 = $bobott where id=$idkpi and id_user=$ids";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: detailkpi-sl');
+        echo "<script>alert('Berhasil, Edit Poin')</script>";
+    } else {
+        echo "<script>alert('Gagal, Edit Poin')</script>";
+    }
+}
+}
 ?>
 
-<!DOCTYPE html>
 <html lang="en">
 
 <?php include("pages/part/p_header.php"); ?>
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
+    <!--begin::App Wrapper-->
     <div class="app-wrapper">
+        <!--begin::Header-->
         <?php include("pages/kpi/k_nav.php"); ?>
         <?php include("pages/part/p_aside.php"); ?>
         <main class="app-main">
+            <!--begin::App Content Header-->
             <div class="mt-3">
-                <?php 
-                // Display messages
-                if (isset($_SESSION['message'])) {
-                    $alertType = $_SESSION['message_type'] === 'error' ? 'danger' : 'success';
-                    echo "<div class='alert alert-{$alertType} alert-dismissible fade show' role='alert'>";
-                    echo htmlspecialchars($_SESSION['message']);
-                    echo "<button type='button' class='btn-close' data-bs-dismiss='alert'></button>";
-                    echo "</div>";
-                    unset($_SESSION['message']);
-                    unset($_SESSION['message_type']);
-                }
-                ?>
+                <!--begin::Container-->
+                <!-- isi -->
             </div>
+            <!--end::App Content Header-->
+            <!--begin::App Content-->
             <div class="app-content">
+                <!--begin::Container-->
                 <div class="container-fluid" style="font-size:13px;">
+                    <!--begin::Row-->
                     <?php while ($hasil = mysqli_fetch_assoc($result)) {
                         $idKPI = $hasil['id'];
                         $poin = $hasil['poin'];
@@ -249,9 +295,13 @@ if (isset($_POST['whatindi_add'])) {
                     <?php include("pages/kpi/k_main.php");
                     } ?>
                 </div>
+                <!--end::Container-->
             </div>
+            <!--end::App Content-->
         </main>
+        <!--end::App Main-->
+        <!--begin::Footer-->
         <?php include("pages/part/p_footer.php"); ?>
-    </div>
 </body>
+
 </html>

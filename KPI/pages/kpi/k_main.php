@@ -72,6 +72,9 @@
                                             <i class="bi bi-eye fs-8"></i>
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end" role="menu">
+                                            <a value="<?php echo $res['id_what']; ?>" name="what_edit" class="dropdown-item"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#EditWhatModal<?= $res['id_what'] ?>">Edit</a>
                                             <a class="dropdown-item" data-bs-toggle="modal"
                                                 data-bs-target="#HapusWhatModal<?= $res['id_what'] ?>">Hapus</a>
                                             <div class="dropdown-divider"></div>
@@ -131,6 +134,8 @@
                                     </div>
                                 </div>
                             </div>
+                             
+                            <?php include('pages/kpi/k_modalEditwhat.php'); ?>
 
                         <?php } ?>
                     </table>

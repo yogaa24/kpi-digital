@@ -129,6 +129,24 @@ if (isset($_POST['nilai_what'])) {
         echo "<script>alert('Gagal menyimpan penilaian')</script>";
     }
 }
+if (isset($_POST['what_edit'])) {
+    $ids = $_SESSION['id_user'];
+    $idw = $_POST['idkw'];
+    $tujuan = $_POST['tujuanw'];
+    $hasil = $_POST['hasilw'];
+    $nilai = $_POST['nilaiw'];
+    $bobot = $_POST['bobotw'];
+    $total = number_format($_POST['nilaiw'] * $_POST['bobotw'] / 100,2);
+    $indikatorwhat = $_POST['indikatorwhat'];
+    $sql = "UPDATE tb_whats SET p_what='$tujuan',bobot=$bobot ,hasil='$hasil' ,nilai=$nilai ,total=$total  ,indikatorwhat='$indikatorwhat'  WHERE id_what=$idw";
+    $result = mysqli_query($conn, $sql);
+    if ($result) {
+        header('Location: home-kpi');
+        echo "<script>alert('Berhasil, Tambah Poin" . $result . "')</script>";
+    } else {
+        echo "<script>alert('Gagal, Tambah Poin')</script>";
+    }    
+}
 if (isset($_POST['how_add'])) {
     $ids = $_SESSION['id_user'];
     $tujuan = $_POST['tujuan'];
