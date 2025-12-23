@@ -15,7 +15,8 @@
                 <span style="color : #343A40;" class="input-group-text fw-bold" id="poin2">How :</span>
                 <input type="input" value="<?= $poin2;?>" class="form-control" name="poin2" placeholder="Tujuan KPI" aria-label="Tujuan KPI" aria-describedby="poin2">
             </div>
-            <div class="input-group mb-3" hidden>
+            <?php if($jabatan=="Karyawan"){ $hfgiub = "hidden";}else{$hfgiub ='';}?>
+            <div <?= $hfgiub ?> class="input-group mb-3">
                 <span style="color : #343A40;" class="input-group-text fw-bold" id="bobot2">Bobot How :</span>
                 <input type="input" value="<?= $bobot2;?>" class="form-control" name="bobot2" placeholder="0-90" aria-label="Bobot KPI" aria-describedby="bobot2">
             </div>

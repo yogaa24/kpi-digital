@@ -3,10 +3,11 @@
         <div style="height: 50px; margin-top: -3px;" class="card-header bg-primary">
             <h5 style="color:white;" class="card-title fw-bolder">What</h5>
             <div class="card-tools">
-                <button style="color: white;" data-bs-toggle="modal" data-bs-target="#bobotWhatss" type="button"
-                    class="btn btn-tool">
-                    <i class="bi bi-pencil"></i>
-                </button>
+                <?php if($jabatan=="Karyawan"){ $hfgiub = "hidden"; }else{ $hfgiub = ""; }?>
+                                        <button <?= $hfgiub ?> style="color: white;" data-bs-toggle="modal" data-bs-target="#bobotWhatss" type="button"
+                                            class="btn btn-tool">
+                                            <i class="bi bi-pencil"></i>
+                                        </button> 
                 <button style="color: white;" type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
                     <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
                     <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
@@ -123,10 +124,11 @@
         <div style="height: 50px; margin-top: -3px;" class="card-header bg-success">
             <h5 style="color:white;" class="card-title fw-bolder">How</h5>
             <div class="card-tools">
-                <button style="color: white;" data-bs-toggle="modal" data-bs-target="#bobotHow" type="button"
+                <?php if($jabatan=="Karyawan"){ $hfgiub = "hidden";}?>
+                <button <?= $hfgiub ?> style="color: white;" data-bs-toggle="modal" data-bs-target="#bobotHow" type="button"
                     class="btn btn-tool">
                     <i class="bi bi-pencil"></i>
-                </button>
+                </button> 
                 <button style="color: white;" type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
                     <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
                     <i data-lte-icon="collapse" class="bi bi-dash-lg"></i>
