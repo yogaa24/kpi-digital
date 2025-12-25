@@ -6,7 +6,6 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 } else {
     require 'helper/simulasi-db/config.php';
-    // require 'helper/simulasi-db/configarchive.php';
     require 'helper/getUser.php';
     require 'helper/simulasi-db/getKPI.php';
     require 'helper/simulasi-db/getHow.php';
@@ -126,40 +125,6 @@ if (!isset($_SESSION['id_user'])) {
         }
         return $bulannnn;
     }
-    
-
-    if (isset($_POST['archiveNow'])) {
-        $forIdArc=0;
-        $odkgh = $busd[0]-1;
-        $tgslk = $odkgh.'/'.$busd[1];
-        $sqlksf = "INSERT INTO tbar_archive (bulan, id_user) VALUES ('$tgslk',$id_user)";
-        $resuarc = mysqli_query($connarc, $sqlksf);
-        $last_id = mysqli_insert_id($connarc);
-
-        $resultrtyhj = mysqli_query($connarc, "SELECT * FROM tbar_archive WHERE id_archive = $last_id and id_user = $id_user");
-        $rosagw = mysqli_fetch_assoc($resultrtyhj);
-        $idarcv = $rosagw['id_archive'];
-
-        $panggilPoin = mysqli_query($conn,"Select * from tb_kpi where id_user = $id_user");
-        while($ppPoin = mysqli_fetch_assoc($panggilPoin)){
-            $addPoin = mysqli_query($connarc,"INSERT INTO tbar_kpi (id_user,id_arcv,poin,bobot,poin2,bobot2) values ($id_user, $idarcv ,'".$ppPoin['poin']."', '".$ppPoin['bobot']."','".$ppPoin['poin2']."','".$ppPoin['bobot2']."')");
-            $last_poin = mysqli_insert_id($connarc);
-
-            $panggilHow = mysqli_query($conn,"Select * from tb_hows where id_user = $id_user and id_kpi = ".$ppPoin['id']);
-            while($howPoin = mysqli_fetch_assoc($panggilHow)){
-                $addHow = mysqli_query($connarc,"INSERT INTO tbar_hows (id_user, id_kpi, p_how, bobot, hasil, nilai, total, indikatorhow) values ($id_user, $last_poin, '".$howPoin['p_how']."','".$howPoin['bobot']."','".$howPoin['hasil']."','".$howPoin['nilai']."','".$howPoin['total']."','".$howPoin['indikatorhow']."')");
-            }
-
-            $panggilWhat = mysqli_query($conn,"Select * from tb_whats where id_user = $id_user and id_kpi = ".$ppPoin['id']);
-            while($whatPoin = mysqli_fetch_assoc($panggilWhat)){
-                $addWhat = mysqli_query($connarc,"INSERT INTO tbar_whats (id_user, id_kpi, p_what, bobot, hasil, nilai, total, indikatorwhat) values ($id_user, $last_poin, '".$whatPoin['p_what']."','".$whatPoin['bobot']."','".$whatPoin['hasil']."','".$whatPoin['nilai']."','".$whatPoin['total']."','".$whatPoin['indikatorwhat']."')");
-            }
-        }
-        $panggilbobot = mysqli_query($conn,"Select * from tb_bobotkpi where id_user = $id_user");
-        while($bobotPoin = mysqli_fetch_assoc($panggilbobot)){
-            $addbobot = mysqli_query($connarc,"INSERT INTO tbar_bobotkpi (id_user, id_arcv, bobotwhat, bobothow) values ($id_user,$idarcv, ".$bobotPoin['bobotwhat'].",".$bobotPoin['bobothow'].")");
-        }
-    }
 }
 
 ?>
@@ -177,7 +142,7 @@ if (!isset($_SESSION['id_user'])) {
                     <div class="container-fluid">
                         <div class="row">
                             <?php include("pages/dashboard/p_karyawanSim.php"); ?>
-                            <?php include("pages/dashboard/p_mainSummary.php"); ?>
+                            <?php include("pages/dashboard/p_mainSummarysim.php"); ?>
                         </div>
                     </div>
                 </div>

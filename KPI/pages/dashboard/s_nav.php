@@ -8,7 +8,7 @@
             </li>
 
             <li class="nav-item d-none d-md-block">
-                <a href="dashboard" class="nav-link">Dashboard</a>
+                <a href="home" class="nav-link">Dashboard</a>
             </li>
    
            <!-- MENU SIMULASI (HANYA LEVEL 1 / KARYAWAN) -->

@@ -3,7 +3,7 @@ session_start();
 require 'helper/config.php';
 
 if (isset($_SESSION['id_user'])) {
-    header("Location: dashboard");
+    header("Location: dashboard-utama");
     exit();
 }
  
@@ -17,7 +17,7 @@ if (isset($_POST['submit'])) {
         $row = mysqli_fetch_assoc($result);
         $_SESSION['id_user'] = $row['id_user'];
         $_SESSION['level'] = $row['level'];
-        header("Location:  dashboard");
+        header("Location:  dashboard-utama");
         exit();
     } else {
         echo "<script>alert('Email atau password Anda salah. Silakan coba lagi!')</script>";

@@ -8,7 +8,7 @@
             </li>
 
             <li class="nav-item d-none d-md-block">
-                <a href="dashboard" class="nav-link">Dashboard</a>
+                <a href="dashboard-utama" class="nav-link">Dashboard</a>
             </li>
 
             <li class="nav-item d-none d-md-block">
@@ -23,22 +23,13 @@
 
             <?php if ($leveel == 4) { ?>
                 <li class="nav-item d-none d-md-block">
-                    <a href="kpikadep" class="nav-link">KPI Anggota</a>
+                    <a href="kpiadminhrd" class="nav-link">KPI Anggota</a>
                 </li>
             <?php } ?>
-
-           <!-- MENU SIMULASI (HANYA LEVEL 1 / KARYAWAN) -->
-            <?php if ($leveel == 1) { ?>
-                <li class="nav-item d-none d-md-block">
-                    <a href="dashboard-simulasi" class="nav-link">
-                        Simulasi
-                    </a>
-                </li>
-            <?php } ?>
-
+<!-- 
             <li class="nav-item d-none d-md-block">
                 <a href="skillstandard" class="nav-link">Skill Standard</a>
-            </li>
+            </li> -->
         </ul>
         <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
                 
