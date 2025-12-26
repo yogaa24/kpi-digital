@@ -1,7 +1,7 @@
 <?php
 session_start();
 require 'helper/config.php';
-require 'helper/simulasi-db/config.php';
+// require 'helper/simulasi-db/config.php';
 
 if (isset($_SESSION['id_user'])) {
     header("Location: dashboard");

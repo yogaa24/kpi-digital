@@ -195,71 +195,56 @@ function getkpi($nilair)
                         </div>
                     </div>
 
-                    <!-- Statistics Summary -->
+                    <!-- Menu Cards -->
                     <div class="row mb-4">
-                        <?php
-                        // Hitung statistik per jabatan
-                        $id_user = $_SESSION['id_user'];
-                        $sql_stats = "SELECT 
-                                        COUNT(DISTINCT CASE WHEN u.jabatan = 'Kadep' THEN u.id END) as total_kadep,
-                                        COUNT(DISTINCT CASE WHEN u.jabatan = 'Kabag' THEN u.id END) as total_kabag,
-                                        COUNT(DISTINCT CASE WHEN u.jabatan = 'Karyawan' THEN u.id END) as total_karyawan,
-                                        COUNT(DISTINCT u.id) as total_semua
-                                      FROM tb_users u
-                                      WHERE u.id != $id_user AND u.jabatan != 'Admin HRD'";
-                        $result_stats = mysqli_query($conn, $sql_stats);
-                        $stats = mysqli_fetch_assoc($result_stats);
-                        ?>
-                        
-                        <div class="col-md-3">
-                            <div class="small-box bg-danger">
-                                <div class="inner">
-                                    <h3><?= $stats['total_kadep'] ?></h3>
-                                    <p>Total Kadep</p>
-                                </div>
-                                <div class="icon">
-                                    <i class="bi bi-award-fill"></i>
+                        <!-- Data User -->
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="card shadow-sm border-0 h-100 hover-card"
+                                onclick="window.location.href='skillstandard'"
+                                style="cursor:pointer; transition:transform 0.2s;">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="bi bi-people-fill text-info" style="font-size:3rem;"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-2">Data User</h5>
+                                    <p class="text-muted mb-0 small">Kelola data pengguna sistem</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="col-md-3">
-                            <div class="small-box bg-warning">
-                                <div class="inner">
-                                    <h3><?= $stats['total_kabag'] ?></h3>
-                                    <p>Total Kabag</p>
-                                </div>
-                                <div class="icon">
-                                    <i class="bi bi-star-fill"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="small-box bg-success">
-                                <div class="inner">
-                                    <h3><?= $stats['total_karyawan'] ?></h3>
-                                    <p>Total Karyawan</p>
-                                </div>
-                                <div class="icon">
-                                    <i class="bi bi-person-fill"></i>
+                        <!-- Archive -->
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="card shadow-sm border-0 h-100 hover-card"
+                                onclick="window.location.href='archive'"
+                                style="cursor:pointer; transition:transform 0.2s;">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="bi bi-archive-fill text-warning" style="font-size:3rem;"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-2">Archive</h5>
+                                    <p class="text-muted mb-0 small">Arsip dokumen & data historis</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="col-md-3">
-                            <div class="small-box bg-primary">
-                                <div class="inner">
-                                    <h3><?= $stats['total_semua'] ?></h3>
-                                    <p>Total Semua</p>
-                                </div>
-                                <div class="icon">
-                                    <i class="bi bi-people-fill"></i>
+                        <!-- Eviden -->
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="card shadow-sm border-0 h-100 hover-card"
+                                onclick="window.location.href='eviden'"
+                                style="cursor:pointer; transition:transform 0.2s;">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="bi bi-folder-fill text-danger" style="font-size:3rem;"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-2">Eviden</h5>
+                                    <p class="text-muted mb-0 small">Dokumentasi bukti & evidensi</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Statistics Summary -->
+                    
                     <!-- Table KPI -->
                     <div class="table-responsive">
                         <table id="datatablenya" class="table align-middle table-hover table-bordered">
@@ -397,7 +382,7 @@ function getkpi($nilair)
                                                 </a>
                                                 <a href="home-kpi-admin?id=<?= $hasilsfa['id']; ?>" 
                                                    class="btn btn-success btn-sm" 
-                                                   title="Edit KPI">
+                                                   title="Edit User">
                                                     <i class="bi bi-pencil-square"></i>
                                                 </a>
                                             </div>
