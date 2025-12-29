@@ -123,7 +123,7 @@ if (!isset($_SESSION['id_user'])) {
         return $bulannnn;
     }
 
-    $archivec = "SELECT * FROM tbar_archive where id_user = $id_user group by bulan";
+    $archivec = "SELECT bulan FROM tbar_archive WHERE id_user = $id_user group by bulan";
     $getArch = mysqli_query($connarc, $archivec);
     
 }
@@ -142,8 +142,12 @@ echo '
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                 class="bi bi-list"></i> </a> </li>
-                    <li class="nav-item d-none d-md-block"> <a href="dashboard" class="nav-link">Dashboard</a> </li>
-                    <?php if($jabatan=="Kabag"){?>
+                    <li class="nav-item d-none d-md-block"> <a href="dashboard-utama" class="nav-link">Dashboard</a> </li>
+                    <?php if (
+                        $jabatan == "Kabag" ||
+                        $jabatan == "Kadep MT" ||
+                        $jabatan == "Kadep"
+                    ) { ?>
                         <li class="nav-item d-none d-md-block"> <a href="archivekabag" class="nav-link">Archive KPI Anggota</a> </li>
                     <?php }?>
                     <!-- <li class="nav-item d-none d-md-block"> <a href="dashboard" class="nav-link">Archive SS</a> </li> -->

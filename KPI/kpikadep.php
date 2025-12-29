@@ -143,14 +143,14 @@ function getkpi($nilair)
                                 <tbody>
                                     <?php $no = 1;
                                     $sqlhd = "SELECT * 
-FROM tb_users
-WHERE atasan = 'Diana Wulandari' OR nama_lngkp = 'Diana Wulandari'
-ORDER BY 
-    CASE 
-        WHEN nama_lngkp = 'Diana Wulandari' THEN 0 
-        ELSE 1 
-    END,
-    nama_lngkp";
+                                                    FROM tb_users
+                                                    WHERE atasan = 'Diana Wulandari' OR nama_lngkp = 'Diana Wulandari'
+                                                    ORDER BY 
+                                                        CASE 
+                                                            WHEN nama_lngkp = 'Diana Wulandari' THEN 0 
+                                                            ELSE 1 
+                                                        END,
+                                                        nama_lngkp";
                                     $sgdah = mysqli_query($conn, $sqlhd);
                                     while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { ?>
                                         <tr>

@@ -2,16 +2,23 @@
 // File: helper/checkAdmin.php
 
 /**
- * Cek apakah user adalah Admin HRD (level 4)
+ * Cek apakah user adalah Admin HRD (level 5)
  */
 function isAdminHRD() {
+    return isset($_SESSION['level']) && $_SESSION['level'] == 5;
+}
+
+/**
+ * Cek apakah user adalah Kadep (level 4)
+ */
+function isKadepOrHigher() {
     return isset($_SESSION['level']) && $_SESSION['level'] == 4;
 }
 
 /**
- * Cek apakah user adalah Kadep atau lebih tinggi (level >= 3)
+ * Cek apakah user adalah Kadep MT atau lebih tinggi (level >= 3)
  */
-function isKadepOrHigher() {
+function isKadepMTOrHigher() {
     return isset($_SESSION['level']) && $_SESSION['level'] >= 3;
 }
 

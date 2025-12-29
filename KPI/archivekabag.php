@@ -95,9 +95,7 @@ echo '
                                                 </td>
                                                 <td>
                                                     <center>
-                                                        <?php if($row['jabatan']!='Kabag' && $row['jabatan'] !='Kadep'){ ?>
                                                         <a type="button" class="btn btn-sm btn-success" href="archiveanggota?id=<?= $row['id']; ?>"><i class="bi bi-eye"></i></a>
-                                                        <?php } ?>
                                                     </center>
                                                 </td>
                                             </tr>

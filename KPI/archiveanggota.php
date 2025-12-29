@@ -125,7 +125,7 @@ if (!isset($_SESSION['id_user'])) {
         return $bulannnn;
     }
 
-    $archivec = "SELECT * FROM tbar_archive where id_user = $id_userdd group by bulan";
+   $archivec = "SELECT bulan FROM tbar_archive WHERE id_user = $id_userdd  group by bulan";
     $getArch = mysqli_query($connarc, $archivec);
     
 }

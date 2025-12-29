@@ -4,527 +4,400 @@ session_start();
 if (!isset($_SESSION['id_user'])) {
     header("Location: index");
     exit();
+} else {
+    require 'helper/config.php';
+    require 'helper/getUser.php';
+    require 'helper/checkAdmin.php';
+
+    // Hanya Admin HRD yang bisa akses
+    requireAdminHRD();
 }
 
-require 'helper/config.php';
-require 'helper/simulasi-db/config.php';
-require 'helper/getUser.php';
+function getnilai($conn, $id)
+{
+    $sql = "SELECT * FROM tb_kpi WHERE id_user='$id'";
+    $zboth = 0;
+    $zbotw = 0;
 
-$id_user = $_SESSION['id_user'];
+    $totalws = 0;
+    $resultsaf = mysqli_query($conn, $sql);
+    while ($hasils = mysqli_fetch_assoc($resultsaf)) {
+        $sql3s = "SELECT SUM(total) as total FROM tb_whats WHERE id_user=$id AND id_kpi=" . $hasils['id'];
+        $result3s = mysqli_query($conn, $sql3s);
+        $row3sd = mysqli_fetch_assoc($result3s);
+        $totalnilaisd = $row3sd['total'];
+        $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
+        $totalws += $nilaiws;
+    }
+    $bobotkpid = 0;
+    $sql5a = "SELECT bobotwhat as bw FROM tb_bobotkpi WHERE id_user=$id";
+    $result5a = mysqli_query($conn, $sql5a);
+    while ($row5a = mysqli_fetch_assoc($result5a)) {
+        $bobotkpid = $row5a['bw'];
+    }
+    $zbotw = ($totalws * $bobotkpid) / 100;
+    // ===============================================================================
+    $totalhfg = 0;
+    $resultfg = mysqli_query($conn, $sql);
 
-// ==================== KPI REAL ====================
-// Ambil semua data KPI Real
-$sql_kpi_real = "SELECT * FROM tb_kpi WHERE id_user='$id_user'";
-$result_kpi_real = mysqli_query($conn, $sql_kpi_real);
+    // Handle Edit Password
+    while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
+        $sql7fg = "SELECT SUM(total) as totalh FROM tb_hows WHERE id_user=$id AND id_kpi=" . $hasilfg['id'];
+        $result7fg = mysqli_query($conn, $sql7fg);
+        $row7fg = mysqli_fetch_assoc($result7fg);
+        $totalnilaihfg = $row7fg['totalh'];
 
-$total_what_real = 0;
-$total_how_real = 0;
+        $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
+        $totalhfg += $nilaihfg;
+    }
+    $bobotkpias = 0;
+    $sql8a = "SELECT bobothow as bh FROM tb_bobotkpi WHERE id_user=$id";
+    $result8a = mysqli_query($conn, $sql8a);
+    while ($row8a = mysqli_fetch_assoc($result8a)) {
+        $bobotkpias = $row8a['bh'];
+    }
+    $zboth = ($totalhfg * $bobotkpias) / 100;
 
-// Hitung total WHAT dan HOW untuk semua KPI Real
-while ($kpi = mysqli_fetch_assoc($result_kpi_real)) {
-    // Hitung WHAT
-    $sql_what = "SELECT SUM(total) as total FROM tb_whats WHERE id_user='$id_user' AND id_kpi='{$kpi['id']}'";
-    $result_what = mysqli_query($conn, $sql_what);
-    $row_what = mysqli_fetch_assoc($result_what);
-    $total_nilai_what = $row_what['total'] ?? 0;
-    $nilai_what = ($total_nilai_what * $kpi['bobot']) / 100;
-    $total_what_real += $nilai_what;
-    
-    // Hitung HOW
-    $sql_how = "SELECT SUM(total) as total FROM tb_hows WHERE id_user='$id_user' AND id_kpi='{$kpi['id']}'";
-    $result_how = mysqli_query($conn, $sql_how);
-    $row_how = mysqli_fetch_assoc($result_how);
-    $total_nilai_how = $row_how['total'] ?? 0;
-    $nilai_how = ($total_nilai_how * $kpi['bobot2']) / 100;
-    $total_how_real += $nilai_how;
+    return number_format($zboth + $zbotw, 2);
 }
 
-// Ambil bobot WHAT dan HOW dari tb_bobotkpi Real
-$sql_bobot_real = "SELECT bobotwhat, bobothow FROM tb_bobotkpi WHERE id_user='$id_user' LIMIT 1";
-$result_bobot_real = mysqli_query($conn, $sql_bobot_real);
-$bobot_real = mysqli_fetch_assoc($result_bobot_real);
-$bobot_what_real = $bobot_real['bobotwhat'] ?? 0;
-$bobot_how_real = $bobot_real['bobothow'] ?? 0;
+function getWhatt($conn, $id)
+{
+    $sql = "SELECT * FROM tb_kpi WHERE id_user='$id'";
+    $zbotw = 0;
 
-// Hitung final score dengan bobot KPI
-$final_what_real = ($total_what_real * $bobot_what_real) / 100;
-$final_how_real = ($total_how_real * $bobot_how_real) / 100;
-$total_kpi_real = $final_what_real + $final_how_real;
-
-// ==================== KPI SIMULASI ====================
-// Koneksi ke database simulasi
-$conn_sim = mysqli_connect("localhost", "root", "", "db_simulasi");
-
-// Ambil semua data KPI Simulasi
-$sql_kpi_sim = "SELECT * FROM tb_kpi WHERE id_user='$id_user'";
-$result_kpi_sim = mysqli_query($conn_sim, $sql_kpi_sim);
-
-$total_what_sim = 0;
-$total_how_sim = 0;
-
-// Hitung total WHAT dan HOW untuk semua KPI Simulasi
-while ($kpi = mysqli_fetch_assoc($result_kpi_sim)) {
-    // Hitung WHAT
-    $sql_what = "SELECT SUM(total) as total FROM tb_whats WHERE id_user='$id_user' AND id_kpi='{$kpi['id']}'";
-    $result_what = mysqli_query($conn_sim, $sql_what);
-    $row_what = mysqli_fetch_assoc($result_what);
-    $total_nilai_what = $row_what['total'] ?? 0;
-    $nilai_what = ($total_nilai_what * $kpi['bobot']) / 100;
-    $total_what_sim += $nilai_what;
-    
-    // Hitung HOW
-    $sql_how = "SELECT SUM(total) as total FROM tb_hows WHERE id_user='$id_user' AND id_kpi='{$kpi['id']}'";
-    $result_how = mysqli_query($conn_sim, $sql_how);
-    $row_how = mysqli_fetch_assoc($result_how);
-    $total_nilai_how = $row_how['total'] ?? 0;
-    $nilai_how = ($total_nilai_how * $kpi['bobot2']) / 100;
-    $total_how_sim += $nilai_how;
+    $totalws = 0;
+    $resultsaf = mysqli_query($conn, $sql);
+    while ($hasils = mysqli_fetch_assoc($resultsaf)) {
+        $sql3s = "SELECT SUM(total) as total FROM tb_whats WHERE id_user=$id AND id_kpi=" . $hasils['id'];
+        $result3s = mysqli_query($conn, $sql3s);
+        $row3sd = mysqli_fetch_assoc($result3s);
+        $totalnilaisd = $row3sd['total'];
+        $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
+        $totalws += $nilaiws;
+    }
+    $bobotkpid = 0;
+    $sql5a = "SELECT bobotwhat as bw FROM tb_bobotkpi WHERE id_user=$id";
+    $result5a = mysqli_query($conn, $sql5a);
+    while ($row5a = mysqli_fetch_assoc($result5a)) {
+        $bobotkpid = $row5a['bw'];
+    }
+    $zbotw = ($totalws * $bobotkpid) / 100;
+    return number_format($zbotw, 2);
 }
 
-// Ambil bobot WHAT dan HOW dari tb_bobotkpi Simulasi
-$sql_bobot_sim = "SELECT bobotwhat, bobothow FROM tb_bobotkpi WHERE id_user='$id_user' LIMIT 1";
-$result_bobot_sim = mysqli_query($conn_sim, $sql_bobot_sim);
-$bobot_sim = mysqli_fetch_assoc($result_bobot_sim);
-$bobot_what_sim = $bobot_sim['bobotwhat'] ?? 0;
-$bobot_how_sim = $bobot_sim['bobothow'] ?? 0;
+function getHoww($conn, $id)
+{
+    $sql = "SELECT * FROM tb_kpi WHERE id_user='$id'";
+    $zboth = 0;
+    $totalhfg = 0;
+    $resultfg = mysqli_query($conn, $sql);
 
-// Hitung final score dengan bobot KPI
-$final_what_sim = ($total_what_sim * $bobot_what_sim) / 100;
-$final_how_sim = ($total_how_sim * $bobot_how_sim) / 100;
-$total_kpi_sim = $final_what_sim + $final_how_sim;
+    while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
+        $sql7fg = "SELECT SUM(total) as totalh FROM tb_hows WHERE id_user=$id AND id_kpi=" . $hasilfg['id'];
+        $result7fg = mysqli_query($conn, $sql7fg);
+        $row7fg = mysqli_fetch_assoc($result7fg);
+        $totalnilaihfg = $row7fg['totalh'];
 
-// Reset pointer untuk tampilan list
-mysqli_data_seek($result_kpi_real, 0);
-mysqli_data_seek($result_kpi_sim, 0);
+        $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
+        $totalhfg += $nilaihfg;
+    }
+    $bobotkpias = 0;
+    $sql8a = "SELECT bobothow as bh FROM tb_bobotkpi WHERE id_user=$id";
+    $result8a = mysqli_query($conn, $sql8a);
+    while ($row8a = mysqli_fetch_assoc($result8a)) {
+        $bobotkpias = $row8a['bh'];
+    }
+    $zboth = ($totalhfg * $bobotkpias) / 100;
+    return number_format($zboth, 2);
+}
+
+function getkpi($nilair)
+{
+    if ($nilair < 90) {
+        return "POOR";
+    } elseif ($nilair <= 100) {
+        return "GOOD";
+    } elseif ($nilair <= 110) {
+        return "Very Good";
+    } else {
+        return "Excellent";
+    }
+}
 ?>
 
 <html lang="en">
-<?php include("pages/part/p_header.php"); ?>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>KPI Digital - Admin HRD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="title" content="KPI Digital">
+    <meta name="author" content="Rvld">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/source-sans-3@5.0.12/index.css"
+        integrity="sha256-tXJfXfp6Ewt1ilPzLDtQnJV4hclT9XuaZUKyUvmyr+Q=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.3.0/styles/overlayscrollbars.min.css"
+        integrity="sha256-dSokZseQNT08wYEWiz5iLI8QPlKxG+TswNRD8k35cpg=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.min.css"
+        integrity="sha256-Qsx5lrStHZyR9REqhUF8iQt73X06c8LGIUPzpOhwRrI=" crossorigin="anonymous">
+    <link rel="stylesheet" href="assets/css/adminlte.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+        integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="assets/css/datatables/datatables.min.css" />
+    <script type="text/javascript" src="datatables/datatables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.css"
+        integrity="sha256-4MX+61mt9NVvvuPjUWdUdyfZfxSB1/Rf9WtqRHgG5S0=" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css"
+        integrity="sha256-+uGLJmmTKOqBr+2E6KDYs/NRsHxSkONXFHUL0fy2O/4=" crossorigin="anonymous">
+    
+    <style>
+        .badge-admin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .header-admin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
     <div class="app-wrapper">
-        <?php include("pages/dashboard/p_nav_utama.php"); ?>
-        <?php include("pages/part/p_aside.php"); ?>
+        <?php include("pages/kpikabag/k_nav.php"); ?>
+        <?php include("pages/part/p_aside_adminhrd.php"); ?>
         
         <main class="app-main">
             <div class="app-content">
-                <div class="container-fluid" style="font-size:13px;">
+                <div class="container-fluid">
                     
-                    <!-- Header Dashboard -->
-                    <div class="row mb-4 mt-3">
-                        <div class="col-12">
-                            <div class="card shadow-sm border-0">
-                                <div class="card-body">
-                                    <h3 class="fw-bold mb-2"><i class="bi bi-bar-chart-line-fill text-primary me-2"></i>Dashboard KPI</h3>
-                                    <p class="text-muted mb-0">Komparasi antara KPI Real dan KPI Simulasi</p>
-                                </div>
+                    <!-- Header Admin HRD -->
+                    <div class="header-admin mt-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-2">
+                                    <i class="bi bi-shield-fill-check me-2"></i>Dashboard Admin HRD
+                                </h3>
+                                <p class="mb-0 opacity-75">Monitoring KPI Seluruh Karyawan</p>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge-admin">
+                                    <i class="bi bi-person-badge-fill me-2"></i><?= $nama_lngkp ?>
+                                </span>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Menu Cards - BARU -->
+
+                    <!-- Menu Cards -->
                     <div class="row mb-4">
-                        <!-- Skill Standard -->
+                        <!-- Data User -->
                         <div class="col-lg-4 col-md-6 mb-3">
-                            <div class="card shadow-sm border-0 h-100 hover-card" onclick="window.location.href='skillstandard'" style="cursor: pointer; transition: transform 0.2s;">
+                            <div class="card shadow-sm border-0 h-100 hover-card"
+                                onclick="window.location.href='datauser-adminhrd'"
+                                style="cursor:pointer; transition:transform 0.2s;">
                                 <div class="card-body text-center p-4">
                                     <div class="mb-3">
-                                        <i class="bi bi-award-fill text-info" style="font-size: 3rem;"></i>
+                                        <i class="bi bi-people-fill text-info" style="font-size:3rem;"></i>
                                     </div>
-                                    <h5 class="fw-bold mb-2">Skill Standard</h5>
-                                    <p class="text-muted mb-0 small">Kelola standar keterampilan dan kompetensi</p>
+                                    <h5 class="fw-bold mb-2">Data User</h5>
+                                    <p class="text-muted mb-0 small">Kelola data pengguna sistem</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Archive -->
                         <div class="col-lg-4 col-md-6 mb-3">
-                            <div class="card shadow-sm border-0 h-100 hover-card" onclick="window.location.href='archive'" style="cursor: pointer; transition: transform 0.2s;">
+                            <div class="card shadow-sm border-0 h-100 hover-card"
+                                onclick="window.location.href='archive-adminhrd'"
+                                style="cursor:pointer; transition:transform 0.2s;">
                                 <div class="card-body text-center p-4">
                                     <div class="mb-3">
-                                        <i class="bi bi-archive-fill text-warning" style="font-size: 3rem;"></i>
+                                        <i class="bi bi-archive-fill text-warning" style="font-size:3rem;"></i>
                                     </div>
                                     <h5 class="fw-bold mb-2">Archive</h5>
-                                    <p class="text-muted mb-0 small">Arsip dokumen dan data historis</p>
+                                    <p class="text-muted mb-0 small">Arsip dokumen & data historis</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Eviden -->
                         <div class="col-lg-4 col-md-6 mb-3">
-                            <div class="card shadow-sm border-0 h-100 hover-card" onclick="window.location.href='eviden'" style="cursor: pointer; transition: transform 0.2s;">
+                            <div class="card shadow-sm border-0 h-100 hover-card"
+                                onclick="window.location.href='eviden-adminhrd'"
+                                style="cursor:pointer; transition:transform 0.2s;">
                                 <div class="card-body text-center p-4">
                                     <div class="mb-3">
-                                        <i class="bi bi-folder-fill text-danger" style="font-size: 3rem;"></i>
+                                        <i class="bi bi-folder-fill text-danger" style="font-size:3rem;"></i>
                                     </div>
                                     <h5 class="fw-bold mb-2">Eviden</h5>
-                                    <p class="text-muted mb-0 small">Dokumentasi bukti dan evidensi</p>
+                                    <p class="text-muted mb-0 small">Dokumentasi bukti & evidensi</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Comparison Cards -->
-                    <div class="row">
-                        
-                        <!-- KPI REAL -->
-                        <div class="col-lg-6 mb-4">
-                            <div class="card shadow-sm border-0 h-100 hover-card" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='dashboard'">
+                    <!-- Statistics Summary -->
+                    
+                    <!-- Table KPI -->
+                    <div class="table-responsive">
+                        <table id="datatablenya" class="table align-middle table-hover table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="3%">
+                                        <center>No</center>
+                                    </th>
+                                    <th>
+                                        <center>Nama Lengkap</center>
+                                    </th>
+                                    <th width="12%">
+                                        <center>Jabatan</center>
+                                    </th>
+                                    <th width="12%">
+                                        <center>Departemen</center>
+                                    </th>
+                                    <th width="12%">
+                                        <center>Bagian</center>
+                                    </th>
+                                    <th width="8%">
+                                        <center>What</center>
+                                    </th>
+                                    <th width="8%">
+                                        <center>How</center>
+                                    </th>
+                                    <th width="8%">
+                                        <center>Nilai</center>
+                                    </th>
+                                    <th width="10%">
+                                        <center>KPI</center>
+                                    </th>
+                                    <th width="5%">
+                                        <center>#</center>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php 
+                                $no = 1;
+                                // Query untuk menampilkan semua user kecuali Admin HRD
+                                // Urutkan: Kadep -> Kabag -> Karyawan
+                                $sqlhd = "SELECT u.*, a.level
+                                          FROM tb_users u
+                                          INNER JOIN tb_auth a ON u.id = a.id_user
+                                          WHERE u.id != $id_user AND u.jabatan != 'Admin HRD'
+                                          ORDER BY 
+                                              CASE 
+                                                  WHEN u.jabatan = 'Kadep' THEN 1
+                                                  WHEN u.jabatan = 'Kabag' THEN 2
+                                                  WHEN u.jabatan = 'Karyawan' THEN 3
+                                                  ELSE 4
+                                              END,
+                                              u.nama_lngkp ASC";
+                                $sgdah = mysqli_query($conn, $sqlhd);
                                 
-                                <!-- Header Card Real -->
-                                <div class="card-header bg-primary text-white">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h4 class="mb-0 fw-bold"><i class="bi bi-check-circle-fill me-2"></i>KPI REAL</h4>
-                                            <small class="opacity-75">Data Aktual Kinerja</small>
-                                        </div>
-                                        <div class="text-end">
-                                            <h2 class="mb-0 fw-bold"><?= number_format($total_kpi_real, 2) ?></h2>
-                                            <small>Total Score</small>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="card-body">
+                                while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { 
+                                    // Tentukan badge color berdasarkan jabatan
+                                    $badge_color = 'secondary';
+                                    $badge_icon = 'person-fill';
                                     
-                                    <!-- WHAT Section -->
-                                    <div class="mb-4">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h5 class="fw-bold text-primary mb-0">
-                                                <i class="bi bi-bullseye me-2"></i>WHAT (Target/Tujuan)
-                                            </h5>
-                                            <span class="badge bg-warning text-dark">Bobot KPI: <?= $bobot_what_real ?>%</span>
-                                        </div>
-                                        
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-hover mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Poin KPI</th>
-                                                        <th class="text-center" width="20%">Bobot Poin</th>
-                                                        <th class="text-center" width="20%">Total WHAT</th>
-                                                        <th class="text-center" width="20%">Nilai</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <?php 
-                                                    $no = 1;
-                                                    mysqli_data_seek($result_kpi_real, 0);
-                                                    while ($kpi = mysqli_fetch_assoc($result_kpi_real)) {
-                                                        // Hitung total WHAT untuk KPI ini
-                                                        $sql_total = "SELECT SUM(total) as total FROM tb_whats WHERE id_user='$id_user' AND id_kpi='{$kpi['id']}'";
-                                                        $res_total = mysqli_query($conn, $sql_total);
-                                                        $row_total = mysqli_fetch_assoc($res_total);
-                                                        $total_what_kpi = $row_total['total'] ?? 0;
-                                                        $nilai_akhir = ($total_what_kpi * $kpi['bobot']) / 100;
-                                                    ?>
-                                                    <tr>
-                                                        <td>
-                                                            <small class="text-muted"><?= $no++ ?>.</small>
-                                                            <span class="ms-1 fw-bold"><?= $kpi['poin'] ?></span>
-                                                        </td>
-                                                        <td class="text-center"><?= $kpi['bobot'] ?>%</td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-info"><?= number_format($total_what_kpi, 2) ?></span>
-                                                        </td>
-                                                        <td class="text-center fw-bold text-primary"><?= number_format($nilai_akhir, 2) ?></td>
-                                                    </tr>
-                                                    <?php } ?>
-                                                </tbody>
-                                                <tfoot class="table-light">
-                                                    <tr>
-                                                        <td colspan="3" class="text-end fw-bold">Total WHAT (<?= $bobot_what_real ?>%):</td>
-                                                        <td class="text-center fw-bold text-primary"><?= number_format($final_what_real, 2) ?></td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                    <hr>
-
-                                    <!-- HOW Section -->
-                                    <div>
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h5 class="fw-bold text-success mb-0">
-                                                <i class="bi bi-gear-fill me-2"></i>HOW (Cara/Metode)
-                                            </h5>
-                                            <span class="badge bg-warning text-dark">Bobot KPI: <?= $bobot_how_real ?>%</span>
-                                        </div>
-                                        
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-hover mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Poin KPI</th>
-                                                        <th class="text-center" width="20%">Bobot Poin</th>
-                                                        <th class="text-center" width="20%">Total HOW</th>
-                                                        <th class="text-center" width="20%">Nilai</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <?php 
-                                                    $no = 1;
-                                                    mysqli_data_seek($result_kpi_real, 0);
-                                                    while ($kpi = mysqli_fetch_assoc($result_kpi_real)) {
-                                                        // Hitung total HOW untuk KPI ini
-                                                        $sql_total = "SELECT SUM(total) as total FROM tb_hows WHERE id_user='$id_user' AND id_kpi='{$kpi['id']}'";
-                                                        $res_total = mysqli_query($conn, $sql_total);
-                                                        $row_total = mysqli_fetch_assoc($res_total);
-                                                        $total_how_kpi = $row_total['total'] ?? 0;
-                                                        $nilai_akhir = ($total_how_kpi * $kpi['bobot2']) / 100;
-                                                    ?>
-                                                    <tr>
-                                                        <td>
-                                                            <small class="text-muted"><?= $no++ ?>.</small>
-                                                            <span class="ms-1 fw-bold"><?= $kpi['poin2'] ?></span>
-                                                        </td>
-                                                        <td class="text-center"><?= $kpi['bobot2'] ?>%</td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-info"><?= number_format($total_how_kpi, 2) ?></span>
-                                                        </td>
-                                                        <td class="text-center fw-bold text-success"><?= number_format($nilai_akhir, 2) ?></td>
-                                                    </tr>
-                                                    <?php } ?>
-                                                </tbody>
-                                                <tfoot class="table-light">
-                                                    <tr>
-                                                        <td colspan="3" class="text-end fw-bold">Total HOW (<?= $bobot_how_real ?>%):</td>
-                                                        <td class="text-center fw-bold text-success"><?= number_format($final_how_real, 2) ?></td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                                <!-- Footer Total -->
-                                <div class="card-footer bg-light">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-bold text-uppercase">Total KPI Real</span>
-                                        <h3 class="mb-0 fw-bold text-primary"><?= number_format($total_kpi_real, 2) ?></h3>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <!-- KPI SIMULASI -->
-                        <div class="col-lg-6 mb-4">
-                            <div class="card shadow-sm border-0 h-100 hover-card" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='dashboard-simulasi'">
-                                
-                                <!-- Header Card Simulasi -->
-                                <div class="card-header bg-success text-white">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h4 class="mb-0 fw-bold"><i class="bi bi-graph-up-arrow me-2"></i>KPI SIMULASI</h4>
-                                            <small class="opacity-75">Data Proyeksi/Target</small>
-                                        </div>
-                                        <div class="text-end">
-                                            <h2 class="mb-0 fw-bold"><?= number_format($total_kpi_sim, 2) ?></h2>
-                                            <small>Total Score</small>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="card-body">
-                                    
-                                    <!-- WHAT Section -->
-                                    <div class="mb-4">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h5 class="fw-bold text-primary mb-0">
-                                                <i class="bi bi-bullseye me-2"></i>WHAT (Target/Tujuan)
-                                            </h5>
-                                            <span class="badge bg-warning text-dark">Bobot KPI: <?= $bobot_what_sim ?>%</span>
-                                        </div>
-                                        
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-hover mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Poin KPI</th>
-                                                        <th class="text-center" width="20%">Bobot Poin</th>
-                                                        <th class="text-center" width="20%">Total WHAT</th>
-                                                        <th class="text-center" width="20%">Nilai</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <?php 
-                                                    $no = 1;
-                                                    mysqli_data_seek($result_kpi_sim, 0);
-                                                    while ($kpi = mysqli_fetch_assoc($result_kpi_sim)) {
-                                                        // Hitung total WHAT untuk KPI ini
-                                                        $sql_total = "SELECT SUM(total) as total FROM tb_whats WHERE id_user='$id_user' AND id_kpi='{$kpi['id']}'";
-                                                        $res_total = mysqli_query($conn_sim, $sql_total);
-                                                        $row_total = mysqli_fetch_assoc($res_total);
-                                                        $total_what_kpi = $row_total['total'] ?? 0;
-                                                        $nilai_akhir = ($total_what_kpi * $kpi['bobot']) / 100;
-                                                    ?>
-                                                    <tr>
-                                                        <td>
-                                                            <small class="text-muted"><?= $no++ ?>.</small>
-                                                            <span class="ms-1 fw-bold"><?= $kpi['poin'] ?></span>
-                                                        </td>
-                                                        <td class="text-center"><?= $kpi['bobot'] ?>%</td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-info"><?= number_format($total_what_kpi, 2) ?></span>
-                                                        </td>
-                                                        <td class="text-center fw-bold text-primary"><?= number_format($nilai_akhir, 2) ?></td>
-                                                    </tr>
-                                                    <?php } ?>
-                                                </tbody>
-                                                <tfoot class="table-light">
-                                                    <tr>
-                                                        <td colspan="3" class="text-end fw-bold">Total WHAT (<?= $bobot_what_sim ?>%):</td>
-                                                        <td class="text-center fw-bold text-primary"><?= number_format($final_what_sim, 2) ?></td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                    <hr>
-
-                                    <!-- HOW Section -->
-                                    <div>
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h5 class="fw-bold text-success mb-0">
-                                                <i class="bi bi-gear-fill me-2"></i>HOW (Cara/Metode)
-                                            </h5>
-                                            <span class="badge bg-warning text-dark">Bobot KPI: <?= $bobot_how_sim ?>%</span>
-                                        </div>
-                                        
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-hover mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th>Poin KPI</th>
-                                                        <th class="text-center" width="20%">Bobot Poin</th>
-                                                        <th class="text-center" width="20%">Total HOW</th>
-                                                        <th class="text-center" width="20%">Nilai</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <?php 
-                                                    $no = 1;
-                                                    mysqli_data_seek($result_kpi_sim, 0);
-                                                    while ($kpi = mysqli_fetch_assoc($result_kpi_sim)) {
-                                                        // Hitung total HOW untuk KPI ini
-                                                        $sql_total = "SELECT SUM(total) as total FROM tb_hows WHERE id_user='$id_user' AND id_kpi='{$kpi['id']}'";
-                                                        $res_total = mysqli_query($conn_sim, $sql_total);
-                                                        $row_total = mysqli_fetch_assoc($res_total);
-                                                        $total_how_kpi = $row_total['total'] ?? 0;
-                                                        $nilai_akhir = ($total_how_kpi * $kpi['bobot2']) / 100;
-                                                    ?>
-                                                    <tr>
-                                                        <td>
-                                                            <small class="text-muted"><?= $no++ ?>.</small>
-                                                            <span class="ms-1 fw-bold"><?= $kpi['poin2'] ?></span>
-                                                        </td>
-                                                        <td class="text-center"><?= $kpi['bobot2'] ?>%</td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-info"><?= number_format($total_how_kpi, 2) ?></span>
-                                                        </td>
-                                                        <td class="text-center fw-bold text-success"><?= number_format($nilai_akhir, 2) ?></td>
-                                                    </tr>
-                                                    <?php } ?>
-                                                </tbody>
-                                                <tfoot class="table-light">
-                                                    <tr>
-                                                        <td colspan="3" class="text-end fw-bold">Total HOW (<?= $bobot_how_sim ?>%):</td>
-                                                        <td class="text-center fw-bold text-success"><?= number_format($final_how_sim, 2) ?></td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                                <!-- Footer Total -->
-                                <div class="card-footer bg-light">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-bold text-uppercase">Total KPI Simulasi</span>
-                                        <h3 class="mb-0 fw-bold text-success"><?= number_format($total_kpi_sim, 2) ?></h3>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
+                                    if ($hasilsfa['jabatan'] == 'Kadep') {
+                                        $badge_color = 'danger';
+                                        $badge_icon = 'award-fill';
+                                    } elseif ($hasilsfa['jabatan'] == 'Kabag') {
+                                        $badge_color = 'warning';
+                                        $badge_icon = 'star-fill';
+                                    } elseif ($hasilsfa['jabatan'] == 'Karyawan') {
+                                        $badge_color = 'success';
+                                        $badge_icon = 'person-check-fill';
+                                    }
+                                ?>
+                                <tr>
+                                    <td>
+                                        <center><?= $no; ?></center>
+                                    </td>
+                                    <td style="padding-left: 20px;">
+                                        <strong><?= $hasilsfa['nama_lngkp']; ?></strong>
+                                        <br>
+                                        <small class="text-muted">NIK: <?= $hasilsfa['nik']; ?></small>
+                                    </td>
+                                    <td>
+                                        <center>
+                                            <span class="badge bg-<?= $badge_color ?>">
+                                                <i class="bi bi-<?= $badge_icon ?> me-1"></i>
+                                                <?= $hasilsfa['jabatan']; ?>
+                                            </span>
+                                        </center>
+                                    </td>
+                                    <td>
+                                        <center><?= $hasilsfa['departement']; ?></center>
+                                    </td>
+                                    <td>
+                                        <center><?= $hasilsfa['bagian']; ?></center>
+                                    </td>
+                                    <td>
+                                        <center><strong><?= getWhatt($conn, $hasilsfa['id']); ?></strong></center>
+                                    </td>
+                                    <td>
+                                        <center><strong><?= getHoww($conn, $hasilsfa['id']); ?></strong></center>
+                                    </td>
+                                    <?php
+                                    $nilair = getnilai($conn, $hasilsfa['id']);
+                                    if ($nilair < 90) {
+                                        $wrabs = "red";
+                                        $badge_kpi = "danger";
+                                    } elseif ($nilair <= 100) {
+                                        $wrabs = "orange";
+                                        $badge_kpi = "warning";
+                                    } elseif ($nilair <= 110) {
+                                        $wrabs = "green";
+                                        $badge_kpi = "success";
+                                    } else {
+                                        $wrabs = "blue";
+                                        $badge_kpi = "primary";
+                                    }
+                                    ?>
+                                    <td style="color:<?= $wrabs ?>">
+                                        <center><strong><?= getnilai($conn, $hasilsfa['id']); ?></strong></center>
+                                    </td>
+                                    <td>
+                                        <center>
+                                            <span class="badge bg-<?= $badge_kpi ?>">
+                                                <?= getkpi(getnilai($conn, $hasilsfa['id'])); ?>
+                                            </span>
+                                        </center>
+                                    </td>
+                                    <td>
+                                        <center>
+                                            <div class="btn-group" role="group">
+                                                <a href="kpianggota?id=<?= $hasilsfa['id']; ?>" 
+                                                   class="btn btn-primary btn-sm" 
+                                                   title="Lihat KPI">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                            </div>
+                                        </center>
+                                    </td>
+                                </tr>
+                                <?php 
+                                    $no++;
+                                } 
+                                ?>
+                            </tbody>
+                        </table>
                     </div>
-
-                    <!-- Comparison Summary -->
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="card shadow-sm border-0">
-                                <div class="card-header bg-warning">
-                                    <h5 class="mb-0 fw-bold"><i class="bi bi-clipboard-data me-2"></i>Ringkasan Perbandingan</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row text-center">
-                                        <div class="col-md-4">
-                                            <div class="p-3">
-                                                <h6 class="text-muted mb-2">Selisih Total</h6>
-                                                <h3 class="fw-bold <?= ($total_kpi_real - $total_kpi_sim) >= 0 ? 'text-success' : 'text-danger' ?>">
-                                                    <?= number_format(abs($total_kpi_real - $total_kpi_sim), 2) ?>
-                                                </h3>
-                                                <small class="text-muted">
-                                                    <?= ($total_kpi_real - $total_kpi_sim) >= 0 ? 'Real lebih tinggi' : 'Simulasi lebih tinggi' ?>
-                                                </small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="p-3 border-start border-end">
-                                                <h6 class="text-muted mb-2">Persentase Pencapaian</h6>
-                                                <h3 class="fw-bold text-primary">
-                                                    <?= $total_kpi_sim > 0 ? number_format(($total_kpi_real / $total_kpi_sim) * 100, 2) : 0 ?>%
-                                                </h3>
-                                                <small class="text-muted">Real vs Target Simulasi</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="p-3">
-                                                <h6 class="text-muted mb-2">Status</h6>
-                                                <h3>
-                                                    <?php if ($total_kpi_real >= $total_kpi_sim) { ?>
-                                                        <span class="badge bg-success fs-6">Target Tercapai</span>
-                                                    <?php } else { ?>
-                                                        <span class="badge bg-danger fs-6">Belum Tercapai</span>
-                                                    <?php } ?>
-                                                </h3>
-                                                <small class="text-muted">Evaluasi Kinerja</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+                    
                 </div>
             </div>
         </main>
-
+        
         <?php include("pages/part/p_footer.php"); ?>
     </div>
-
-    <style>
-        .hover-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
-        }
-        
-        .table-hover tbody tr:hover {
-            background-color: rgba(0,0,0,0.02);
-        }
-        
-        .badge {
-            font-weight: 600;
-            padding: 0.4em 0.8em;
-        }
-    </style>
-
 </body>
 </html>

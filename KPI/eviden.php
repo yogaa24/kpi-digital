@@ -132,11 +132,18 @@ if (isset($_POST['editevi'])) {
             <div class="container-fluid">
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i class="bi bi-list"></i> </a> </li>
-                    <li class="nav-item d-none d-md-block"> <a href="dashboard" class="nav-link">Dashboard</a> </li>
+                    <li class="nav-item d-none d-md-block"> <a href="dashboard-utama" class="nav-link">Dashboard</a> </li>
                     <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#tambahEviModal" class="nav-link">Tambah Eviden</a> </li>
-                    <?php if($jabatan=="Kabag"){?>
-                        <li class="nav-item d-none d-md-block"> <a href="evidenkabag" class="nav-link">Eviden Anggota</a> </li>
-                    <?php }?>
+                    <?php if (
+                        $jabatan == "Kabag" ||
+                        $jabatan == "Kadep MT" ||
+                        $jabatan == "Kadep"
+                    ) { ?>
+                        <li class="nav-item d-none d-md-block">
+                            <a href="evidenkabag" class="nav-link">Eviden Anggota</a>
+                        </li>
+                    <?php } ?>
+
                 </ul>
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"> <a class="nav-link" href="#" data-lte-toggle="fullscreen"> <i data-lte-icon="maximize" class="bi bi-arrows-fullscreen"></i> <i data-lte-icon="minimize" class="bi bi-fullscreen-exit" style="display: none;"></i> </a> </li> <!--end::Fullscreen Toggle--> <!--begin::User Menu Dropdown-->

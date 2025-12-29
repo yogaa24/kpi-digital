@@ -3,8 +3,16 @@ session_start();
 require 'helper/config.php';
 
 if (isset($_SESSION['id_user'])) {
-    header("Location: dashboard-utama");
-    exit();
+    // Redirect berdasarkan level
+    require 'helper/checkAdmin.php';
+    
+    if (isAdminHRD()) {
+        header("Location: dashboard-adminhrd");
+        exit();
+    } else {
+        header("Location: dashboard-utama");
+        exit();
+    }
 }
  
 if (isset($_POST['submit'])) {
@@ -17,7 +25,15 @@ if (isset($_POST['submit'])) {
         $row = mysqli_fetch_assoc($result);
         $_SESSION['id_user'] = $row['id_user'];
         $_SESSION['level'] = $row['level'];
-        header("Location:  dashboard-utama");
+        
+        // Redirect berdasarkan level
+        if ($row['level'] == 5) {
+            // Admin HRD
+            header("Location: dashboard-adminhrd");
+        } else {
+            // User biasa
+            header("Location: dashboard-utama");
+        }
         exit();
     } else {
         echo "<script>alert('Email atau password Anda salah. Silakan coba lagi!')</script>";

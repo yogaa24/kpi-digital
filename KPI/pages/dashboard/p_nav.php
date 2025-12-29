@@ -23,7 +23,7 @@
 
             <?php if ($leveel == 4) { ?>
                 <li class="nav-item d-none d-md-block">
-                    <a href="kpiadminhrd" class="nav-link">KPI Anggota</a>
+                    <a href="kpikadep" class="nav-link">KPI Anggota</a>
                 </li>
             <?php } ?>
 <!-- 
