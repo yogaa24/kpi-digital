@@ -155,13 +155,6 @@ function getkpi($nilair)
             <div class="app-content">
                 <div class="container-fluid">
                     <div class="mt-4">
-                        <!-- Tombol Export Excel -->
-                        <div class="mb-3 d-flex justify-content-between align-items-center">
-                            <h4 class="mb-0">Data KPI Team</h4>
-                            <a href="export_kpi_team.php" class="btn btn-success">
-                                <i class="bi bi-file-earmark-excel"></i> Export ke Excel
-                            </a>
-                        </div>
                         
                         <div class="table-responsive">
                             <table id="datatablenya" class="table align-midle table-hover table-bordered">
@@ -191,7 +184,7 @@ function getkpi($nilair)
                                         <th width="10%">
                                             <center>KPI</center>
                                         </th>
-                                        <th width="2%">
+                                        <th width="8%">
                                             <center>#</center>
                                         </th>
                                     </tr>

@@ -145,6 +145,11 @@ if (!isset($_SESSION['id_user'])) {
                                     </li>
                                 <?php } ?>
                     <li class="nav-item d-none d-md-block"> <a href="kpidetailanggota?id=<?= $_GET['id']; ?>" class="nav-link">Detail KPI</a> </li>
+                    <li class="nav-item d-none d-md-block"> 
+                        <a href="export_kpi_detail.php?id=<?= $_GET['id']; ?>" class="nav-link" style="color: green; font-weight: bold;">
+                            <i class="bi bi-file-earmark-excel"></i> Export Excel Detail
+                        </a> 
+                    </li>
                 </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
 
                 <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->
