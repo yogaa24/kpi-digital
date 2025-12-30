@@ -77,6 +77,9 @@
                                                 data-bs-target="#EditWhatModal<?= $res['id_what'] ?>">Edit</a>
                                             <a class="dropdown-item" data-bs-toggle="modal"
                                                 data-bs-target="#HapusWhatModal<?= $res['id_what'] ?>">Hapus</a>
+                                            <div class="dropdown-divider"></div>
+                                             <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
+                                                data-bs-target="#NilaiWhatModal<?= $res['id_what'] ?>">Nilai</a>
                                         </div>
                                     </td>
 
@@ -84,6 +87,53 @@
 
                                 </tr>
                             </tbody>
+                             <div class="modal fade" id="NilaiWhatModal<?=$res['id_what'] ?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content"> 
+                                        <div class="modal-header"> 
+                                            <h5 class="modal-title fw-bold" id="exampleModalLabel">Penilaian</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="POST" action="">
+                                                <input type="hidden" value="<?php echo $res['id_what']; ?>" name="idkpi"> 
+                                                
+                                                <div class="input-group mb-3">
+                                                    <span style="color: #343A40;" class="input-group-text fw-bold" id="tujuan">Tujuan :</span>
+                                                    <textarea type="input" class="form-control" name="indikatorwhat" disabled placeholder="" aria-label="Tujuan KPI" aria-describedby="tujuan"><?=$res['p_what']?></textarea>
+                                                </div>
+                                                
+                                                <div class="input-group mb-3">
+                                                    <span style="color: #343A40;" class="input-group-text fw-bold">Nilai :</span>
+                                                    <select required class="form-control" name="nilaisi" id="nilaisi">
+                                                        <option selected disabled>Pilih Nilai</option>
+                                                        <?php 
+                                                        // Ambil indikator untuk what ini
+                                                        $id_what = $res['id_what'];
+                                                        $sql_indikator = "SELECT * FROM tb_indikator_whats 
+                                                                        WHERE id_what = '$id_what' 
+                                                                        ORDER BY urutan ASC";
+                                                        $result_indikator = mysqli_query($conn, $sql_indikator);
+                                                        
+                                                        while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                                            // Format: "id_indikator" untuk value, tampilkan keterangan dan nilai
+                                                            echo '<option value="'.$indikator['id_indikator'].'">';
+                                                            echo ''.$indikator['keterangan'].' = '.$indikator['nilai'];
+                                                            echo '</option>';
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                </div>
+                                                
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" name="nilai_what" class="btn btn-primary">Simpan</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <?php include('pages/kpi/k_modalEditwhat.php'); ?>
 
@@ -167,10 +217,59 @@
                                                 data-bs-target="#EditHowModal<?= $res['id_how'] ?>">Edit</a>
                                             <a class="dropdown-item" data-bs-toggle="modal"
                                                 data-bs-target="#HapusHowModal<?= $res['id_how'] ?>">Hapus</a>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
+                                                data-bs-target="#NilaiHowModal<?= $res['id_how'] ?>">Nilai</a>
                                         </div>
                                     </td>
                                 </tr>
                             </tbody>
+                             <div class="modal fade" id="NilaiHowModal<?=$res['id_how']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content"> 
+                                        <div class="modal-header"> 
+                                            <h5 class="modal-title fw-bold" id="exampleModalLabel">Penilaian How</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="POST" action="">
+                                                <input type="hidden" value="<?php echo $res['id_how']; ?>" name="idkpi"> 
+                                                
+                                                <div class="input-group mb-3">
+                                                    <span style="color: #343A40;" class="input-group-text fw-bold" id="tujuan">Tujuan :</span>
+                                                    <textarea type="input" class="form-control" name="indikatorhow" disabled placeholder="" aria-label="Tujuan KPI" aria-describedby="tujuan"><?=$res['p_how']?></textarea>
+                                                </div>
+                                                
+                                                <div class="input-group mb-3">
+                                                    <span style="color: #343A40;" class="input-group-text fw-bold">Nilai :</span>
+                                                    <select required class="form-control" name="nilaisi" id="nilaisi">
+                                                        <option selected disabled>Pilih Nilai</option>
+                                                        <?php 
+                                                        // Ambil indikator untuk how ini
+                                                        $id_how = $res['id_how'];
+                                                        $sql_indikator = "SELECT * FROM tb_indikator_hows 
+                                                                        WHERE id_how = '$id_how' 
+                                                                        ORDER BY urutan ASC";
+                                                        $result_indikator = mysqli_query($conn, $sql_indikator);
+                                                        
+                                                        while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                                            echo '<option value="'.$indikator['id_indikator'].'">';
+                                                            echo ''.$indikator['keterangan'].' = '.$indikator['nilai'];
+                                                            echo '</option>';
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                </div>
+                                                
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" name="nilai_how" class="btn btn-success">Simpan</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             
                             <?php include('pages/kpi/k_modalEdithow.php'); ?>
                             <?php include('pages/kpi/k_modalHapushow.php'); ?>

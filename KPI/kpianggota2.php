@@ -69,30 +69,6 @@ if (!isset($_SESSION['id_user'])) {
 
         return $zboth + $zbotw;
     }
-    if (isset($_POST['updateWhatB'])) {
-        $bwasfg = $_POST['bobot'];
-        $idfj = $_POST['idU'];
-        $sql = "UPDATE `tb_bobotkpi` SET bobotwhat =" . $bwasfg . " where id_user =" . $idfj;
-        $result = mysqli_query($conn, $sql);
-        if ($result) {
-            header('Location: ' . $_SERVER['REQUEST_URI']);
-        } else {
-            echo "<script>alert('Woops! Gagal update.')</script>";
-            header('Location: ' . $_SERVER['REQUEST_URI']);
-        }
-    }
-    if (isset($_POST['updateHowB'])) {
-        $bwasfg = $_POST['bobot'];
-        $idfj = $_POST['idU'];
-        $sql = "UPDATE `tb_bobotkpi` SET bobothow =" . $bwasfg . " where id_user =" . $idfj;
-        $result = mysqli_query($conn, $sql);
-        if ($result) {
-            header('Location: ' . $_SERVER['REQUEST_URI']);
-        } else {
-            echo "<script>alert('Woops! Gagal update.')</script>";
-            header('Location: ' . $_SERVER['REQUEST_URI']);
-        }
-    }
 } ?>
 <html lang="en">
 
@@ -144,6 +120,7 @@ if (!isset($_SESSION['id_user'])) {
                                         <a href="kpikabag" class="nav-link">Kembali</a>
                                     </li>
                                 <?php } ?>
+
                     <li class="nav-item d-none d-md-block"> <a href="kpidetailanggota?id=<?= $_GET['id']; ?>" class="nav-link">Detail KPI</a> </li>
                 </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
 
@@ -296,10 +273,12 @@ if (!isset($_SESSION['id_user'])) {
                                 <div style="height: 50px; margin-top: -3px;" class="card-header bg-primary">
                                     <h5 style="color:white;" class="card-title fw-bolder">What</h5>
                                     <div class="card-tools">
-                                        <button style="color: white;" data-bs-toggle="modal" data-bs-target="#bobotWhatss" type="button"
-                                            class="btn btn-tool">
+                                         <?php if($jabatan=="Karyawan"){ $hfgiub = "hidden"; }else{ $hfgiub = ""; }?>
+                                        <button <?= $hfgiub ?> style="color: white;" data-bs-toggle="modal" data-bs-target="#bobotWhatss" type="button"
+                                             class="btn btn-tool">
                                             <i class="bi bi-pencil"></i>
-                                        </button>
+                                        </button> 
+
                                         <button style="color: white;" type="button" class="btn btn-tool"
                                             data-lte-toggle="card-collapse">
                                             <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
@@ -374,6 +353,7 @@ if (!isset($_SESSION['id_user'])) {
                                                     <center><?= $totalw ?></center>
                                                 </th>
                                             </tr>
+
                                         </tbody>
 
                                         <tr>
@@ -417,10 +397,12 @@ if (!isset($_SESSION['id_user'])) {
                                 <div style="height: 50px; margin-top: -3px;" class="card-header bg-success">
                                     <h5 style="color:white;" class="card-title fw-bolder">How</h5>
                                     <div class="card-tools">
-                                        <button style="color: white;" data-bs-toggle="modal" data-bs-target="#bobotHow" type="button"
+                                        <?php if($jabatan=="Karyawan"){ $hfgiub = "hidden";}?>
+                                        <button <?= $hfgiub ?> style="color: white;" data-bs-toggle="modal" data-bs-target="#bobotHow" type="button"
                                             class="btn btn-tool">
                                             <i class="bi bi-pencil"></i>
-                                        </button>
+                                        </button> 
+
                                         <button style="color: white;" type="button" class="btn btn-tool"
                                             data-lte-toggle="card-collapse">
                                             <i data-lte-icon="expand" class="bi bi-plus-lg"></i>
@@ -619,7 +601,6 @@ if (!isset($_SESSION['id_user'])) {
 
         <?php include("pages/part/p_footer.php"); ?>
 </body>
-
 </html>
 
 
