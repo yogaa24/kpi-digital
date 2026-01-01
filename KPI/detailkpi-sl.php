@@ -304,23 +304,6 @@ if (isset($_POST['nilai_how'])) {
         echo "<script>alert('Gagal menyimpan penilaian')</script>";
     }
 }
-
-if (isset($_POST['whatindi_add'])) {
-    $ids = $_SESSION['id_user'];
-    $idkpi = $_POST['idkpiindikator'];
-    $idwhat = $_POST['idwhatindikator'];
-    $whatindikator = $_POST['whatindikator'];
-    $nilaiindi = $_POST['nilaiindi'];
-    $sql = "INSERT INTO tb_indikatorwhats 
-    VALUES (null, '$ids', '$idkpi','$idwhat','$whatindikator','$nilaiindi')";
-    $result = mysqli_query($conn, $sql);
-    if ($result) {
-        header('Location: detailkpi-sl');
-        echo "<script>alert('Berhasil, Tambah Poin')</script>";
-    } else {
-        echo "<script>alert('Gagal, Tambah Poin')</script>";
-    } 
-}
 if (isset($_POST['how_hapus'])) {
     $ids = $_SESSION['id_user'];
     $idkpi = $_POST['idkhd'];

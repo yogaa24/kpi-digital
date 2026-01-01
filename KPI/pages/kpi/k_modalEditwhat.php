@@ -1,6 +1,7 @@
 <?php
 // Query untuk mengambil indikator-indikator yang terkait dengan what ini
 $id_what = $res['id_what'];
+$tipe_what = $res['tipe_what'];
 $sql_indikator = "SELECT * FROM tb_indikator_whats WHERE id_what = $id_what ORDER BY urutan ASC";
 $result_indikator = mysqli_query($conn, $sql_indikator);
 ?>
@@ -11,7 +12,14 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
 
       <!-- HEADER -->
       <div class="modal-header">
-        <h5 class="modal-title fw-bold">Edit Detail What</h5>
+        <h5 class="modal-title fw-bold">
+            Edit Detail What <?=$tipe_what?>
+            <?php if ($tipe_what == 'A') { ?>
+                <span class="badge bg-primary">What A</span>
+            <?php } else { ?>
+                <span class="badge bg-success">What B</span>
+            <?php } ?>
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
@@ -32,6 +40,8 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
             <input type="number" step="0.01" class="form-control" name="bobotw" required value="<?=$res['bobot']?>" placeholder="Tanpa %">
           </div>
 
+          <?php if ($tipe_what == 'A') { ?>
+          <!-- WHAT A: Indikator -->
           <hr>
 
           <!-- HEADER INDIKATOR -->
@@ -119,6 +129,7 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
             <?php } ?>
 
           </div>
+          <?php } ?> 
       </div>
 
       <!-- FOOTER -->
@@ -132,7 +143,8 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
   </div>
 </div>
 
-<!-- JAVASCRIPT -->
+<?php if ($tipe_what == 'A') { ?>
+<!-- JAVASCRIPT (hanya untuk What A) -->
 <script>
 let indikatorCountEdit<?=$res['id_what']?> = <?=mysqli_num_rows($result_indikator) > 0 ? mysqli_num_rows($result_indikator) : 1?>;
 
@@ -187,7 +199,7 @@ function hapusIndikatorEdit<?=$res['id_what']?>(btn) {
         deleteInput.type = 'hidden';
         deleteInput.name = 'indikator_hapus[]';
         deleteInput.value = idIndikator;
-        indikatorItem.querySelector('form, .modal-body form').appendChild(deleteInput);
+        document.querySelector('#EditWhatModal<?=$res['id_what']?> form').appendChild(deleteInput);
     }
     
     indikatorItem.remove();
@@ -208,3 +220,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updateHapusButtonsEdit<?=$res['id_what']?>();
 });
 </script>
+<?php } ?>

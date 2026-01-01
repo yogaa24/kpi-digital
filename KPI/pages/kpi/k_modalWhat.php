@@ -13,6 +13,27 @@
         <form method="POST" action="" class="what_add">
           <input type="hidden" name="idkpi" value="<?=$idKPI?>">
 
+          <!-- Pilihan Tipe What -->
+          <div class="mb-3">
+            <label class="form-label fw-bold">Pilih Tipe What:</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="tipe_what" id="tipeWhatA<?=$idKPI?>" value="A" checked onchange="toggleWhatType<?=$idKPI?>(this.value)">
+                <label class="form-check-label" for="tipeWhatA<?=$idKPI?>">
+                  What A (Dengan Indikator Penilaian)
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="tipe_what" id="tipeWhatB<?=$idKPI?>" value="B" onchange="toggleWhatType<?=$idKPI?>(this.value)">
+                <label class="form-check-label" for="tipeWhatB<?=$idKPI?>">
+                  What B (Target Omset)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
           <!-- Tujuan -->
           <div class="input-group mb-3">
             <span class="input-group-text fw-bold">Tujuan</span>
@@ -25,51 +46,59 @@
             <input type="number" step="0.01" class="form-control" name="bobot" required placeholder="Tanpa %">
           </div>
 
-          <hr>
-
-          <!-- HEADER INDIKATOR -->
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="fw-bold mb-0">Indikator Penilaian</h6>
-            <button type="button" class="btn btn-sm btn-primary" onclick="tambahIndikator<?=$idKPI?>()">
-              <i class="bi bi-plus-circle"></i> Tambah
-            </button>
+          <!-- Target Omset (Hanya untuk What B) -->
+          <div id="targetOmsetSection<?=$idKPI?>" style="display:none;">
+            <div class="input-group mb-3">
+              <span class="input-group-text fw-bold">Target Omset</span>
+              <input type="number" step="0.01" class="form-control" name="target_omset" placeholder="Contoh: 1000000">
+            </div>
           </div>
 
-          <!-- INDIKATOR CONTAINER -->
-          <div id="indikatorContainer<?=$idKPI?>">
+          <hr id="separatorIndikator<?=$idKPI?>">
 
-            <!-- INDIKATOR DEFAULT -->
-            <div class="indikator-item mb-2">
-              <div class="row g-2 align-items-center">
-                <div class="col-md-8">
-                  <textarea class="form-control form-control-sm"
-                            name="indikator_keterangan[]"
-                            rows="1"
-                            required
-                            placeholder="Keterangan indikator"></textarea>
-                </div>
-
-                <div class="col-md-3">
-                  <input type="number"
-                        step="0.01"
-                        class="form-control form-control-sm"
-                        name="indikator_nilai[]"
-                        required
-                        placeholder="Nilai">
-                </div>
-
-                <!-- HANYA 1 KOLOM -->
-                <div class="col-md-1 text-end">
-                  <button type="button"
-                          class="btn btn-sm btn-outline-danger btn-hapus-indikator"
-                          onclick="hapusIndikator<?=$idKPI?>(this)"
-                          style="display:none">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </div>
+          <!-- SECTION INDIKATOR (Hanya untuk What A) -->
+          <div id="indikatorSection<?=$idKPI?>">
+            <!-- HEADER INDIKATOR -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="fw-bold mb-0">Indikator Penilaian</h6>
+              <button type="button" class="btn btn-sm btn-primary" onclick="tambahIndikator<?=$idKPI?>()">
+                <i class="bi bi-plus-circle"></i> Tambah
+              </button>
             </div>
 
+            <!-- INDIKATOR CONTAINER -->
+            <div id="indikatorContainer<?=$idKPI?>">
+
+              <!-- INDIKATOR DEFAULT -->
+              <div class="indikator-item mb-2">
+                <div class="row g-2 align-items-center">
+                  <div class="col-md-8">
+                    <textarea class="form-control form-control-sm"
+                              name="indikator_keterangan[]"
+                              rows="1"
+                              placeholder="Keterangan indikator"></textarea>
+                  </div>
+
+                  <div class="col-md-3">
+                    <input type="number"
+                          step="0.01"
+                          class="form-control form-control-sm"
+                          name="indikator_nilai[]"
+                          placeholder="Nilai">
+                  </div>
+
+                  <div class="col-md-1 text-end">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger btn-hapus-indikator"
+                            onclick="hapusIndikator<?=$idKPI?>(this)"
+                            style="display:none">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
 
       </div>
@@ -89,6 +118,34 @@
 <script>
 let indikatorCount<?=$idKPI?> = 1;
 
+function toggleWhatType<?=$idKPI?>(tipe) {
+    const indikatorSection = document.getElementById('indikatorSection<?=$idKPI?>');
+    const targetOmsetSection = document.getElementById('targetOmsetSection<?=$idKPI?>');
+    const separatorIndikator = document.getElementById('separatorIndikator<?=$idKPI?>');
+    const indikatorInputs = document.querySelectorAll('#indikatorContainer<?=$idKPI?> textarea, #indikatorContainer<?=$idKPI?> input[type="number"]');
+    const targetOmsetInput = document.querySelector('input[name="target_omset"]');
+    
+    if (tipe === 'A') {
+        // Tampilkan indikator, sembunyikan target omset
+        indikatorSection.style.display = 'block';
+        separatorIndikator.style.display = 'block';
+        targetOmsetSection.style.display = 'none';
+        
+        // Set required untuk indikator
+        indikatorInputs.forEach(input => input.required = true);
+        if (targetOmsetInput) targetOmsetInput.required = false;
+    } else {
+        // Sembunyikan indikator, tampilkan target omset
+        indikatorSection.style.display = 'none';
+        separatorIndikator.style.display = 'none';
+        targetOmsetSection.style.display = 'block';
+        
+        // Set required untuk target omset
+        indikatorInputs.forEach(input => input.required = false);
+        if (targetOmsetInput) targetOmsetInput.required = true;
+    }
+}
+
 function tambahIndikator<?=$idKPI?>() {
     indikatorCount<?=$idKPI?>++;
     const container = document.getElementById('indikatorContainer<?=$idKPI?>');
@@ -96,34 +153,30 @@ function tambahIndikator<?=$idKPI?>() {
     const div = document.createElement('div');
     div.className = 'indikator-item mb-2';
     div.innerHTML = `
-    <div class="indikator-item mb-2">
-      <div class="row g-2 align-items-center">
-        <div class="col-md-8">
-          <textarea class="form-control form-control-sm"
-                    name="indikator_keterangan[]"
-                    rows="1"
-                    required
-                    placeholder="Keterangan indikator"></textarea>
-        </div>
+    <div class="row g-2 align-items-center">
+      <div class="col-md-8">
+        <textarea class="form-control form-control-sm"
+                  name="indikator_keterangan[]"
+                  rows="1"
+                  required
+                  placeholder="Keterangan indikator"></textarea>
+      </div>
 
-        <div class="col-md-3">
-          <input type="number"
-                step="0.01"
-                class="form-control form-control-sm"
-                name="indikator_nilai[]"
-                required
-                placeholder="Nilai">
-        </div>
+      <div class="col-md-3">
+        <input type="number"
+              step="0.01"
+              class="form-control form-control-sm"
+              name="indikator_nilai[]"
+              required
+              placeholder="Nilai">
+      </div>
 
-        <!-- HANYA 1 KOLOM -->
-        <div class="col-md-1 text-end">
-          <button type="button"
-                  class="btn btn-sm btn-outline-danger btn-hapus-indikator"
-                  onclick="hapusIndikator<?=$idKPI?>(this)"
-                  style="display:none">
-            <i class="bi bi-trash"></i>
-          </button>
-        </div>
+      <div class="col-md-1 text-end">
+        <button type="button"
+                class="btn btn-sm btn-outline-danger btn-hapus-indikator"
+                onclick="hapusIndikator<?=$idKPI?>(this)">
+          <i class="bi bi-trash"></i>
+        </button>
       </div>
     </div>
     `;
@@ -145,4 +198,9 @@ function updateHapusButtons<?=$idKPI?>() {
         button.style.display = items.length > 1 ? 'inline-block' : 'none';
     });
 }
+
+// Set default saat modal dibuka
+document.getElementById('WhatModal<?=$idKPI?>').addEventListener('shown.bs.modal', function() {
+    toggleWhatType<?=$idKPI?>('A');
+});
 </script>

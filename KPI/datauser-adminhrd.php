@@ -8,6 +8,9 @@ if (!isset($_SESSION['id_user'])) {
 require 'helper/config.php';
 require 'helper/getUser.php';
 
+// Koneksi ke database simulasi
+$conn_sim = mysqli_connect("localhost", "root", "", "db_simulasi");
+
 // Cek level Admin HRD
 $sql_check = "SELECT level FROM tb_auth WHERE id_user = '$id_user'";
 $result_check = mysqli_query($conn, $sql_check);
@@ -33,6 +36,12 @@ if (isset($_GET['delete'])) {
     
     // Delete dari tb_users
     mysqli_query($conn, "DELETE FROM tb_users WHERE id = '$id_delete'");
+    
+    // Delete dari db_simulasi - tb_bobotkpi
+    mysqli_query($conn_sim, "DELETE FROM tb_bobotkpi WHERE id_user = '$id_delete'");
+    
+    // Delete dari db_simulasi - tb_kpi
+    mysqli_query($conn_sim, "DELETE FROM tb_kpi WHERE id_user = '$id_delete'");
     
     echo "<script>alert('User berhasil dihapus'); window.location.href='datauser-adminhrd';</script>";
 }
@@ -64,6 +73,7 @@ if (isset($_POST['edit_user'])) {
         echo "<script>alert('Data user berhasil diupdate'); window.location.href='datauser-adminhrd';</script>";
     }
 }
+
 if (isset($_POST['edit_password'])) {
     $id_edit_pass = $_POST['id_user_pass'];
     $new_password = $_POST['new_password'];
@@ -122,10 +132,31 @@ if (isset($_POST['register_user'])) {
                 // Insert ke tb_bobotkpi
                 $sql_bobot = "INSERT INTO tb_bobotkpi (`id_user`, `bobotwhat`, `bobothow`) VALUES ('$new_user_id', 0, 0)";
                 
-                if (mysqli_query($conn, $sql_auth) && mysqli_query($conn, $sql_bobot)) {
-                    echo "<script>alert('User berhasil ditambahkan'); window.location.href='datauser-adminhrd';</script>";
+                // Insert ke db_simulasi - tb_bobotkpi
+                $sql_bobot_simulasi = "INSERT INTO tb_bobotkpi (`id_user`, `bobotwhat`, `bobothow`) VALUES ('$new_user_id', 0, 0)";
+                
+                // Eksekusi semua query
+                $success = true;
+                
+                if (!mysqli_query($conn, $sql_auth)) {
+                    $success = false;
+                    $error_msg = "Gagal menambahkan data auth";
+                }
+                
+                if (!mysqli_query($conn, $sql_bobot)) {
+                    $success = false;
+                    $error_msg = "Gagal menambahkan data bobot";
+                }
+                
+                if (!mysqli_query($conn_sim, $sql_bobot_simulasi)) {
+                    $success = false;
+                    $error_msg = "Gagal menambahkan data bobot ke db_simulasi";
+                }
+                
+                if ($success) {
+                    echo "<script>alert('User berhasil ditambahkan beserta data KPI'); window.location.href='datauser-adminhrd';</script>";
                 } else {
-                    echo "<script>alert('Gagal menambahkan data auth/bobot');</script>";
+                    echo "<script>alert('$error_msg');</script>";
                 }
             } else {
                 echo "<script>alert('Gagal menambahkan user');</script>";
