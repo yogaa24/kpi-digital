@@ -69,8 +69,8 @@ if (isset($_POST['what_add'])) {
     $target_omset = isset($_POST['target_omset']) ? floatval($_POST['target_omset']) : 0;
     
     // Insert ke tb_whats
-    $sql = "INSERT INTO tb_whats (id_user, id_kpi, tipe_what, p_what, bobot, target_omset, hasil, nilai, total, indikatorwhat) 
-            VALUES ('$ids', '$idkpi', '$tipe_what', '$tujuan', '$bobot', '$target_omset', '', 0, 0, '')";
+    $sql = "INSERT INTO tb_whats (id_user, id_kpi, tipe_what, p_what, bobot, target_omset, hasil, nilai, total) 
+            VALUES ('$ids', '$idkpi', '$tipe_what', '$tujuan', '$bobot', '$target_omset', '', 0, 0)";
     
     if (mysqli_query($conn, $sql)) {
         $id_what = mysqli_insert_id($conn);
@@ -240,8 +240,8 @@ if (isset($_POST['how_add'])) {
     $target_omset = isset($_POST['target_omset']) ? floatval($_POST['target_omset']) : 0;
     
     // Insert ke tb_hows
-    $sql = "INSERT INTO tb_hows (id_user, id_kpi, tipe_how, p_how, bobot, target_omset, hasil, nilai, total, indikatorhow) 
-            VALUES ('$ids', '$idkpi', '$tipe_how', '$tujuan', '$bobot', '$target_omset', '', 0, 0, '')";
+    $sql = "INSERT INTO tb_hows (id_user, id_kpi, tipe_how, p_how, bobot, target_omset, hasil, nilai, total) 
+            VALUES ('$ids', '$idkpi', '$tipe_how', '$tujuan', '$bobot', '$target_omset', '', 0, 0)";
     
     if (mysqli_query($conn, $sql)) {
         $id_how = mysqli_insert_id($conn);
