@@ -57,6 +57,28 @@
         </div>
         <!-- ---------------------------------------------------------------------->
         <div class="card-body">
+            <?php
+            $kpi_result  = getnilaiWithSPDisplay($conn, $user_id);
+
+            $nilai_asli  = $kpi_result['nilai_asli'];
+            $nilai_akhir = $kpi_result['nilai_akhir'];
+            $sp_data     = $kpi_result['sp_data'];
+            $pengurangan = $kpi_result['pengurangan'];
+
+            if ($nilai_akhir < 90) {
+                $wrabs  = 'red';
+                $rating = 'POOR';
+            } elseif ($nilai_akhir <= 100) {
+                $wrabs  = 'orange';
+                $rating = 'GOOD';
+            } elseif ($nilai_akhir <= 110) {
+                $wrabs  = 'green';
+                $rating = 'VERY GOOD';
+            } else {
+                $wrabs  = 'blue';
+                $rating = 'EXCELLENT';
+            }
+            ?>
             <table class="table table-bordered table-sm mb-2">
                 <thead>
                     <tr>
@@ -78,47 +100,55 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
+                    <?php if ($sp_data) { ?>
+                        <tr>
+                            <th>
+                                <center>NILAI ASLI (Sebelum SP)</center>
+                            </th>
+                            <td>
+                                <center>
+                                    <del><?= number_format($nilai_asli, 2); ?></del>
+                                </center>
+                            </td>
+                        </tr>
+
+                        <tr class="table-warning">
+                            <th>
+                                <center>PENGURANGAN SP (<?= $sp_data['jenis_sp']; ?>)</center>
+                            </th>
+                            <td class="text-danger">
+                                <center>
+                                    <strong>- <?= $pengurangan; ?></strong>
+                                </center>
+                            </td>
+                        </tr>
+                    <?php } ?>
+
+                    <tr class="table-primary">
                         <th>
-                            <center>NILAI KPI</center>
+                            <center>NILAI KPI AKHIR</center>
                         </th>
                         <th>
-                            <center><?= round($zboth + $zbotw,2) ?></center>
+                            <center><?= number_format($nilai_akhir, 2); ?></center>
                         </th>
                     </tr>
                     <tr>
-                        <?php
-                        $nilair = $zboth + $zbotw;
-                        $wrabs;
-                        if ($nilair < 90) {
-                            $wrabs = "red";
-                        } elseif ($nilair <= 100) {
-                            $wrabs = "orange";
-                        } elseif ($nilair <= 110) {
-                            $wrabs = "green";
-                        } else { // $nilai > 110
-                            $wrabs = "blue";
-                        } ?>
-                        <td colspan="2" style="font-size: 25pt; color:<?= $wrabs ?>" class="fw-bolder">
-                            <?php
-                            function getRating($nilair)
-                            {
-                                if ($nilair < 90) {
-                                    return "POOR";
-                                } elseif ($nilair <= 100) {
-                                    return "GOOD";
-                                } elseif ($nilair <= 110) {
-                                    return "VERY GOOD";
-                                } else { // $nilai > 110
-                                    return "EXCELLENT";
-                                }
-                            }
-                            ?>
-                            <center><?php echo getRating($nilair); ?></center>
+                        <td colspan="2"
+                            class="fw-bolder"
+                            style="font-size: 25pt; color: <?= $wrabs; ?>;">
+                            <center><?= $rating; ?></center>
                         </td>
                     </tr>
                 </tbody>
             </table>
+            <?php if ($sp_data) { ?>
+                <div class="alert alert-info mb-0 mt-3">
+                    <small>
+                        <i class="bi bi-calendar-check"></i> 
+                            SP ini akan berakhir pada <strong><?=formatTanggalIndo($sp_data['masa_berlaku_selesai'])?></strong>
+                    </small>
+                </div>
+            <?php } ?>
         </div>
     </div>
     <div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">

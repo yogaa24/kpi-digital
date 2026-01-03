@@ -10,6 +10,11 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/getUser.php';
     require 'helper/getKPI.php';
     require 'helper/getHow.php';
+    require 'helper/sp_functions.php';
+
+    updateExpiredSP($conn);
+
+    $user_id = isset($id_sf) ? $id_sf : $id_user;
 
     $zboth = 0;
     $zbotw = 0;
@@ -36,6 +41,54 @@ if (!isset($_SESSION['id_user'])) {
         $bobotkpid = $row5a['bw'];
     }
     $zbotw = ($totalws * $bobotkpid) / 100;
+    // Hitung nilai dengan SP
+    function getnilaiWithSPDisplay($conn, $id) {
+        // Hitung nilai asli (copy dari fungsi getnilai yang sudah ada)
+        $sql = "SELECT * FROM tb_kpi WHERE id_user='$id'";
+        $zboth = 0;
+        $zbotw = 0;
+
+        $totalws = 0;
+        $resultsaf = mysqli_query($conn, $sql);
+        while ($hasils = mysqli_fetch_assoc($resultsaf)) {
+            $sql3s = "SELECT SUM(total) as total FROM tb_whats WHERE id_user=$id AND id_kpi=" . $hasils['id'];
+            $result3s = mysqli_query($conn, $sql3s);
+            $row3sd = mysqli_fetch_assoc($result3s);
+            $totalnilaisd = $row3sd['total'];
+            $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
+            $totalws += $nilaiws;
+        }
+        $bobotkpid = 0;
+        $sql5a = "SELECT bobotwhat as bw FROM tb_bobotkpi WHERE id_user=$id";
+        $result5a = mysqli_query($conn, $sql5a);
+        while ($row5a = mysqli_fetch_assoc($result5a)) {
+            $bobotkpid = $row5a['bw'];
+        }
+        $zbotw = ($totalws * $bobotkpid) / 100;
+        
+        $totalhfg = 0;
+        $resultfg = mysqli_query($conn, $sql);
+        while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
+            $sql7fg = "SELECT SUM(total) as totalh FROM tb_hows WHERE id_user=$id AND id_kpi=" . $hasilfg['id'];
+            $result7fg = mysqli_query($conn, $sql7fg);
+            $row7fg = mysqli_fetch_assoc($result7fg);
+            $totalnilaihfg = $row7fg['totalh'];
+            $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
+            $totalhfg += $nilaihfg;
+        }
+        $bobotkpias = 0;
+        $sql8a = "SELECT bobothow as bh FROM tb_bobotkpi WHERE id_user=$id";
+        $result8a = mysqli_query($conn, $sql8a);
+        while ($row8a = mysqli_fetch_assoc($result8a)) {
+            $bobotkpias = $row8a['bh'];
+        }
+        $zboth = ($totalhfg * $bobotkpias) / 100;
+        
+        $nilai_asli = $zboth + $zbotw;
+        
+        // Kurangi dengan SP jika ada
+        return calculateKPIWithSP($conn, $id, $nilai_asli);
+    }
     // ===============================================================================
     $totalhfg = 0;
     $totalbobothfg = 0;
@@ -87,6 +140,7 @@ if (!isset($_SESSION['id_user'])) {
     $blan = date('m/Y');
     $busd = explode('/', $blan);
     function tmapil($bl,$th){
+        $bulannnn = '';
 
         if ($bl == '01') {
             $bulannnn = 'Januari ' . $th;
