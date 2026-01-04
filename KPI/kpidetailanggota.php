@@ -399,8 +399,17 @@ if (isset($_POST['update2'])) {
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                 class="bi bi-list"></i> </a> </li>
-                    <li class="nav-item d-none d-md-block"> <a href="kpianggota?id=<?= $_GET['id']; ?>"
-                            class="nav-link">Kembali</a> </li>
+                                <?php
+                                // Tentukan URL kembali berdasarkan parameter ref
+                                $back_url = 'kpianggota?id=' . $_GET['id']; // default
+                                if (isset($_GET['ref']) && $_GET['ref'] == 'home-adminedp') {
+                                    $back_url = 'home-adminedp?driver_id=' . $_GET['id'];
+                                }
+                                ?>
+
+                                <li class="nav-item d-none d-md-block"> 
+                                    <a href="<?= $back_url ?>" class="nav-link">Kembali</a> 
+                                </li>
                             <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModal" class="nav-link">Tambah Poin KPI</a> </li>
                 </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
 

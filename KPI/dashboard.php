@@ -142,6 +142,9 @@ if (!isset($_SESSION['id_user'])) {
     function tmapil($bl,$th){
         $bulannnn = '';
 
+        if ($bl == '00') {
+            $bulannnn = 'Desember ' . $th;
+        }
         if ($bl == '01') {
             $bulannnn = 'Januari ' . $th;
         }
