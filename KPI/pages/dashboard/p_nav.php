@@ -21,7 +21,7 @@
                 </li>
             <?php } ?>
 
-            <?php if (in_array($leveel, [2, 3, 4])) { ?>
+            <?php if (in_array($leveel, [3, 4])) { ?>
                 <li class="nav-item d-none d-md-block">
                     <a href="kpikadep" class="nav-link">KPI Anggota</a>
                 </li>

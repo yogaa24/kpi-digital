@@ -12,7 +12,27 @@ require 'helper/getUser.php';
 $conn_sim = mysqli_connect("localhost", "root", "", "db_simulasi");
 
 $id_user = $_SESSION['id_user'];
+
 $user_level = $_SESSION['level'] ?? 1; // Assume level dari session
+
+// ==================== FILTER PARAMETERS ====================
+$filter_user = isset($_GET['filter_user']) ? $_GET['filter_user'] : $id_user;
+$filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
+$filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departemen'] : '';
+$filter_comparison = isset($_GET['filter_comparison']) ? $_GET['filter_comparison'] : 'current'; // current, last_month, last_year
+
+// ==================== FETCH FILTER OPTIONS ====================
+// Get all users based on level
+$sql_users = "SELECT id, nama_lngkp, departement, jabatan FROM tb_users WHERE 1=1";
+if ($user_level == 2) { // Kabag - hanya team sendiri
+    $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
+} elseif ($user_level == 3) { // Kadep - seluruh departemen
+    $sql_users .= " AND departement = (SELECT departement FROM tb_users WHERE id='$id_user')";
+}
+$result_users = mysqli_query($conn, $sql_users);
+
+$sql_departments = "SELECT DISTINCT departement FROM tb_users WHERE departement IS NOT NULL AND departement != '' ORDER BY departement";
+$result_departments = mysqli_query($conn, $sql_departments);
 
 // ==================== KPI CALCULATION FUNCTION ====================
 function calculateKPI($conn, $conn_sim, $user_id, $is_simulation = false) {
@@ -80,22 +100,98 @@ function calculateKPI($conn, $conn_sim, $user_id, $is_simulation = false) {
     ];
 }
 
-$kpi_real = calculateKPI($conn, $conn_sim, $id_user, false);
-$kpi_sim = calculateKPI($conn, $conn_sim, $id_user, true);
+// ==================== SAVE KPI HISTORY FUNCTION ====================
+function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
+    $bulan = date('Y-m'); // Format: 2025-01
+    
+    // Check if table exists first
+    $check_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_history'");
+    if (mysqli_num_rows($check_table) == 0) {
+        // Table doesn't exist, skip saving
+        return false;
+    }
+    
+    // Check if already exists
+    $check = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
+                                   WHERE id_user='$user_id' AND bulan='$bulan'");
+    
+    if ($check === false) {
+        return false; // Query failed
+    }
+    
+    if (mysqli_num_rows($check) > 0) {
+        // Update existing
+        $sql = "UPDATE tb_kpi_history SET 
+                total_kpi_real = '{$kpi_real['total_kpi']}',
+                total_kpi_target = '{$kpi_sim['total_kpi']}',
+                total_what = '{$kpi_real['total_what']}',
+                total_how = '{$kpi_real['total_how']}'
+                WHERE id_user='$user_id' AND bulan='$bulan'";
+    } else {
+        // Insert new
+        $sql = "INSERT INTO tb_kpi_history 
+                (id_user, bulan, total_kpi_real, total_kpi_target, total_what, total_how) 
+                VALUES 
+                ('$user_id', '$bulan', '{$kpi_real['total_kpi']}', '{$kpi_sim['total_kpi']}', 
+                 '{$kpi_real['total_what']}', '{$kpi_real['total_how']}')";
+    }
+    
+    $result = mysqli_query($conn, $sql);
+    
+    if ($result === false) {
+        // Uncomment untuk debugging:
+        // error_log("KPI History Save Error: " . mysqli_error($conn));
+        return false;
+    }
+    
+    return true;
+}
 
+// Calculate KPI for filtered user
+$kpi_real = calculateKPI($conn, $conn_sim, $filter_user, false);
+$kpi_sim = calculateKPI($conn, $conn_sim, $filter_user, true);
+saveKPIHistory($conn, $id_user, $kpi_real, $kpi_sim);
 // Get user info
-$sql_user_info = "SELECT * FROM tb_users WHERE id='$id_user'";
+$sql_user_info = "SELECT * FROM tb_users WHERE id='$filter_user'";
 $result_user_info = mysqli_query($conn, $sql_user_info);
 $user_info = mysqli_fetch_assoc($result_user_info);
 
-// ==================== TREND DATA (Last 6 months) ====================
+// ==================== TREND DATA (Last 6 months) - REAL DATA ====================
 $trend_data = [];
-for ($i = 5; $i >= 0; $i--) {
-    $month = date('Y-m', strtotime("-$i months"));
-    // Simplified - In real implementation, you'd fetch historical data
+
+// Query untuk mengambil data 6 bulan terakhir
+$sql_trend = "SELECT 
+bulan,
+total_kpi_real AS `real`,
+total_kpi_target AS target
+FROM tb_kpi_history
+WHERE id_user = '4'
+ORDER BY bulan DESC
+LIMIT 6;
+";
+
+$result_trend = mysqli_query($conn, $sql_trend);
+
+if (mysqli_num_rows($result_trend) > 0) {
+    // Jika ada data history
+    $temp_data = [];
+    while ($row = mysqli_fetch_assoc($result_trend)) {
+        $temp_data[] = $row;
+    }
+    
+    // Reverse agar urutan dari lama ke baru
+    $trend_data = array_reverse($temp_data);
+    
+    // Format bulan untuk display
+    foreach ($trend_data as &$item) {
+        $item['month'] = date('M Y', strtotime($item['bulan'] . '-01'));
+    }
+    
+} else {
+    // Jika belum ada data history, tampilkan bulan ini saja
     $trend_data[] = [
-        'month' => date('M Y', strtotime("-$i months")),
-        'real' => $kpi_real['total_kpi'] * (0.85 + ($i * 0.03)), // Simulated trend
+        'month' => date('M Y'),
+        'real' => $kpi_real['total_kpi'],
         'target' => $kpi_sim['total_kpi']
     ];
 }
@@ -103,16 +199,42 @@ for ($i = 5; $i >= 0; $i--) {
 // ==================== DEPARTMENT COMPARISON ====================
 $dept_comparison = [];
 if ($user_level >= 3) { // Kadep or higher
-    $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users WHERE departement='{$user_info['departement']}'";
+    // Tentukan departemen mana yang akan ditampilkan berdasarkan level
+    if ($user_level == 3) {
+        // Level 3 (Kadep) - HANYA bisa lihat departemen sendiri
+        $target_dept = $user_info['departement'];
+        // Reset filter departemen jika user level 3 mencoba ganti departemen
+        $filter_departemen = $target_dept;
+    } elseif ($user_level >= 4) {
+        // Level 4+ (Direktur/Admin) - Bisa lihat semua departemen
+        // Jika ada filter departemen, gunakan itu. Jika tidak, gunakan departemen user yang dilihat
+        $target_dept = !empty($filter_departemen) ? $filter_departemen : $user_info['departement'];
+    }
+    
+    // Ambil semua user di departemen yang ditargetkan
+    $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users WHERE departement='$target_dept' ORDER BY nama_lngkp";
     $result_dept_users = mysqli_query($conn, $sql_dept_users);
     
+    // Tambahkan semua user dari departemen tersebut
     while ($dept_user = mysqli_fetch_assoc($result_dept_users)) {
         $dept_kpi = calculateKPI($conn, $conn_sim, $dept_user['id'], false);
+        
+        // Tandai jika ini user yang sedang dilihat
+        $name_display = $dept_user['nama_lngkp'];
+        if ($dept_user['id'] == $filter_user) {
+            $name_display .= ' (Selected)';
+        }
+        
         $dept_comparison[] = [
-            'name' => $dept_user['nama_lngkp'],
+            'name' => $name_display,
             'score' => $dept_kpi['total_kpi']
         ];
     }
+    
+    // Sorting berdasarkan score (descending - tertinggi di atas)
+    usort($dept_comparison, function($a, $b) {
+        return $b['score'] <=> $a['score'];
+    });
 }
 ?>
 
@@ -191,11 +313,86 @@ if ($user_level >= 3) { // Kadep or higher
                                             <button class="btn btn-light btn-sm no-print" onclick="window.print()">
                                                 <i class="bi bi-printer me-1"></i>Print
                                             </button>
-                                            <button class="btn btn-light btn-sm no-print" onclick="exportData()">
-                                                <i class="bi bi-download me-1"></i>Export
-                                            </button>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================== FILTER SECTION ==================== -->
+                    <div class="row mb-4 no-print">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filters & Options</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="GET" action="" id="filterForm">
+                                        <div class="row g-3">
+                                            
+                                            <?php if ($user_level >= 2) { ?>
+                                            <!-- User Filter -->
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">Select Employee</label>
+                                                <select name="filter_user" class="form-select" onchange="this.form.submit()">
+                                                    <option value="<?= $id_user ?>">My KPI</option>
+                                                    <?php while ($user = mysqli_fetch_assoc($result_users)) { ?>
+                                                        <option value="<?= $user['id'] ?>" <?= $filter_user == $user['id'] ? 'selected' : '' ?>>
+                                                            <?= $user['nama_lngkp'] ?> - <?= $user['jabatan'] ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
+                                            <?php } ?>
+
+                                            <!-- Department Filter -->
+                                            <?php if ($user_level >= 4) { ?>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">Department</label>
+                                                <select name="filter_departemen" class="form-select" onchange="this.form.submit()">
+                                                    <option value="">All Departments</option>
+                                                    <?php 
+                                                    $sql_all_depts = "SELECT DISTINCT departement FROM tb_users 
+                                                                    WHERE departement IS NOT NULL AND departement != '' 
+                                                                    ORDER BY departement";
+                                                    $result_all_depts = mysqli_query($conn, $sql_all_depts);
+                                                    
+                                                    while ($dept = mysqli_fetch_assoc($result_all_depts)) { 
+                                                    ?>
+                                                        <option value="<?= $dept['departement'] ?>" <?= $filter_departemen == $dept['departement'] ? 'selected' : '' ?>>
+                                                            <?= $dept['departement'] ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
+                                            <?php } elseif ($user_level == 3) { ?>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">Department</label>
+                                                <input type="text" class="form-control" value="<?= $user_info['departement'] ?>" readonly>
+                                                <input type="hidden" name="filter_departemen" value="<?= $user_info['departement'] ?>">
+                                                <small class="text-muted">Your department only</small>
+                                            </div>
+                                            <?php } ?>
+
+                                            <!-- Period Filter -->
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">Period</label>
+                                                <input type="month" name="filter_periode" class="form-control" value="<?= $filter_periode ?>" onchange="this.form.submit()">
+                                            </div>
+
+                                            <!-- Comparison Type -->
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">Compare With</label>
+                                                <select name="filter_comparison" class="form-select" onchange="this.form.submit()">
+                                                    <option value="current" <?= $filter_comparison == 'current' ? 'selected' : '' ?>>Current Target</option>
+                                                    <option value="last_month" <?= $filter_comparison == 'last_month' ? 'selected' : '' ?>>Last Month</option>
+                                                    <option value="last_year" <?= $filter_comparison == 'last_year' ? 'selected' : '' ?>>Last Year</option>
+                                                </select>
+                                            </div>
+
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -769,39 +966,59 @@ if ($user_level >= 3) { // Kadep or higher
     <script>
         // Trend Chart
         const trendCtx = document.getElementById('trendChart').getContext('2d');
-        const trendChart = new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: <?= json_encode(array_column($trend_data, 'month')) ?>,
-                datasets: [{
-                    label: 'Real Performance',
-                    data: <?= json_encode(array_column($trend_data, 'real')) ?>,
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'Target',
-                    data: <?= json_encode(array_column($trend_data, 'target')) ?>,
-                    borderColor: '#198754',
-                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    borderDash: [5, 5]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, position: 'top' },
-                    tooltip: { mode: 'index', intersect: false }
+
+        // Data dari PHP
+        const trendLabels = <?= json_encode(array_column($trend_data, 'month')) ?>;
+        const trendRealData = <?= json_encode(array_column($trend_data, 'real')) ?>;
+        const trendTargetData = <?= json_encode(array_column($trend_data, 'target')) ?>;
+
+        // Validasi data tidak kosong
+        if (trendLabels.length > 0) {
+            const trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        label: 'Real Performance',
+                        data: trendRealData,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Target',
+                        data: trendTargetData,
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderDash: [5, 5]
+                    }]
                 },
-                scales: {
-                    y: { beginAtZero: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
                 }
-            }
-        });
+            });
+        } else {
+            // Jika tidak ada data, tampilkan pesan
+            document.getElementById('trendChart').parentElement.innerHTML = 
+                '<p class="text-center text-muted">Belum ada data history. Data akan tersimpan setiap bulan.</p>';
+        }
 
         // Real vs Target Chart
         const realVsTargetCtx = document.getElementById('realVsTargetChart').getContext('2d');
@@ -884,11 +1101,11 @@ if ($user_level >= 3) { // Kadep or higher
             }
         });
 
-        <?php if (!empty($dept_comparison)) { ?>
+        <?php if (!empty($dept_comparison) && count($dept_comparison) > 0) { ?>
         // Department Comparison Chart
         const deptCompCtx = document.getElementById('deptComparisonChart').getContext('2d');
         const deptCompChart = new Chart(deptCompCtx, {
-            type: 'horizontalBar',
+            type: 'bar', // Ubah dari 'horizontalBar' ke 'bar'
             data: {
                 labels: <?= json_encode(array_column($dept_comparison, 'name')) ?>,
                 datasets: [{
@@ -899,20 +1116,31 @@ if ($user_level >= 3) { // Kadep or higher
                 }]
             },
             options: {
-                indexAxis: 'y',
+                indexAxis: 'y', // Ini yang membuat horizontal
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true } }
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Score: ' + context.parsed.x.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                scales: { 
+                    x: { 
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'KPI Score'
+                        }
+                    } 
+                }
             }
         });
         <?php } ?>
-
-        // Export Function
-        function exportData() {
-            alert('Export feature will generate Excel/PDF report');
-            // Implement export to Excel/PDF here
-        }
     </script>
 
 </body>
