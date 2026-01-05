@@ -29,4 +29,5 @@ while ($hasil = mysqli_fetch_assoc($result)) {
     $atasan = $hasil['atasan'];
     $penilai = $hasil['penilai'];
 }
+$nama_lngkp = mysqli_real_escape_string($conn, $nama_lngkp);
 ?>

@@ -12,7 +12,6 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/sp_functions.php';
 
     // Hanya Admin EDP yang bisa akses
-    requireAdminEDP();
     
     updateExpiredSP($conn);
 

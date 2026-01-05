@@ -9,13 +9,6 @@ function isAdminHRD() {
 }
 
 /**
- * Cek apakah user adalah Admin EDP (level 6)
- */
-function isAdminEDP() {
-    return isset($_SESSION['level']) && $_SESSION['level'] == 6;
-}
-
-/**
  * Cek apakah user adalah Kadep (level 4)
  */
 function isKadepOrHigher() {
@@ -47,30 +40,16 @@ function requireAdminHRD() {
 }
 
 /**
- * Redirect jika bukan Admin EDP
- */
-function requireAdminEDP() {
-    if (!isAdminEDP()) {
-        header("Location: dashboard");
-        exit();
-    }
-}
-
-/**
  * Get user level name
  */
 function getUserLevelName($level) {
     switch($level) {
-        case 6:
-            return "Admin EDP";
-        case 5:
-            return "Admin HRD";
         case 4:
-            return "Kadep";
+            return "Admin HRD";
         case 3:
-            return "Kabag";
+            return "Kadep";
         case 2:
-            return "Karyawan";
+            return "Kabag";
         case 1:
             return "Karyawan";
         default:

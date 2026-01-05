@@ -41,8 +41,10 @@
                             <label class="form-label">Departemen <span class="text-danger">*</span></label>
                             <select class="form-select" name="departemen" id="departemen_register" required>
                                 <option value="">Pilih Departemen</option>
-                                <option value="Keuangan & HRD">Keuangan & HRD</option>
-                                <option value="Sales & Marketing">Sales & Marketing</option>
+                                <option value="Keuangan & Sales">Keuangan & Sales</option>
+                                <option value="Purchasing">Purchasing</option>
+                                <option value="IT">IT</option>
+                                <option value="HRD">HRD</option>
                                 <option value="Logistik">Logistik</option>
                                 <option value="GA">GA</option>
                             </select>
@@ -58,8 +60,8 @@
                             <label class="form-label">Jabatan <span class="text-danger">*</span></label>
                             <select class="form-select" name="jabatan" id="jabatan_register" required>
                                 <option value="">Pilih Jabatan</option>
+                                <option value="Direktur">Direktur</option>
                                 <option value="Kadep">Kadep</option>
-                                <option value="Kadep MT">Kadep MT</option>
                                 <option value="Kabag">Kabag</option>
                                 <option value="Karyawan">Karyawan</option>
                             </select>
@@ -99,17 +101,25 @@ document.getElementById('departemen_register').addEventListener('change', functi
     const atasanSelect = document.getElementById('atasan_register');
     let items = [];
 
-    if (this.value === 'Keuangan & HRD') {
+    if (this.value === 'Keuangan & Sales') {
         penilaiInput.value = 'Diana Wulandari';
-        items = ["Pilih Atasan", "Vita Ari Puspita", "Arini Dina Yasmin", "Ahmad Syaiti", "Wahyu Arif Prasetyo", "Riza Dwi Fitrianingtyas"];
-    } 
-    else if (this.value === 'Sales & Marketing') {
-        penilaiInput.value = 'Heru Sucahyo';
+        items = ["Pilih Atasan", "Ibnu", "Evi Yulia Purnama Sari", "Ahmad Syaiti", "Fairin"];
+    }
+    if (this.value === 'IT') {
+        penilaiInput.value = 'Diana Wulandari';
+        items = ["Pilih Atasan", "Wahyu Arif Prasetyo"];
+    }  
+    else if (this.value === 'Purchasing') {
+        penilaiInput.value = 'Diana Wulandari';
         items = ["Pilih Atasan", "Evi Yulia", "Heru Sucahyo"];
     } 
+    else if (this.value === 'HRD') {
+        penilaiInput.value = 'Diana Wulandari';
+        items = ["Pilih Atasan", "Riza Dwi Fitrianingtyas"];
+    }
     else if (this.value === 'Logistik') {
-        penilaiInput.value = 'Kurniawan';
-        items = ["Pilih Atasan", "Kurniawan", "Alif"];
+        penilaiInput.value = 'Diana Wulandari';
+        items = ["Pilih Atasan", "Fauzan","Wildan Ma'ruf N. W."];
     } 
     else if (this.value === 'GA') {
         penilaiInput.value = 'Nandang Ernoko';
@@ -125,12 +135,12 @@ document.getElementById('jabatan_register').addEventListener('change', function(
     let items = [];
 
     if (this.value === 'Kabag') {
-        items = ["Pilih Atasan", "Diana Wulandari", "Vita Ari Puspita", "Riza Dwi Fitrianingtyas"];
-    } 
-    else if (this.value === 'Kadep MT') {
-        items = ["Pilih Atasan", "Diana Wulandari"];
+        items = ["Pilih Atasan", "Diana Wulandari", "Vita Ari Puspita", "Riza Dwi Fitrianingtyas","Kurniawan Pratama Arifin"];
     } 
     else if (this.value === 'Kadep') {
+        items = ["Pilih Atasan", "Diana Wulandari"];
+    } 
+    else if (this.value === 'Direktur') {
         items = ["Pilih Atasan", "Direksi"];
     }
     else if (this.value === 'Karyawan') {

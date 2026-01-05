@@ -7,24 +7,18 @@ if (isset($_SESSION['id_user'])) {
     require 'helper/checkAdmin.php';
     
     if (isAdminHRD()) {
-        header("Location: home-adminhrd");
-        exit();
-    } elseif (isAdminEDP()) {
-        header("Location: home-adminedp");
+        header("Location: dashboard-adminhrd");
         exit();
     } else {
-        header("Location: dashboard");
+        header("Location: dashboard-utama");
         exit();
     }
 }
  
 if (isset($_POST['submit'])) {
-    $username = mysqli_real_escape_string($conn, $_POST["username"]);
-    $password = mysqli_real_escape_string($conn, $_POST["password"]);
-    
-    $sql = "SELECT id_user, level FROM tb_auth 
-            INNER JOIN tb_users ON tb_users.id = tb_auth.id_user 
-            WHERE tb_users.username = '$username' AND tb_auth.password = '$password'";
+    $username = $_POST["username"];
+    $password = $_POST["password"];
+    $sql = "SELECT id_user, level FROM tb_auth INNER JOIN tb_users ON tb_users.id = tb_auth.id_user WHERE tb_users.username = '".$username."' AND tb_auth.password = '".$password."';";
     $result = mysqli_query($conn, $sql);
  
     if ($result->num_rows > 0) {
@@ -33,25 +27,16 @@ if (isset($_POST['submit'])) {
         $_SESSION['level'] = $row['level'];
         
         // Redirect berdasarkan level
-        if ($row['level'] == 6) {
-            // Admin EDP (Level 6)
-            header("Location: home-adminedp");
-        } elseif ($row['level'] == 5) {
-            // Admin HRD (Level 5)
-            header("Location: home-adminhrd");
-        } elseif ($row['level'] == 4) {
-            // Kadep
-            header("Location: kpikadep");
-        } elseif ($row['level'] >= 2) {
-            // Kabag dan lainnya
-            header("Location: kpikabag");
+        if ($row['level'] == 5) {
+            // Admin HRD
+            header("Location: dashboard-adminhrd");
         } else {
-            // User biasa (Karyawan)
-            header("Location: dashboard");
+            // User biasa
+            header("Location: dashboard-utama");
         }
         exit();
     } else {
-        echo "<script>alert('Username atau password Anda salah. Silakan coba lagi!')</script>";
+        echo "<script>alert('Email atau password Anda salah. Silakan coba lagi!')</script>";
     }
 }
 ?>
@@ -70,12 +55,12 @@ if (isset($_POST['submit'])) {
         <form action="" method="POST" class="login-username">
             <p class="login-text" style="font-size: 2rem; font-weight: 800; margin-bottom:15px; margin-top: -15px;">Login</p>
             <div class="input-group">
-                <input type="text" placeholder="Username" name="username" required>
+                <input type="username" placeholder="username" name="username" required>
             </div>
             <div class="input-group">
                 <input type="password" placeholder="Password" name="password" required>
             </div>
-            <div class="input-group" style="margin-top: 15px;">
+            <div class="input-group" style=" margin-top: 15px;">
                 <button name="submit" class="btn">Login</button>
             </div>
             <p class="login-register-text"><a href="register">Register?, </a> Hubungi IT</p>
