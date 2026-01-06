@@ -15,15 +15,21 @@
                 <a href="home-kpi" class="nav-link">Detail KPI</a>
             </li>
 
-            <?php if ($jabatan == "Kabag") { ?>
+            <?php if ($jabatan === "Kabag") { ?>
                 <li class="nav-item d-none d-md-block">
                     <a href="kpikabag" class="nav-link">KPI Anggota</a>
                 </li>
             <?php } ?>
 
-            <?php if (in_array($leveel, [3, 4])) { ?>
+            <?php if ($jabatan === "Kadep") { // Kadep ?>
                 <li class="nav-item d-none d-md-block">
                     <a href="kpikadep" class="nav-link">KPI Anggota</a>
+                </li>
+            <?php } ?>
+
+            <?php if ($jabatan === "Direktur") { // Direktur ?>
+                <li class="nav-item d-none d-md-block">
+                    <a href="kpidirektur" class="nav-link">KPI Anggota</a>
                 </li>
             <?php } ?>
 

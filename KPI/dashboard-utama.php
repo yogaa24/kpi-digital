@@ -17,7 +17,7 @@ $user_level = $_SESSION['level'] ?? 1; // Assume level dari session
 
 // ==================== FILTER PARAMETERS ====================
 $filter_user = isset($_GET['filter_user']) ? $_GET['filter_user'] : $id_user;
-$filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
+// $filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
 $filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departemen'] : '';
 $filter_comparison = isset($_GET['filter_comparison']) ? $_GET['filter_comparison'] : 'current'; // current, last_month, last_year
 
@@ -165,7 +165,7 @@ bulan,
 total_kpi_real AS `real`,
 total_kpi_target AS target
 FROM tb_kpi_history
-WHERE id_user = '4'
+WHERE id_user = $id_user
 ORDER BY bulan DESC
 LIMIT 6;
 ";
@@ -196,45 +196,66 @@ if (mysqli_num_rows($result_trend) > 0) {
     ];
 }
 
-// ==================== DEPARTMENT COMPARISON ====================
+// ==================== DEPARTMENT/TEAM COMPARISON ====================
 $dept_comparison = [];
-if ($user_level >= 3) { // Kadep or higher
-    // Tentukan departemen mana yang akan ditampilkan berdasarkan level
-    if ($user_level == 3) {
-        // Level 3 (Kadep) - HANYA bisa lihat departemen sendiri
+$comparison_title = "Team Comparison";
+
+if ($user_level >= 2) { // Level 2 (Kabag) ke atas bisa lihat
+    
+    // Tentukan users mana yang akan ditampilkan berdasarkan level
+    if ($user_level == 2) {
+        // Level 2 (Kabag) - HANYA bisa lihat anggota langsung di bawahnya
+        $kabag_name = $user_info['nama_lngkp']; // Nama Kabag dari session
+        $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
+                          WHERE atasan='$kabag_name' 
+                          ORDER BY nama_lngkp";
+        $comparison_title = "My Team Members Performance";
+        
+    } elseif ($user_level == 3) {
+        // Level 3 (Kadep) - Bisa lihat semua di departemen sendiri
         $target_dept = $user_info['departement'];
-        // Reset filter departemen jika user level 3 mencoba ganti departemen
-        $filter_departemen = $target_dept;
+        $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
+                          WHERE departement='$target_dept' 
+                          ORDER BY nama_lngkp";
+        $comparison_title = "Department Team - " . $target_dept;
+        
     } elseif ($user_level >= 4) {
         // Level 4+ (Direktur/Admin) - Bisa lihat semua departemen
-        // Jika ada filter departemen, gunakan itu. Jika tidak, gunakan departemen user yang dilihat
         $target_dept = !empty($filter_departemen) ? $filter_departemen : $user_info['departement'];
+        $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
+                          WHERE departement='$target_dept' 
+                          ORDER BY nama_lngkp";
+        $comparison_title = "Department Team - " . $target_dept;
     }
     
-    // Ambil semua user di departemen yang ditargetkan
-    $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users WHERE departement='$target_dept' ORDER BY nama_lngkp";
+    // Jalankan query
     $result_dept_users = mysqli_query($conn, $sql_dept_users);
     
-    // Tambahkan semua user dari departemen tersebut
-    while ($dept_user = mysqli_fetch_assoc($result_dept_users)) {
-        $dept_kpi = calculateKPI($conn, $conn_sim, $dept_user['id'], false);
-        
-        // Tandai jika ini user yang sedang dilihat
-        $name_display = $dept_user['nama_lngkp'];
-        if ($dept_user['id'] == $filter_user) {
-            $name_display .= ' (Selected)';
+    // Proses data jika ada hasil
+    if ($result_dept_users && mysqli_num_rows($result_dept_users) > 0) {
+        while ($dept_user = mysqli_fetch_assoc($result_dept_users)) {
+            $dept_kpi = calculateKPI($conn, $conn_sim, $dept_user['id'], false);
+            
+            // Tandai jika ini user yang sedang dilihat atau user yang login
+            $name_display = $dept_user['nama_lngkp'];
+            if ($dept_user['id'] == $id_user) {
+                $name_display .= ' (You)';
+            } elseif ($dept_user['id'] == $filter_user) {
+                $name_display .= ' (Selected)';
+            }
+            
+            $dept_comparison[] = [
+                'id' => $dept_user['id'],
+                'name' => $name_display,
+                'score' => $dept_kpi['total_kpi']
+            ];
         }
         
-        $dept_comparison[] = [
-            'name' => $name_display,
-            'score' => $dept_kpi['total_kpi']
-        ];
+        // Sorting berdasarkan score (descending - tertinggi di atas)
+        usort($dept_comparison, function($a, $b) {
+            return $b['score'] <=> $a['score'];
+        });
     }
-    
-    // Sorting berdasarkan score (descending - tertinggi di atas)
-    usort($dept_comparison, function($a, $b) {
-        return $b['score'] <=> $a['score'];
-    });
 }
 ?>
 
@@ -309,11 +330,11 @@ if ($user_level >= 3) { // Kadep or higher
                                             </h3>
                                             <p class="mb-0 opacity-90">Advanced Performance Monitoring & Analysis</p>
                                         </div>
-                                        <div class="col-md-6 text-md-end">
+                                        <!-- <div class="col-md-6 text-md-end">
                                             <button class="btn btn-light btn-sm no-print" onclick="window.print()">
                                                 <i class="bi bi-printer me-1"></i>Print
                                             </button>
-                                        </div>
+                                        </div> -->
                                     </div>
                                 </div>
                             </div>
@@ -376,20 +397,20 @@ if ($user_level >= 3) { // Kadep or higher
                                             <?php } ?>
 
                                             <!-- Period Filter -->
-                                            <div class="col-md-3">
+                                            <!-- <div class="col-md-3">
                                                 <label class="form-label fw-bold">Period</label>
                                                 <input type="month" name="filter_periode" class="form-control" value="<?= $filter_periode ?>" onchange="this.form.submit()">
-                                            </div>
+                                            </div> -->
 
                                             <!-- Comparison Type -->
-                                            <div class="col-md-3">
+                                            <!-- <div class="col-md-3">
                                                 <label class="form-label fw-bold">Compare With</label>
                                                 <select name="filter_comparison" class="form-select" onchange="this.form.submit()">
                                                     <option value="current" <?= $filter_comparison == 'current' ? 'selected' : '' ?>>Current Target</option>
                                                     <option value="last_month" <?= $filter_comparison == 'last_month' ? 'selected' : '' ?>>Last Month</option>
                                                     <option value="last_year" <?= $filter_comparison == 'last_year' ? 'selected' : '' ?>>Last Year</option>
                                                 </select>
-                                            </div>
+                                            </div> -->
 
                                         </div>
                                     </form>
@@ -399,7 +420,7 @@ if ($user_level >= 3) { // Kadep or higher
                     </div>
 
                     <!-- ==================== QUICK ACTIONS ==================== -->
-                    <div class="row mb-4 no-print">
+                    <!-- <div class="row mb-4 no-print">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
@@ -431,7 +452,30 @@ if ($user_level >= 3) { // Kadep or higher
                                 </div>
                             </div>
                         </div>
+                    </div> -->
+
+                    <!-- ==================== DEPARTMENT/TEAM COMPARISON (if applicable) ==================== -->
+                    <?php if (!empty($dept_comparison) && $user_level >= 2) { ?>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">
+                                            <i class="bi bi-people me-2"></i><?= $comparison_title ?>
+                                        </h5>
+                                        <span class="badge bg-primary"><?= count($dept_comparison) ?> Members</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="deptComparisonChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                    <?php } ?>
 
                     <!-- ==================== KEY METRICS ==================== -->
                     <div class="row mb-4">
@@ -855,24 +899,6 @@ if ($user_level >= 3) { // Kadep or higher
                         </div>
                     </div>
 
-                    <!-- ==================== DEPARTMENT COMPARISON (if applicable) ==================== -->
-                    <?php if (!empty($dept_comparison) && $user_level >= 3) { ?>
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="card shadow-sm border-0">
-                                <div class="card-header bg-light">
-                                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Department Team Comparison</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="deptComparisonChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php } ?>
-
                     <!-- ==================== DETAILED TABLES ==================== -->
                     <div class="row mb-4">
                         <div class="col-12">
@@ -1076,8 +1102,20 @@ if ($user_level >= 3) { // Kadep or higher
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
+                scales: { 
+                    x: { 
+                        display: false // HILANGKAN LABEL X-AXIS
+                    },
+                    y: { 
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    }
+                }
             }
+            
         });
 
         // KPI Breakdown Simulation
@@ -1097,26 +1135,51 @@ if ($user_level >= 3) { // Kadep or higher
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
+                scales: { 
+                    x: { 
+                        display: false // HILANGKAN LABEL X-AXIS
+                    },
+                    y: { 
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    }
+                }
             }
         });
 
         <?php if (!empty($dept_comparison) && count($dept_comparison) > 0) { ?>
-        // Department Comparison Chart
+        // Department/Team Comparison Chart
         const deptCompCtx = document.getElementById('deptComparisonChart').getContext('2d');
+
+        // Generate colors dynamically
+        const deptColors = <?= json_encode(array_map(function($member, $index) use ($id_user) {
+            // Warna khusus untuk user yang login
+            if (isset($member['id']) && $member['id'] == $id_user) {
+                return '#dc3545'; // Merah untuk diri sendiri
+            }
+            // Gradient untuk lainnya
+            $hue = ($index * 30) % 360;
+            return "hsl($hue, 70%, 60%)";
+        }, $dept_comparison, array_keys($dept_comparison))) ?>;
+
         const deptCompChart = new Chart(deptCompCtx, {
-            type: 'bar', // Ubah dari 'horizontalBar' ke 'bar'
+            type: 'bar',
             data: {
                 labels: <?= json_encode(array_column($dept_comparison, 'name')) ?>,
                 datasets: [{
                     label: 'KPI Score',
                     data: <?= json_encode(array_column($dept_comparison, 'score')) ?>,
-                    backgroundColor: '#ffc107',
-                    borderRadius: 5
+                    backgroundColor: deptColors,
+                    borderRadius: 5,
+                    borderWidth: 2,
+                    borderColor: '#fff'
                 }]
             },
             options: {
-                indexAxis: 'y', // Ini yang membuat horizontal
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { 
@@ -1136,7 +1199,7 @@ if ($user_level >= 3) { // Kadep or higher
                             display: true,
                             text: 'KPI Score'
                         }
-                    } 
+                    }
                 }
             }
         });

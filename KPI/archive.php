@@ -85,7 +85,7 @@ if (!isset($_SESSION['id_user'])) {
         $th = $busd[1];
 
         if ($bl == '00') {
-            $bulannnn = 'Desember ' . $th;
+            $bulannnn = 'Desember ' . ($th - 1);
         }
         if ($bl == '01') {
             $bulannnn = 'Januari ' . $th;

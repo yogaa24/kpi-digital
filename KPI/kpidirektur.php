@@ -141,83 +141,60 @@ function getkpi($nilair)
                                     </tr>
                                 </thead>
                                 <tbody>
-                                <?php
-                                $no = 1;
-                                $nama_kadep = mysqli_real_escape_string($conn, $nama_lngkp);
-
-                                $sqlhd = "
-                                    SELECT *
-                                    FROM tb_users
-                                    WHERE atasan = '$nama_kadep'
-                                    OR nama_lngkp = '$nama_kadep'
-                                    ORDER BY 
-                                        CASE 
-                                            WHEN nama_lngkp = '$nama_kadep' THEN 0
-                                            ELSE 1
-                                        END,
-                                        nama_lngkp ASC
-                                ";
-
-                                $sgdah = mysqli_query($conn, $sqlhd);
-
-                                while ($hasilsfa = mysqli_fetch_assoc($sgdah)) {
-
-                                    $nilair = getnilai($conn, $hasilsfa['id']);
-
-                                    if ($nilair < 90) {
-                                        $wrabs = "red";
-                                    } elseif ($nilair <= 100) {
-                                        $wrabs = "orange";
-                                    } elseif ($nilair <= 110) {
-                                        $wrabs = "green";
-                                    } else {
-                                        $wrabs = "blue";
-                                    }
-                                ?>
-                                <tr>
-                                    <td><center><?= $no; ?></center></td>
-
-                                    <td style="padding-left:20px;">
-                                        <?= $hasilsfa['nama_lngkp']; ?>
-                                        <?php if ($hasilsfa['nama_lngkp'] == $nama_lngkp) { ?>
-                                            <span class="badge bg-primary">Saya</span>
-                                        <?php } ?>
-                                    </td>
-
-                                    <td><center><?= $hasilsfa['jabatan']; ?></center></td>
-                                    <td><center><?= $hasilsfa['bagian']; ?></center></td>
-
-                                    <td style="color:<?= $wrabs ?>">
-                                        <center><?= $nilair ?></center>
-                                    </td>
-
-                                    <td style="color:<?= $wrabs ?>">
-                                        <center><?= getkpi($nilair); ?></center>
-                                    </td>
-
-                                    <td>
-                                        <?php
-                                        // tombol lihat hanya untuk anggota, bukan diri sendiri & bukan direktur
-                                        if (
-                                            $hasilsfa['id'] != $_SESSION['id_user'] &&
-                                            $hasilsfa['jabatan'] != 'Direktur'
-                                        ) {
-                                        ?>
-                                        <center>
-                                            <a href="kpianggota?id=<?= $hasilsfa['id']; ?>"
-                                            class="btn btn-success btn-sm">
-                                                <i class="bi bi-eye fs-8"></i>
-                                            </a>
-                                        </center>
-                                        <?php } ?>
-                                    </td>
-                                </tr>
-                                <?php
-                                $no++;
-                                }
-                                ?>
+                                    <?php $no = 1;
+                                    $sqlhd = "SELECT * 
+                                                    FROM tb_users
+                                                    WHERE atasan = 'Diana Wulandari' OR nama_lngkp = 'Diana Wulandari'
+                                                    ORDER BY 
+                                                        CASE 
+                                                            WHEN nama_lngkp = 'Diana Wulandari' THEN 0 
+                                                            ELSE 1 
+                                                        END,
+                                                        nama_lngkp";
+                                    $sgdah = mysqli_query($conn, $sqlhd);
+                                    while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { ?>
+                                        <tr>
+                                            <td>
+                                                <center><?= $no; ?></center>
+                                            </td>
+                                            <td style="padding-left: 20px;">
+                                                <?= $hasilsfa['nama_lngkp']; ?>
+                                            </td>
+                                            <td>
+                                                <center><?= $hasilsfa['jabatan']; ?></center>
+                                            </td>
+                                            <td>
+                                                <center><?= $hasilsfa['bagian']; ?></center>
+                                            </td>
+                                            <?php
+                                            $nilair = getnilai($conn, $hasilsfa['id']);
+                                            if ($nilair < 90) {
+                                                $wrabs = "red";
+                                            } elseif ($nilair <= 100) {
+                                                $wrabs = "orange";
+                                            } elseif ($nilair <= 110) {
+                                                $wrabs = "green";
+                                            } else { // $nilai > 110
+                                                $wrabs = "blue";
+                                            } ?>
+                                            <td style="color:<?= $wrabs ?>">
+                                                <center><?php echo getnilai($conn, $hasilsfa['id']); ?></center>
+                                            </td>
+                                            <td style="color:<?= $wrabs ?>">
+                                                <center><?= getkpi(getnilai($conn, $hasilsfa['id'])); ?></center>
+                                            </td>
+                                            <td>
+                                                <?php if ($hasilsfa['jabatan'] != 'Direktur') { ?>
+                                                    <center><a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>"
+                                                            class="btn btn-success btn-sm">
+                                                            <i class="bi bi-eye fs-8"></i>
+                                                        </a></center>
+                                                <?php } ?>
+                                            </td>
+                                        </tr>
+                                    <?php $no++;
+                                    } ?>
                                 </tbody>
-
                             </table>
                         </div>
                     </div>

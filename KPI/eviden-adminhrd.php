@@ -46,10 +46,26 @@ $result_users = mysqli_query($conn, $sql_users);
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
                                 <div class="card-body">
-                                    <h4 class="fw-bold mb-0">
-                                        <i class="bi bi-folder-fill text-danger me-2"></i>Data Eviden - Pilih Karyawan
-                                    </h4>
-                                    <p class="text-muted mb-0 small mt-2">Pilih karyawan untuk melihat eviden mereka</p>
+
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                        <div>
+                                            <h4 class="fw-bold mb-0">
+                                                <i class="bi bi-folder-fill text-danger me-2"></i>
+                                                Data Eviden - Pilih Karyawan
+                                            </h4>
+                                            <p class="text-muted mb-0 small mt-2">
+                                                Pilih karyawan untuk melihat eviden mereka
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <a href="dashboard-adminhrd"
+                                            class="btn btn-light btn-sm shadow-sm">
+                                                <i class="bi bi-arrow-left me-1"></i>
+                                                Kembali ke Dashboard
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

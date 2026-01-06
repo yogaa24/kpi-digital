@@ -143,7 +143,7 @@ if (!isset($_SESSION['id_user'])) {
         $bulannnn = '';
 
         if ($bl == '00') {
-            $bulannnn = 'Desember ' . $th;
+            $bulannnn = 'Desember ' . ($th - 1);
         }
         if ($bl == '01') {
             $bulannnn = 'Januari ' . $th;
@@ -188,7 +188,16 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['archiveNow'])) {
         $forIdArc=0;
         $odkgh = $busd[0]-1;
-        $tgslk = $odkgh.'/'.$busd[1];
+        
+        // Perbaikan: jika bulan jadi 0, ubah ke 12 dan tahun mundur 1
+        if ($odkgh == 0) {
+            $odkgh = 12;
+            $tahunArchive = $busd[1] - 1;
+        } else {
+            $tahunArchive = $busd[1];
+        }
+        
+        $tgslk = $odkgh.'/'.$tahunArchive;
         $sqlksf = "INSERT INTO tbar_archive (bulan, id_user) VALUES ('$tgslk',$id_user)";
         $resuarc = mysqli_query($connarc, $sqlksf);
         $last_id = mysqli_insert_id($connarc);

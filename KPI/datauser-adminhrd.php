@@ -58,6 +58,17 @@ if (isset($_POST['edit_user'])) {
     $atasan = $_POST['atasan'];
     $penilai = $_POST['penilai'];
     
+    // Tentukan level berdasarkan jabatan
+    $level = 1; // Default Karyawan
+    if ($jabatan == 'Kabag') {
+        $level = 2;
+    } elseif ($jabatan == 'Kadep') {
+        $level = 3;
+    } elseif ($jabatan == 'Direktur') {
+        $level = 4;
+    }
+    
+    // Update tb_users
     $sql_update = "UPDATE tb_users SET 
                    username = '$username',
                    nama_lngkp = '$nama_lengkap',
@@ -69,8 +80,13 @@ if (isset($_POST['edit_user'])) {
                    penilai = '$penilai'
                    WHERE id = '$id_edit'";
     
-    if (mysqli_query($conn, $sql_update)) {
-        echo "<script>alert('Data user berhasil diupdate'); window.location.href='datauser-adminhrd';</script>";
+    // Update tb_auth (update level juga)
+    $sql_update_level = "UPDATE tb_auth SET level = '$level' WHERE id_user = '$id_edit'";
+    
+    if (mysqli_query($conn, $sql_update) && mysqli_query($conn, $sql_update_level)) {
+        echo "<script>alert('Data user dan level berhasil diupdate'); window.location.href='datauser-adminhrd';</script>";
+    } else {
+        echo "<script>alert('Gagal update data user');</script>";
     }
 }
 
@@ -124,6 +140,8 @@ if (isset($_POST['register_user'])) {
                     $level = 2;
                 } elseif ($jabatan == 'Kadep') {
                     $level = 3;
+                } elseif ($jabatan == 'Direktur') {
+                    $level = 4;
                 }
                 
                 // Insert ke tb_auth
@@ -183,14 +201,28 @@ if (isset($_POST['register_user'])) {
             <div class="app-content">
                 <div class="container-fluid">
                     
-                    <!-- Header -->
-                    <div class="row mb-3 mt-3">
-                        <div class="col-12">
-                            <div class="card shadow-sm border-0">
-                                <div class="card-body">
-                                    <h4 class="fw-bold mb-0">
-                                        <i class="bi bi-people-fill text-primary me-2"></i>Data User
+                    <!-- Header Page Card Gradient -->
+                    <div class="card shadow-sm mt-4 mb-4 border-0 overflow-hidden">
+                        <div class="card-body text-white rounded"
+                            style="background: linear-gradient(135deg, #4e73df, #1cc88a);">
+
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+                                <div>
+                                    <h4 class="mb-1 fw-semibold">
+                                        <i class="bi bi-people-fill text-info"></i>
+                                        Data User
                                     </h4>
+                                    <small class="opacity-75">
+                                        Kelola Data Pengguna
+                                    </small>
+                                </div>
+
+                                <div>
+                                    <a href="dashboard-adminhrd" class="btn btn-light btn-sm shadow-sm">
+                                        <i class="bi bi-arrow-left me-1"></i>
+                                        Kembali ke Dashboard
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -219,6 +251,7 @@ if (isset($_POST['register_user'])) {
                                                     <th><center>Bagian</center></th>
                                                     <th><center>Departement</center></th>
                                                     <th><center>Jabatan</center></th>
+                                                    <th><center>Level</center></th>
                                                     <th width="10%"><center>Aksi</center></th>
                                                 </tr>
                                             </thead>
@@ -226,6 +259,16 @@ if (isset($_POST['register_user'])) {
                                                 <?php 
                                                 $no = 1;
                                                 while ($user = mysqli_fetch_assoc($result_users)) { 
+                                                    // Tampilkan nama level
+                                                    $level_name = '';
+                                                    switch($user['level']) {
+                                                        case 1: $level_name = 'Karyawan'; break;
+                                                        case 2: $level_name = 'Kabag'; break;
+                                                        case 3: $level_name = 'Kadep'; break;
+                                                        case 4: $level_name = 'Direktur'; break;
+                                                        case 5: $level_name = 'Admin HRD'; break;
+                                                        default: $level_name = 'Unknown';
+                                                    }
                                                 ?>
                                                 <tr>
                                                     <td><center><?= $no++ ?></center></td>
@@ -235,6 +278,7 @@ if (isset($_POST['register_user'])) {
                                                     <td><?= $user['bagian'] ?></td>
                                                     <td><?= $user['departement'] ?></td>
                                                     <td><?= $user['jabatan'] ?></td>
+                                                    <td><center><span class="badge bg-primary"><?= $level_name ?></span></center></td>
                                                     <td>
                                                         <center>
                                                             <button class="btn btn-sm btn-warning" 
@@ -273,6 +317,11 @@ if (isset($_POST['register_user'])) {
                                                                 <div class="modal-body">
                                                                     <input type="hidden" name="id_user" value="<?= $user['id'] ?>">
                                                                     
+                                                                    <div class="alert alert-info">
+                                                                        <i class="bi bi-info-circle me-2"></i>
+                                                                        <strong>Perhatian:</strong> Level akan otomatis berubah sesuai jabatan yang dipilih
+                                                                    </div>
+                                                                    
                                                                     <div class="row">
                                                                         <div class="col-md-6 mb-3">
                                                                             <label class="form-label">Username</label>
@@ -300,9 +349,15 @@ if (isset($_POST['register_user'])) {
                                                                                    value="<?= $user['departement'] ?>" required>
                                                                         </div>
                                                                         <div class="col-md-6 mb-3">
-                                                                            <label class="form-label">Jabatan</label>
-                                                                            <input type="text" class="form-control" name="jabatan" 
-                                                                                   value="<?= $user['jabatan'] ?>" required>
+                                                                            <label class="form-label">Jabatan <span class="text-danger">*</span></label>
+                                                                            <select class="form-select" name="jabatan" required>
+                                                                                <option value="">-- Pilih Jabatan --</option>
+                                                                                <option value="Karyawan" <?= $user['jabatan'] == 'Karyawan' ? 'selected' : '' ?>>Karyawan (Level 1)</option>
+                                                                                <option value="Kabag" <?= $user['jabatan'] == 'Kabag' ? 'selected' : '' ?>>Kabag (Level 2)</option>
+                                                                                <option value="Kadep" <?= $user['jabatan'] == 'Kadep' ? 'selected' : '' ?>>Kadep (Level 3)</option>
+                                                                                <option value="Direktur" <?= $user['jabatan'] == 'Direktur' ? 'selected' : '' ?>>Direktur (Level 4)</option>
+                                                                            </select>
+                                                                            <small class="text-muted">Level akan otomatis disesuaikan dengan jabatan</small>
                                                                         </div>
                                                                         <div class="col-md-6 mb-3">
                                                                             <label class="form-label">Atasan</label>
