@@ -17,7 +17,7 @@ $user_level = $_SESSION['level'] ?? 1; // Assume level dari session
 
 // ==================== FILTER PARAMETERS ====================
 $filter_user = isset($_GET['filter_user']) ? $_GET['filter_user'] : $id_user;
-// $filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
+$filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
 $filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departemen'] : '';
 $filter_comparison = isset($_GET['filter_comparison']) ? $_GET['filter_comparison'] : 'current'; // current, last_month, last_year
 
@@ -159,13 +159,12 @@ $user_info = mysqli_fetch_assoc($result_user_info);
 // ==================== TREND DATA (Last 6 months) - REAL DATA ====================
 $trend_data = [];
 
-// Query untuk mengambil data 6 bulan terakhir
 $sql_trend = "SELECT 
 bulan,
 total_kpi_real AS `real`,
 total_kpi_target AS target
 FROM tb_kpi_history
-WHERE id_user = $id_user
+WHERE id_user = $filter_user
 ORDER BY bulan DESC
 LIMIT 6;
 ";
@@ -173,25 +172,21 @@ LIMIT 6;
 $result_trend = mysqli_query($conn, $sql_trend);
 
 if (mysqli_num_rows($result_trend) > 0) {
-    // Jika ada data history
     $temp_data = [];
     while ($row = mysqli_fetch_assoc($result_trend)) {
         $temp_data[] = $row;
     }
-    
-    // Reverse agar urutan dari lama ke baru
+
     $trend_data = array_reverse($temp_data);
-    
-    // Format bulan untuk display
+
     foreach ($trend_data as &$item) {
         $item['month'] = date('M Y', strtotime($item['bulan'] . '-01'));
     }
-    
+
 } else {
-    // Jika belum ada data history, tampilkan bulan ini saja
     $trend_data[] = [
-        'month' => date('M Y'),
-        'real' => $kpi_real['total_kpi'],
+        'month'  => date('M Y'),
+        'real'   => $kpi_real['total_kpi'],
         'target' => $kpi_sim['total_kpi']
     ];
 }
@@ -200,59 +195,54 @@ if (mysqli_num_rows($result_trend) > 0) {
 $dept_comparison = [];
 $comparison_title = "Team Comparison";
 
-if ($user_level >= 2) { // Level 2 (Kabag) ke atas bisa lihat
-    
-    // Tentukan users mana yang akan ditampilkan berdasarkan level
+if ($user_level >= 2) {
+
     if ($user_level == 2) {
-        // Level 2 (Kabag) - HANYA bisa lihat anggota langsung di bawahnya
-        $kabag_name = $user_info['nama_lngkp']; // Nama Kabag dari session
+        $kabag_name = $user_info['nama_lngkp'];
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE atasan='$kabag_name' 
                           ORDER BY nama_lngkp";
         $comparison_title = "My Team Members Performance";
-        
+
     } elseif ($user_level == 3) {
-        // Level 3 (Kadep) - Bisa lihat semua di departemen sendiri
         $target_dept = $user_info['departement'];
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE departement='$target_dept' 
                           ORDER BY nama_lngkp";
         $comparison_title = "Department Team - " . $target_dept;
-        
+
     } elseif ($user_level >= 4) {
-        // Level 4+ (Direktur/Admin) - Bisa lihat semua departemen
         $target_dept = !empty($filter_departemen) ? $filter_departemen : $user_info['departement'];
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE departement='$target_dept' 
                           ORDER BY nama_lngkp";
         $comparison_title = "Department Team - " . $target_dept;
     }
-    
-    // Jalankan query
+
     $result_dept_users = mysqli_query($conn, $sql_dept_users);
-    
-    // Proses data jika ada hasil
+
     if ($result_dept_users && mysqli_num_rows($result_dept_users) > 0) {
         while ($dept_user = mysqli_fetch_assoc($result_dept_users)) {
             $dept_kpi = calculateKPI($conn, $conn_sim, $dept_user['id'], false);
-            
-            // Tandai jika ini user yang sedang dilihat atau user yang login
-            $name_display = $dept_user['nama_lngkp'];
-            if ($dept_user['id'] == $id_user) {
-                $name_display .= ' (You)';
-            } elseif ($dept_user['id'] == $filter_user) {
-                $name_display .= ' (Selected)';
+
+            if ($dept_kpi['total_kpi'] < 110) {
+
+                $name_display = $dept_user['nama_lngkp'];
+                if ($dept_user['id'] == $id_user) {
+                    $name_display .= ' (You)';
+                } elseif ($dept_user['id'] == $filter_user) {
+                    $name_display .= ' (Selected)';
+                }
+
+                $dept_comparison[] = [
+                    'id'    => $dept_user['id'],
+                    'name'  => $name_display,
+                    'score' => $dept_kpi['total_kpi']
+                ];
             }
-            
-            $dept_comparison[] = [
-                'id' => $dept_user['id'],
-                'name' => $name_display,
-                'score' => $dept_kpi['total_kpi']
-            ];
         }
-        
-        // Sorting berdasarkan score (descending - tertinggi di atas)
-        usort($dept_comparison, function($a, $b) {
+
+        usort($dept_comparison, function ($a, $b) {
             return $b['score'] <=> $a['score'];
         });
     }
@@ -341,6 +331,57 @@ if ($user_level >= 2) { // Level 2 (Kabag) ke atas bisa lihat
                         </div>
                     </div>
 
+                    <!-- ==================== QUICK ACTIONS ==================== -->
+                    <div class="row mb-4 no-print">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-2">
+                                        <div class="col-md-3">
+                                            <a href="dashboard" class="btn btn-outline-primary w-100">
+                                                <i class="bi bi-speedometer2 me-2"></i>Real KPI Dashboard
+                                            </a>
+                                        </div>
+                                        
+                                        <?php if ($user_level >= 2) { 
+                                            // Tentukan URL berdasarkan level
+                                            $kpi_anggota_url = 'kpikabag'; // Default level 2
+                                            $kpi_label = 'KPI Anggota';
+                                            
+                                            if ($user_level == 3) {
+                                                $kpi_anggota_url = 'kpikadep';
+                                                $kpi_label = 'KPI Anggota';
+                                            } elseif ($user_level >= 4) {
+                                                $kpi_anggota_url = 'kpidirektur';
+                                                $kpi_label = 'KPI Anggota';
+                                            }
+                                        ?>
+                                        <div class="col-md-3">
+                                            <a href="<?= $kpi_anggota_url ?>" class="btn btn-outline-secondary w-100">
+                                                <i class="bi bi-people-fill me-2"></i><?= $kpi_label ?>
+                                            </a>
+                                        </div>
+                                        <?php } ?>
+                                        
+                                        <div class="col-md-3">
+                                            <a href="skillstandard" class="btn btn-outline-info w-100">
+                                                <i class="bi bi-award me-2"></i>Skill Standard
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <a href="eviden" class="btn btn-outline-warning w-100">
+                                                <i class="bi bi-folder me-2"></i>Evidence
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- ==================== FILTER SECTION ==================== -->
                     <div class="row mb-4 no-print">
                         <div class="col-12">
@@ -397,10 +438,10 @@ if ($user_level >= 2) { // Level 2 (Kabag) ke atas bisa lihat
                                             <?php } ?>
 
                                             <!-- Period Filter -->
-                                            <!-- <div class="col-md-3">
+                                            <div class="col-md-3">
                                                 <label class="form-label fw-bold">Period</label>
                                                 <input type="month" name="filter_periode" class="form-control" value="<?= $filter_periode ?>" onchange="this.form.submit()">
-                                            </div> -->
+                                            </div>
 
                                             <!-- Comparison Type -->
                                             <!-- <div class="col-md-3">
@@ -419,42 +460,7 @@ if ($user_level >= 2) { // Level 2 (Kabag) ke atas bisa lihat
                         </div>
                     </div>
 
-                    <!-- ==================== QUICK ACTIONS ==================== -->
-                    <!-- <div class="row mb-4 no-print">
-                        <div class="col-12">
-                            <div class="card shadow-sm border-0">
-                                <div class="card-header bg-light">
-                                    <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-2">
-                                        <div class="col-md-3">
-                                            <a href="dashboard" class="btn btn-outline-primary w-100">
-                                                <i class="bi bi-speedometer2 me-2"></i>Real KPI Dashboard
-                                            </a>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <a href="dashboard-simulasi" class="btn btn-outline-success w-100">
-                                                <i class="bi bi-graph-up me-2"></i>Simulation Dashboard
-                                            </a>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <a href="skillstandard" class="btn btn-outline-info w-100">
-                                                <i class="bi bi-award me-2"></i>Skill Standard
-                                            </a>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <a href="eviden" class="btn btn-outline-warning w-100">
-                                                <i class="bi bi-folder me-2"></i>Evidence
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div> -->
-
-                    <!-- ==================== DEPARTMENT/TEAM COMPARISON (if applicable) ==================== -->
+                    <!-- ==================== DEPARTMENT/TEAM COMPARISON ==================== -->
                     <?php if (!empty($dept_comparison) && $user_level >= 2) { ?>
                     <div class="row mb-4">
                         <div class="col-12">
@@ -908,7 +914,7 @@ if ($user_level >= 2) { // Level 2 (Kabag) ke atas bisa lihat
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
-                                        <table class="table table-hover table-sm">
+                                        <table class="table table-hover table-sm fs-6">
                                             <thead class="table-dark">
                                                 <tr>
                                                     <th>KPI Item</th>
