@@ -24,7 +24,6 @@ if (!isset($_SESSION['id_user'])) {
     }
     if (isset($_POST['addsspoin'])) {
         $poin = $_POST['tujuan'];
-        $nilai = $_POST['nilai'];
         $id = $_POST['idss'];
         $nilai1 = $_POST['nilaiss1'];
         $nilai2 = $_POST['nilaiss2'];
@@ -43,11 +42,14 @@ if (!isset($_SESSION['id_user'])) {
     }
     if (isset($_POST['ss_edit'])) {
         $poin = $_POST['poinsss'];
-        $nilai = $_POST['nilaisss'];
         $id = $_POST['idsss'];
+        $nilai1 = $_POST['nilaiss1'];
+        $nilai2 = $_POST['nilaiss2'];
+        $nilai3 = $_POST['nilaiss3'];
+        $nilai4 = $_POST['nilaiss4'];
 
         $sql = "UPDATE tb_sspoin 
-        SET poinss='$poin' , nilaiss=$nilai where id_sspoin =$id";
+        SET poinss='$poin', nilai1='$nilai1', nilai2='$nilai2', nilai3='$nilai3', nilai4='$nilai4' WHERE id_sspoin=$id";
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
@@ -59,16 +61,45 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['ss_hapus'])) {
         $id = $_POST['idpoin'];
 
-        $sql = "delete from tb_sspoin where id_sspoin=$id";
+        $sql = "DELETE FROM tb_sspoin WHERE id_sspoin=$id";
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
             echo "<script>alert('Berhasil, Hapus Skill Standard')</script>";
         } else {
-            echo "<script>alert('Gagal Edit Skill')</script>";
+            echo "<script>alert('Gagal Hapus Skill')</script>";
         }
     }
-    
+    if (isset($_POST['hapus_kategori_ss'])) {
+        $id = $_POST['id_kategori'];
+
+        // Hapus semua poin di kategori ini terlebih dahulu
+        $sql1 = "DELETE FROM tb_sspoin WHERE id_ss=$id";
+        mysqli_query($conn, $sql1);
+        
+        // Kemudian hapus kategori
+        $sql2 = "DELETE FROM tb_ss WHERE id_poinss=$id";
+        $result = mysqli_query($conn, $sql2);
+        if ($result) {
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            echo "<script>alert('Berhasil, Hapus Kategori Skill Standard')</script>";
+        } else {
+            echo "<script>alert('Gagal Hapus Kategori')</script>";
+        }
+    }
+    if (isset($_POST['edit_kategori_ss'])) {
+        $id = $_POST['idk'];
+        $poinn = $_POST['poin'];
+
+        $sql = "UPDATE tb_ss SET poin_ss='$poinn' WHERE id_poinss=$id";
+        $result = mysqli_query($conn, $sql);
+        if ($result) {
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            echo "<script>alert('Berhasil, Edit Poin')</script>";
+        } else {
+            echo "<script>alert('Gagal, Edit Poin')</script>";
+        }
+    }
 }
 ?>
 
@@ -76,27 +107,27 @@ if (!isset($_SESSION['id_user'])) {
 <?php include("pages/part/p_header.php"); ?>
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
-    <!--begin::App Wrapper-->
     <div class="app-wrapper">
-        <!--begin::Header-->
-        <nav class="app-header navbar navbar-expand bg-body"> <!--begin::Container-->
-            <div class="container-fluid"> <!--begin::Start Navbar Links-->
+        <nav class="app-header navbar navbar-expand bg-body">
+            <div class="container-fluid">
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                 class="bi bi-list"></i> </a> </li>
                     <li class="nav-item d-none d-md-block"> <a href="dashboard-utama" class="nav-link">Kembali</a> </li>
-                    <?php if ($jabatan == "Kabag" or $jabatan=="Kadep") { ?>
+                    <?php if ($jabatan == "Kabag" || $jabatan == "Kadep") { ?>
                         <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#SSmodal"
                                 class="nav-link">Tambah Poin SS</a> </li>
                         <li class="nav-item d-none d-md-block"> <a href="ssanggota" class="nav-link">SS Anggota</a> </li>
-                    <?php }; ?>
-                    <!-- <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#detailModal" class="nav-link">Tambah Detail Poin KPI</a> </li> -->
-                </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
+                    <?php } else { ?>
+                        <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#SSmodal"
+                                class="nav-link">Tambah Kategori SS</a> </li>
+                    <?php } ?>
+                </ul>
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"> <a class="nav-link" href="#" data-lte-toggle="fullscreen"> <i
                                 data-lte-icon="maximize" class="bi bi-arrows-fullscreen"></i> <i
                                 data-lte-icon="minimize" class="bi bi-fullscreen-exit" style="display: none;"></i> </a>
-                    </li> <!--end::Fullscreen Toggle--> <!--begin::User Menu Dropdown-->
+                    </li>
                     <li class="nav-item dropdown user-menu"> <a href="#" class="nav-link dropdown-toggle"
                             data-bs-toggle="dropdown"> <img style="margin-top: -2px;" src="assets/img/profile.png"
                                 class="user-image rounded-circle shadow" alt="User Image"> <span
@@ -111,19 +142,21 @@ if (!isset($_SESSION['id_user'])) {
                 </ul>
             </div>
         </nav>
+        
+        <!-- Modal Tambah Kategori SS -->
         <div class="modal fade" id="SSmodal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title fw-bold" id="exampleModalLabel">Tambah Poin Skill Standard </h5>
+                        <h5 class="modal-title fw-bold" id="exampleModalLabel">Tambah Kategori Skill Standard </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form method="POST" action="" class="input">
                             <div class="input-group mb-3">
-                                <span style="color : #343A40;" class="input-group-text fw-bold" id="poin">Poin :</span>
-                                <input type="input" class="form-control" name="poin" placeholder="Poin Skill Standard"
-                                    aria-label="Poin Skill Standard" aria-describedby="poin">
+                                <span style="color : #343A40;" class="input-group-text fw-bold" id="poin">Kategori :</span>
+                                <input type="input" class="form-control" name="poin" placeholder="Contoh: Komunikasi, Leadership, dll"
+                                    aria-label="Poin Skill Standard" aria-describedby="poin" required>
                             </div>
                     </div>
                     <div class="modal-footer">
@@ -134,12 +167,14 @@ if (!isset($_SESSION['id_user'])) {
                 </div>
             </div>
         </div>
+        
         <?php include("pages/part/p_aside.php"); ?>
+        
         <div class="m-3">
             <div class="container-fluid mt-2" style="font-size:13px;">
                 <?php
                 $no = 1;
-                $sqler = "select * from tb_ss where id_user=$id_user";
+                $sqler = "SELECT * FROM tb_ss WHERE id_user=$id_user";
                 $tewg = mysqli_query($conn, $sqler);
                 while ($hasil = mysqli_fetch_assoc($tewg)) {
                     $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_sspoin WHERE id_user=$id_user AND id_ss=" . $hasil['id_poinss'];
@@ -158,15 +193,14 @@ if (!isset($_SESSION['id_user'])) {
                                                         if ($hasfg['total'] && $hasfg['totil']) {
                                                             echo number_format($hasfg['total'] / $hasfg['totil'], 2);
                                                         } else {
-                                                            echo '0';
+                                                            echo 'Belum dinilai';
                                                         }
                                                     } ?>
                                         </h5>
                                         <div class="card-tools">
-                                            <?php if ($jabatan == "Kabag") { ?>
                                             <button style="color: white; margin-top: -20px; margin-right: 5px;"
                                                 type="button" data-bs-toggle="modal"
-                                                data-bs-target="#EditSS<?= $hasil['id_poinss']; ?>" class="btn btn-tool">
+                                                data-bs-target="#EditKategoriSS<?= $hasil['id_poinss']; ?>" class="btn btn-tool">
                                                 <i class="bi bi-pencil fs-6"></i>
                                             </button>
 
@@ -177,9 +211,12 @@ if (!isset($_SESSION['id_user'])) {
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-end" role="menu">
                                                 <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                                                    data-bs-target="#TambahSS<?= $hasil['id_poinss']; ?>">Tambah Poin </a>
+                                                    data-bs-target="#TambahSS<?= $hasil['id_poinss']; ?>">Tambah Poin</a>
+                                                <div class="dropdown-divider"></div>
+                                                <a href="#" class="dropdown-item text-danger" data-bs-toggle="modal"
+                                                    data-bs-target="#HapusKategoriSS<?= $hasil['id_poinss']; ?>">Hapus Kategori</a>
                                             </div>
-                                            <?php } ?>
+                                            
                                             <button style="color: white;" type="button" class="btn btn-tool"
                                                 data-lte-toggle="card-collapse">
                                                 <i data-lte-icon="expand" class="bi bi-caret-down-fill"></i>
@@ -193,17 +230,12 @@ if (!isset($_SESSION['id_user'])) {
                                                 <tr>
                                                     <th style="width: 5%">No</th>
                                                     <th style="padding-left : 30px">Poin</th>
-                                                    <th style="width: 30%">
-                                                        <center>Nilai</center>
+                                                    <th style="width: 25%">
+                                                        <center>Deskripsi Penilaian</center>
                                                     </th>
-                                                    <th style="width: 15%">
-                                                        <center>Penilaian</center>
+                                                    <th style="width: 10%">
+                                                        <center>Action</center>
                                                     </th>
-                                                    <?php if ($jabatan == "Kabag") { ?>
-                                                        <th style="width: 15%">
-                                                            <center>Action</center>
-                                                        </th>
-                                                    <?php } ?>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -217,7 +249,14 @@ if (!isset($_SESSION['id_user'])) {
                                                         <td><?= $no . '.' . $nodd ?></td>
                                                         <td><?= $res['poinss']; ?></td>
                                                         <td>
-                                                            <center><?= $res['nilaiss']; ?>
+                                                            <center>
+                                                                <?php if ($res['nilaiss'] != 0) {
+                                                                    $resdd = 'nilai' . $res['nilaiss'];
+                                                                    echo '<span class="badge bg-success">Sudah Dinilai: ' . $res['nilaiss'] . '</span><br><small>' . $res[$resdd] . '</small>';
+                                                                } else {
+                                                                    echo '<span class="badge bg-warning">Menunggu Penilaian Atasan</span>';
+                                                                } ?>
+                                                            </center>
                                                         </td>
                                                         <td class="text-center">
                                                             <button type="button" data-bs-toggle="dropdown"
@@ -226,25 +265,17 @@ if (!isset($_SESSION['id_user'])) {
                                                             </button>
                                                             <div class="dropdown-menu dropdown-menu-end" role="menu">
                                                                 <a class="dropdown-item" data-bs-toggle="modal"
-                                                                    data-bs-target="#NilaiSSS<?= $res['id_sspoin'] ?>">Nilai</a>
+                                                                    data-bs-target="#LihatSSS<?= $res['id_sspoin'] ?>">Lihat Detail</a>
+                                                                <div class="dropdown-divider"></div>
+                                                                <a name="how_edit" class="dropdown-item" data-bs-toggle="modal"
+                                                                    data-bs-target="#EditSSS<?= $res['id_sspoin'] ?>">Edit</a>
+                                                                <a class="dropdown-item text-danger" data-bs-toggle="modal"
+                                                                    data-bs-target="#HapusSSS<?= $res['id_sspoin'] ?>">Hapus</a>
                                                             </div>
                                                         </td>
-                                                        <?php if ($jabatan == "Kabag") { ?>
-                                                        <td class="text-center">
-                                                            <button type="button" data-bs-toggle="dropdown"
-                                                                class="btn btn-success btn-sm">
-                                                                <i class="bi bi-eye fs-8"></i>
-                                                            </button>
-                                                            <div class="dropdown-menu dropdown-menu-end" role="menu">
-                                                                <a name="how_edit"
-                                                                    class="dropdown-item" data-bs-toggle="modal"
-                                                                    data-bs-target="#EditSSS<?= $res['id_sspoin'] ?>">Edit</a>
-                                                                <a class="dropdown-item" data-bs-toggle="modal"
-                                                                    data-bs-target="#HapusSSS<?= $res['id_sspoin'] ?>">Hapus</a>
-                                                                </div>
-                                                            </td>
-                                                            <?php } ?>
                                                     </tr>
+                                                    
+                                                    <!-- Modal Edit Poin SS -->
                                                     <div class="modal fade" id="EditSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="EditModalLabel" aria-hidden="true">
                                                         <div class="modal-dialog modal-lg">
                                                             <div class="modal-content">
@@ -257,11 +288,25 @@ if (!isset($_SESSION['id_user'])) {
                                                                         <input type="input" hidden value="<?= $res['id_sspoin']; ?>" class="form-control" name="idsss">
                                                                         <div class="input-group mb-3">
                                                                             <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Poin :</span>
-                                                                            <input type="input" value="<?= $res['poinss']; ?>" class="form-control" name="poinsss" placeholder="Poin SS">
+                                                                            <input type="input" value="<?= $res['poinss']; ?>" class="form-control" name="poinsss" placeholder="Poin SS" required>
+                                                                        </div>
+                                                                        <div class="divider-line" style="height: 0; border-bottom: 1px solid #ccc; margin: 20px 0;"></div>
+                                                                        <p class="fw-bold mb-3">Deskripsi untuk setiap nilai:</p>
+                                                                        <div class="input-group mb-3">
+                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Nilai 1 :</span>
+                                                                            <input type="input" required value="<?= $res['nilai1']; ?>" class="form-control" name="nilaiss1" placeholder="Deskripsi untuk nilai 1">
                                                                         </div>
                                                                         <div class="input-group mb-3">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Nilai :</span>
-                                                                            <input type="input" value="<?= $res['nilaiss']; ?>" class="form-control" name="nilaisss" placeholder="Nilai SS">
+                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Nilai 2 :</span>
+                                                                            <input type="input" required value="<?= $res['nilai2']; ?>" class="form-control" name="nilaiss2" placeholder="Deskripsi untuk nilai 2">
+                                                                        </div>
+                                                                        <div class="input-group mb-3">
+                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Nilai 3 :</span>
+                                                                            <input type="input" required value="<?= $res['nilai3']; ?>" class="form-control" name="nilaiss3" placeholder="Deskripsi untuk nilai 3">
+                                                                        </div>
+                                                                        <div class="input-group mb-3">
+                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Nilai 4 :</span>
+                                                                            <input type="input" required value="<?= $res['nilai4']; ?>" class="form-control" name="nilaiss4" placeholder="Deskripsi untuk nilai 4">
                                                                         </div>
                                                                 </div>
                                                                 <div class="modal-footer">
@@ -272,54 +317,73 @@ if (!isset($_SESSION['id_user'])) {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="modal fade" id="NilaiSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="EditModalLabel" aria-hidden="true">
+                                                    
+                                                    <!-- Modal Lihat Detail -->
+                                                    <div class="modal fade" id="LihatSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="LihatModalLabel" aria-hidden="true">
                                                         <div class="modal-dialog modal-lg">
                                                             <div class="modal-content">
                                                                 <div class="modal-header">
-                                                                    <h5 class="modal-title fw-bold" id="EditModalLabel">Nilai Skill Standard</h5>
+                                                                    <h5 class="modal-title fw-bold" id="LihatModalLabel">Detail Skill Standard</h5>
                                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                 </div>
                                                                 <div class="modal-body">
-                                                                    <form method="POST" action="" class="input">
-                                                                        <input type="input" hidden value="<?= $res['id_sspoin']; ?>" class="form-control" name="idsss">
-                                                                        <div class="input-group mb-3">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Poin :</span>
-                                                                            <input type="input" value="<?= $res['poinss']; ?>" class="form-control" name="poinsss" placeholder="Poin SS">
-                                                                        </div>
-                                                                        <div class="input-group mb-3">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Nilai :</span>
-                                                                            <input type="input" value="<?= $res['nilaiss']; ?>" class="form-control" name="nilaisss" placeholder="Nilai SS">
-                                                                        </div>
+                                                                    <div class="input-group mb-3">
+                                                                        <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Poin :</span>
+                                                                        <input type="input" value="<?= $res['poinss']; ?>" class="form-control" disabled>
+                                                                    </div>
+                                                                    <div class="divider-line" style="height: 0; border-bottom: 1px solid #ccc; margin: 20px 0;"></div>
+                                                                    <p class="fw-bold mb-3">Kriteria Penilaian:</p>
+                                                                    <div class="alert alert-info">
+                                                                        <strong>Nilai 1:</strong> <?= $res['nilai1']; ?>
+                                                                    </div>
+                                                                    <div class="alert alert-warning">
+                                                                        <strong>Nilai 2:</strong> <?= $res['nilai2']; ?>
+                                                                    </div>
+                                                                    <div class="alert alert-success">
+                                                                        <strong>Nilai 3:</strong> <?= $res['nilai3']; ?>
+                                                                    </div>
+                                                                    <div class="alert alert-primary">
+                                                                        <strong>Nilai 4:</strong> <?= $res['nilai4']; ?>
+                                                                    </div>
+                                                                    <?php if ($res['nilaiss'] != 0) { ?>
+                                                                    <div class="divider-line" style="height: 0; border-bottom: 1px solid #ccc; margin: 20px 0;"></div>
+                                                                    <div class="alert alert-success">
+                                                                        <strong>Nilai yang Diberikan Atasan: <?= $res['nilaiss']; ?></strong>
+                                                                    </div>
+                                                                    <?php } ?>
                                                                 </div>
                                                                 <div class="modal-footer">
                                                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                                                 </div>
-                                                                </form>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="modal fade" id="HapusSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="EditModalLabel" aria-hidden="true">
-                                                        <div class="modal-dialog modal-lg">
+                                                    
+                                                    <!-- Modal Hapus Poin -->
+                                                    <div class="modal fade" id="HapusSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="HapusModalLabel" aria-hidden="true">
+                                                        <div class="modal-dialog">
                                                             <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title fw-bold" id="EditModalLabel"><?= $res['poinss']; ?></h5>
+                                                                <div class="modal-header bg-danger text-white">
+                                                                    <h5 class="modal-title fw-bold" id="HapusModalLabel">Konfirmasi Hapus</h5>
                                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                 </div>
                                                                 <div class="modal-body">
                                                                     <form method="POST" action="" class="input">
                                                                         <input hidden type="input" value="<?= $res['id_sspoin']; ?>" class="form-control" name="idpoin">
                                                                         <div class="container">
-                                                                            <p>Apa Kamu Yakin Hapus Poin Ini?</p>
+                                                                            <p class="fw-bold"><?= $res['poinss']; ?></p>
+                                                                            <p>Apakah Anda yakin ingin menghapus poin ini?</p>
                                                                         </div>
                                                                         <div class="modal-footer">
-                                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                                            <button type="submit" name="ss_hapus" class="btn btn-danger">Hapus</button>
+                                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                                            <button type="submit" name="ss_hapus" class="btn btn-danger">Ya, Hapus</button>
                                                                         </div>
                                                                     </form>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    <?php $nodd++;
+                                                    </div>
+                                                <?php $nodd++;
                                                 } ?>
                                             </tbody>
                                         </table>
@@ -328,6 +392,60 @@ if (!isset($_SESSION['id_user'])) {
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Modal Edit Kategori SS -->
+                    <div class="modal fade" id="EditKategoriSS<?= $hasil['id_poinss']; ?>" tabindex="-1" aria-labelledby="EditKategoriLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title fw-bold" id="EditKategoriLabel">Edit Kategori Skill Standard</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form method="POST" action="" class="input">
+                                        <input type="input" value="<?= $hasil['id_poinss']; ?>" class="form-control" name="idk" hidden>
+                                        <div class="input-group mb-3">
+                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="poin">Kategori :</span>
+                                            <input type="input" value="<?= $hasil['poin_ss']; ?>" class="form-control" name="poin" placeholder="Nama Kategori" required>
+                                        </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" name="edit_kategori_ss" class="btn btn-primary">Simpan</button>
+                                </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Modal Hapus Kategori -->
+                    <div class="modal fade" id="HapusKategoriSS<?= $hasil['id_poinss']; ?>" tabindex="-1" aria-labelledby="HapusKategoriLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title fw-bold" id="HapusKategoriLabel">Konfirmasi Hapus Kategori</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form method="POST" action="">
+                                        <input hidden type="input" value="<?= $hasil['id_poinss']; ?>" name="id_kategori">
+                                        <div class="container">
+                                            <p class="fw-bold"><?= $hasil['poin_ss']; ?></p>
+                                            <div class="alert alert-warning">
+                                                <i class="bi bi-exclamation-triangle"></i> Menghapus kategori akan menghapus <strong>semua poin</strong> di dalamnya!
+                                            </div>
+                                            <p>Apakah Anda yakin ingin menghapus kategori ini beserta seluruh poinnya?</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                            <button type="submit" name="hapus_kategori_ss" class="btn btn-danger">Ya, Hapus Kategori</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <?php include('pages/kpi/k_modalTambahSS.php'); ?>
                 <?php
                     $no++;

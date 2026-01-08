@@ -318,7 +318,8 @@ if (isset($_POST['nilai_how'])) {
         $total = number_format($nilai * $bobot / 100, 2);
         
         // Format hasil untuk ditampilkan
-        $hasil_text = "Target: " . number_format($target_omset, 2) . " | Hasil: " . number_format($hasil_omset, 2) . " | Pencapaian: " . number_format($persentase, 2) . "%";
+        // Format hasil untuk ditampilkan
+        $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 2);
         $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
         
         // Update tb_hows

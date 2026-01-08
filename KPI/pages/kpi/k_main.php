@@ -236,7 +236,7 @@
                                     <td>
                                         <?= $res['p_how']; ?>
                                         <?php if ($res['tipe_how'] == 'B' && $res['target_omset'] > 0) { ?>
-                                            <br><small class="text-muted">Target: <?=number_format($res['target_omset'], 2)?></small>
+                                            <br><small class="text-muted fw-semibold fs-6">Target: <?=number_format($res['target_omset'], 2)?></small>
                                         <?php } ?>
                                     </td>
                                     <td><?= $res['hasil']; ?></td>

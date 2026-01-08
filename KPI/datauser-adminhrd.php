@@ -24,6 +24,7 @@ if ($user_data['level'] != 5) {
 // Ambil semua data user
 $sql_users = "SELECT u.*, a.level FROM tb_users u 
               INNER JOIN tb_auth a ON u.id = a.id_user 
+              WHERE u.username != 'itboy'
               ORDER BY u.nama_lngkp ASC";
 $result_users = mysqli_query($conn, $sql_users);
 
@@ -229,7 +230,37 @@ if (isset($_POST['register_user'])) {
                     </div>
 
                     <!-- Tombol Tambah User -->
-                    <div class="mb-3 text-end">
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex gap-2">
+                            <!-- Filter Departemen -->
+                            <select id="filterDepartemen" class="form-select form-select-sm" style="width: auto;">
+                                <option value="">Semua Departemen</option>
+                                <?php
+                                // Ambil list departemen
+                                $sql_dept = "SELECT DISTINCT departement FROM tb_users WHERE username != 'itboy' ORDER BY departement ASC";
+                                $result_dept = mysqli_query($conn, $sql_dept);
+                                while($dept = mysqli_fetch_assoc($result_dept)) {
+                                    echo "<option value='".$dept['departement']."'>".$dept['departement']."</option>";
+                                }
+                                ?>
+                            </select>
+                            
+                            <!-- Filter Jabatan -->
+                            <select id="filterJabatan" class="form-select form-select-sm" style="width: auto;">
+                                <option value="">Semua Jabatan</option>
+                                <option value="Direktur">Direktur</option>
+                                <option value="Kadep">Kadep</option>
+                                <option value="Kabag">Kabag</option>
+                                <option value="Karyawan">Karyawan</option>
+                                <option value="Driver">Driver</option>
+                            </select>
+                            
+                            <!-- Tombol Reset Filter -->
+                            <button id="resetFilter" class="btn btn-secondary btn-sm">
+                                <i class="bi bi-arrow-clockwise"></i> Reset
+                            </button>
+                        </div>
+                        
                         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalRegister">
                             <i class="bi bi-plus-circle"></i> Tambah User Baru
                         </button>
@@ -440,5 +471,63 @@ if (isset($_POST['register_user'])) {
         <?php include("pages/part/p_footer.php"); ?>
         <?php include("pages/adminhrd/register-adminhrd.php"); ?>
     </div>
+    <!-- jQuery harus dimuat pertama -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            var table = $('#datatablenya').DataTable({
+                "responsive": true,
+                "language": {
+                    "search": "Cari:",
+                    "lengthMenu": "Tampilkan _MENU_ data per halaman",
+                    "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                    "infoEmpty": "Menampilkan 0 sampai 0 dari 0 data",
+                    "infoFiltered": "(difilter dari _MAX_ total data)",
+                    "paginate": {
+                        "first": "Pertama",
+                        "last": "Terakhir",
+                        "next": "Selanjutnya",
+                        "previous": "Sebelumnya"
+                    },
+                    "zeroRecords": "Data tidak ditemukan"
+                },
+                "pageLength": 10,
+                "order": [[2, 'asc']], // Order by nama lengkap
+                "columnDefs": [
+                    { "orderable": false, "targets": 8 } // Kolom aksi tidak bisa diurutkan
+                ]
+            });
+            
+            // Filter Departemen
+            $('#filterDepartemen').on('change', function() {
+                var dept = $(this).val();
+                table.column(5).search(dept).draw(); // Kolom 5 = Departement
+            });
+            
+            // Filter Jabatan
+            $('#filterJabatan').on('change', function() {
+                var jabatan = $(this).val();
+                table.column(6).search(jabatan).draw(); // Kolom 6 = Jabatan
+            });
+            
+            // Reset Filter
+            $('#resetFilter').on('click', function() {
+                $('#filterDepartemen').val('');
+                $('#filterJabatan').val('');
+                table.search('').columns().search('').draw();
+            });
+        });
+    </script>
 </body>
 </html>

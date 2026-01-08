@@ -194,9 +194,11 @@ function getkpi($nilair)
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.min.css"
         integrity="sha256-Qsx5lrStHZyR9REqhUF8iQt73X06c8LGIUPzpOhwRrI=" crossorigin="anonymous">
     <link rel="stylesheet" href="assets/css/adminlte.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
-        integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
-    <link rel="stylesheet" type="text/css" href="assets/css/datatables/datatables.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <!-- <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css"> -->
     
     <style>
         .badge-admin {
@@ -277,6 +279,80 @@ function getkpi($nilair)
                             </div>
                         </div>
                     </div>
+
+                    <!-- Filter Section -->
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fw-bold">
+                                        <i class="bi bi-building"></i> Departemen
+                                    </label>
+                                    <select id="filterDepartemen" class="form-select form-select-sm">
+                                        <option value="">Semua Departemen</option>
+                                        <?php
+                                        // Ambil list departemen
+                                        $sql_dept = "SELECT DISTINCT u.departement 
+                                                    FROM tb_users u
+                                                    INNER JOIN tb_auth a ON u.id = a.id_user
+                                                    WHERE u.username != 'backdoor_admin' 
+                                                    AND u.jabatan != 'Admin HRD'
+                                                    ORDER BY u.departement ASC";
+                                        $result_dept = mysqli_query($conn, $sql_dept);
+                                        while($dept = mysqli_fetch_assoc($result_dept)) {
+                                            echo "<option value='".$dept['departement']."'>".$dept['departement']."</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fw-bold">
+                                        <i class="bi bi-briefcase"></i> Jabatan
+                                    </label>
+                                    <select id="filterJabatan" class="form-select form-select-sm">
+                                        <option value="">Semua Jabatan</option>
+                                        <option value="Kadep">Kadep</option>
+                                        <option value="Kabag">Kabag</option>
+                                        <option value="Karyawan">Karyawan</option>
+                                        <option value="Driver">Driver</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fw-bold">
+                                        <i class="bi bi-star"></i> Status KPI
+                                    </label>
+                                    <select id="filterKPI" class="form-select form-select-sm">
+                                        <option value="">Semua Status</option>
+                                        <option value="Excellent">Excellent</option>
+                                        <option value="Very Good">Very Good</option>
+                                        <option value="GOOD">GOOD</option>
+                                        <option value="POOR">POOR</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 fw-bold">
+                                        <i class="bi bi-exclamation-triangle"></i> Status SP
+                                    </label>
+                                    <select id="filterSP" class="form-select form-select-sm">
+                                        <option value="">Semua</option>
+                                        <option value="Ada SP">Memiliki SP Aktif</option>
+                                        <option value="Tidak Ada SP">Tanpa SP</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-12 text-end">
+                                    <button id="resetFilter" class="btn btn-secondary btn-sm">
+                                        <i class="bi bi-arrow-clockwise"></i> Reset Filter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Table KPI -->
                     <div class="card shadow-sm">
@@ -306,17 +382,19 @@ function getkpi($nilair)
                                         <?php 
                                         $no = 1;
                                         $sqlhd = "SELECT u.*, a.level
-                                                FROM tb_users u
-                                                INNER JOIN tb_auth a ON u.id = a.id_user
-                                                WHERE u.id != $id_user AND u.jabatan != 'Admin HRD'
-                                                ORDER BY 
-                                                    CASE 
-                                                        WHEN u.jabatan = 'Kadep' THEN 1
-                                                        WHEN u.jabatan = 'Kabag' THEN 2
-                                                        WHEN u.jabatan = 'Karyawan' THEN 3
-                                                        ELSE 4
-                                                    END,
-                                                    u.nama_lngkp ASC";
+                                        FROM tb_users u
+                                        INNER JOIN tb_auth a ON u.id = a.id_user
+                                        WHERE u.id != $id_user 
+                                        AND u.jabatan != 'Admin HRD'
+                                        AND u.username != 'itboy'
+                                        ORDER BY 
+                                            CASE 
+                                                WHEN u.jabatan = 'Kadep' THEN 1
+                                                WHEN u.jabatan = 'Kabag' THEN 2
+                                                WHEN u.jabatan = 'Karyawan' THEN 3
+                                                ELSE 4
+                                            END,
+                                            u.nama_lngkp ASC";
                                         $sgdah = mysqli_query($conn, $sqlhd);
                                         
                                         while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { 
@@ -473,14 +551,26 @@ function getkpi($nilair)
         
         <?php include("pages/part/p_footeradminhrd.php"); ?>
     </div>
-    
+    <!-- jQuery harus dimuat pertama -->
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/datatables/datatables.min.js"></script>
-    
+
+    <!-- Bootstrap Bundle (harus sebelum DataTables) -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script> -->
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script> -->
+
     <script>
         $(document).ready(function() {
-            $('#datatablenya').DataTable({
+            // Initialize DataTable
+            var table = $('#datatablenya').DataTable({
+                "responsive": true,
+                "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+                    '<"row"<"col-sm-12"tr>>' +
+                    '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
                 "language": {
                     "search": "Cari:",
                     "lengthMenu": "Tampilkan _MENU_ data per halaman",
@@ -496,7 +586,49 @@ function getkpi($nilair)
                     "zeroRecords": "Data tidak ditemukan"
                 },
                 "pageLength": 10,
-                "order": [[0, 'asc']]
+                "order": [[0, 'asc']],
+                "columnDefs": [
+                    { "orderable": false, "targets": 9 } // Kolom aksi tidak bisa diurutkan
+                ]
+            });
+            
+            // Filter Departemen
+            $('#filterDepartemen').on('change', function() {
+                var dept = $(this).val();
+                table.column(3).search(dept).draw(); // Kolom 3 = Departemen
+            });
+            
+            // Filter Jabatan
+            $('#filterJabatan').on('change', function() {
+                var jabatan = $(this).val();
+                table.column(2).search(jabatan).draw(); // Kolom 2 = Jabatan
+            });
+            
+            // Filter Status KPI
+            $('#filterKPI').on('change', function() {
+                var kpi = $(this).val();
+                table.column(8).search(kpi).draw(); // Kolom 8 = KPI
+            });
+            
+            // Filter Status SP
+            $('#filterSP').on('change', function() {
+                var sp = $(this).val();
+                if (sp === 'Ada SP') {
+                    table.column(1).search('SP.*Aktif', true, false).draw();
+                } else if (sp === 'Tidak Ada SP') {
+                    table.column(1).search('^((?!SP.*Aktif).)*$', true, false).draw();
+                } else {
+                    table.column(1).search('').draw();
+                }
+            });
+            
+            // Reset Filter
+            $('#resetFilter').on('click', function() {
+                $('#filterDepartemen').val('');
+                $('#filterJabatan').val('');
+                $('#filterKPI').val('');
+                $('#filterSP').val('');
+                table.search('').columns().search('').draw();
             });
         });
     </script>

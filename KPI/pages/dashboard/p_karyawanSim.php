@@ -44,31 +44,9 @@
     <div class="card mb-4">
         <div style="height: 50px; margin-top: -3px;" class="card-header bg-warning bg-gradient">
             <h5 style="color:black;" class="card-title fw-bolder">TOTAL NILAI KPI</h5>
-            <div class="card-tools">
-                <button style="color: white; margin-top: -20px; margin-right: 5px; " type="button"
-                    data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
-                    <i class="bi bi-plus-circle fs-6"></i>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end" role="menu">
-                    <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                        data-bs-target="#archiveModal">Archive - <?= tmapil($busd[0]-1,$busd[1]); ?> </a>
-                </div>
-            </div>
         </div>
         <!-- ---------------------------------------------------------------------->
         <div class="card-body">
-            <table class="table table-bordered table-sm mb-2">
-                <thead>
-                    <tr>
-                        <th>
-                            <center>KPI BULAN : </center>
-                        </th>
-                        <th>
-                            <center><?= tmapil($busd[0],$busd[1]); ?></center>
-                        </th>
-                    </tr>
-                </thead>
-            </table>
             <table class="table table-bordered table-sm">
                 <thead>
                     <tr>

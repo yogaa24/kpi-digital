@@ -17,19 +17,22 @@ $user_level = $_SESSION['level'] ?? 1; // Assume level dari session
 
 // ==================== FILTER PARAMETERS ====================
 $filter_user = isset($_GET['filter_user']) ? $_GET['filter_user'] : $id_user;
-$filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
+// $filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
 $filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departemen'] : '';
 $filter_comparison = isset($_GET['filter_comparison']) ? $_GET['filter_comparison'] : 'current'; // current, last_month, last_year
 
 // ==================== FETCH FILTER OPTIONS ====================
 // Get all users based on level
-$sql_users = "SELECT id, nama_lngkp, departement, jabatan FROM tb_users WHERE 1=1";
-if ($user_level == 2) { // Kabag - hanya team sendiri
-    $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
-} elseif ($user_level == 3) { // Kadep - seluruh departemen
-    $sql_users .= " AND departement = (SELECT departement FROM tb_users WHERE id='$id_user')";
+if ($user_level >= 2) {
+    $sql_users = "SELECT id, nama_lngkp, departement, jabatan FROM tb_users WHERE 1=1";
+    if ($user_level == 2) { // Kabag - hanya team sendiri
+        $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
+    } elseif ($user_level == 3) { // Kadep - seluruh departemen
+        $sql_users .= " AND departement = (SELECT departement FROM tb_users WHERE id='$id_user')";
+    }
+
+    $result_users = mysqli_query($conn, $sql_users);
 }
-$result_users = mysqli_query($conn, $sql_users);
 
 $sql_departments = "SELECT DISTINCT departement FROM tb_users WHERE departement IS NOT NULL AND departement != '' ORDER BY departement";
 $result_departments = mysqli_query($conn, $sql_departments);
@@ -148,9 +151,14 @@ function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
 }
 
 // Calculate KPI for filtered user
+if ($user_level == 1) {
+    $filter_user = $id_user; // Paksa filter_user = diri sendiri
+}
+
 $kpi_real = calculateKPI($conn, $conn_sim, $filter_user, false);
 $kpi_sim = calculateKPI($conn, $conn_sim, $filter_user, true);
 saveKPIHistory($conn, $id_user, $kpi_real, $kpi_sim);
+
 // Get user info
 $sql_user_info = "SELECT * FROM tb_users WHERE id='$filter_user'";
 $result_user_info = mysqli_query($conn, $sql_user_info);
@@ -383,6 +391,8 @@ if ($user_level >= 2) {
                     </div>
 
                     <!-- ==================== FILTER SECTION ==================== -->
+                    <!-- TAMBAHKAN KONDISI IF DI SINI -->
+                    <?php if ($user_level >= 2) { ?>
                     <div class="row mb-4 no-print">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
@@ -393,20 +403,22 @@ if ($user_level >= 2) {
                                     <form method="GET" action="" id="filterForm">
                                         <div class="row g-3">
                                             
-                                            <?php if ($user_level >= 2) { ?>
-                                            <!-- User Filter -->
+                                            <!-- User Filter - Tampil untuk level 2 ke atas -->
                                             <div class="col-md-3">
                                                 <label class="form-label fw-bold">Select Employee</label>
                                                 <select name="filter_user" class="form-select" onchange="this.form.submit()">
                                                     <option value="<?= $id_user ?>">My KPI</option>
-                                                    <?php while ($user = mysqli_fetch_assoc($result_users)) { ?>
+                                                    <?php 
+                                                    // Reset pointer result_users jika sudah di-fetch sebelumnya
+                                                    mysqli_data_seek($result_users, 0);
+                                                    while ($user = mysqli_fetch_assoc($result_users)) { 
+                                                    ?>
                                                         <option value="<?= $user['id'] ?>" <?= $filter_user == $user['id'] ? 'selected' : '' ?>>
                                                             <?= $user['nama_lngkp'] ?> - <?= $user['jabatan'] ?>
                                                         </option>
                                                     <?php } ?>
                                                 </select>
                                             </div>
-                                            <?php } ?>
 
                                             <!-- Department Filter -->
                                             <?php if ($user_level >= 4) { ?>
@@ -438,20 +450,18 @@ if ($user_level >= 2) {
                                             <?php } ?>
 
                                             <!-- Period Filter -->
-                                            <div class="col-md-3">
+                                            <!-- <div class="col-md-3">
                                                 <label class="form-label fw-bold">Period</label>
                                                 <input type="month" name="filter_periode" class="form-control" value="<?= $filter_periode ?>" onchange="this.form.submit()">
-                                            </div>
-
-                                            <!-- Comparison Type -->
-                                            <!-- <div class="col-md-3">
-                                                <label class="form-label fw-bold">Compare With</label>
-                                                <select name="filter_comparison" class="form-select" onchange="this.form.submit()">
-                                                    <option value="current" <?= $filter_comparison == 'current' ? 'selected' : '' ?>>Current Target</option>
-                                                    <option value="last_month" <?= $filter_comparison == 'last_month' ? 'selected' : '' ?>>Last Month</option>
-                                                    <option value="last_year" <?= $filter_comparison == 'last_year' ? 'selected' : '' ?>>Last Year</option>
-                                                </select>
                                             </div> -->
+
+                                            <!-- Spacer atau tombol reset (opsional) -->
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">&nbsp;</label>
+                                                <a href="dashboard-utama" class="btn btn-outline-secondary w-100">
+                                                    <i class="bi bi-arrow-clockwise me-1"></i>Reset Filter
+                                                </a>
+                                            </div>
 
                                         </div>
                                     </form>
@@ -459,6 +469,8 @@ if ($user_level >= 2) {
                             </div>
                         </div>
                     </div>
+                    <?php } ?>
+                    <!-- AKHIR FILTER SECTION -->
 
                     <!-- ==================== DEPARTMENT/TEAM COMPARISON ==================== -->
                     <?php if (!empty($dept_comparison) && $user_level >= 2) { ?>

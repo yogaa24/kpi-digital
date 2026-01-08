@@ -65,14 +65,14 @@ if (!isset($_SESSION['id_user'])) {
     }
     if (isset($_POST['ss_hapus'])) {
         $id = $_POST['idpoin'];
-
-        $sql = "delete from tb_sspoin where id_sspoin=$id";
+    
+        $sql = "DELETE FROM tb_sspoin WHERE id_sspoin=$id";  // Pastikan DELETE ditulis kapital
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
             echo "<script>alert('Berhasil, Hapus Skill Standard')</script>";
         } else {
-            echo "<script>alert('Gagal Edit Skill')</script>";
+            echo "<script>alert('Gagal Hapus Skill')</script>";
         }
     }
     if (isset($_POST['ss_nilai'])) {
@@ -100,6 +100,23 @@ if (!isset($_SESSION['id_user'])) {
         echo "<script>alert('Berhasil, Edit Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Edit Poin')</script>";
+    }
+}
+if (isset($_POST['hapus_kategori_ss'])) {
+    $id = $_POST['id_kategori'];
+
+    // Hapus semua poin di kategori ini terlebih dahulu
+    $sql1 = "DELETE FROM tb_sspoin WHERE id_ss=$id";
+    mysqli_query($conn, $sql1);
+    
+    // Kemudian hapus kategori
+    $sql2 = "DELETE FROM tb_ss WHERE id_poinss=$id";
+    $result = mysqli_query($conn, $sql2);
+    if ($result) {
+        header('Location: ' . $_SERVER['REQUEST_URI']);
+        echo "<script>alert('Berhasil, Hapus Kategori Skill Standard')</script>";
+    } else {
+        echo "<script>alert('Gagal Hapus Kategori')</script>";
     }
 }
 } ?>
@@ -270,7 +287,10 @@ if (!isset($_SESSION['id_user'])) {
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-end" role="menu">
                                                 <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                                                    data-bs-target="#TambahSS<?= $hasil['id_poinss']; ?>">Tambah Poin </a>
+                                                    data-bs-target="#TambahSS<?= $hasil['id_poinss']; ?>">Tambah Poin</a>
+                                                <div class="dropdown-divider"></div>
+                                                <a href="#" class="dropdown-item text-danger" data-bs-toggle="modal"
+                                                    data-bs-target="#HapusKategoriSS<?= $hasil['id_poinss']; ?>">Hapus Kategori</a>
                                             </div>
                                             <button style="color: white;" type="button" class="btn btn-tool"
                                                 data-lte-toggle="card-collapse">
@@ -381,6 +401,7 @@ if (!isset($_SESSION['id_user'])) {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    
                                                     <div class="modal fade" id="NilaiSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="EditModalLabel" aria-hidden="true">
                                                         <div class="modal-dialog modal-lg">
                                                             <div class="modal-content">
@@ -467,7 +488,34 @@ if (!isset($_SESSION['id_user'])) {
                             </form>
                             </div>
                         </div>
+                    </div>
+                    <!-- Modal Hapus Kategori -->
+                    <div class="modal fade" id="HapusKategoriSS<?= $hasil['id_poinss']; ?>" tabindex="-1" aria-labelledby="HapusKategoriLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title fw-bold" id="HapusKategoriLabel">Konfirmasi Hapus Kategori</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form method="POST" action="">
+                                        <input hidden type="input" value="<?= $hasil['id_poinss']; ?>" name="id_kategori">
+                                        <div class="container">
+                                            <p class="fw-bold"><?= $hasil['poin_ss']; ?></p>
+                                            <div class="alert alert-warning">
+                                                <i class="bi bi-exclamation-triangle"></i> Menghapus kategori akan menghapus <strong>semua poin</strong> di dalamnya!
+                                            </div>
+                                            <p>Apakah Anda yakin ingin menghapus kategori ini beserta seluruh poinnya?</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                            <button type="submit" name="hapus_kategori_ss" class="btn btn-danger">Ya, Hapus Kategori</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
+                    </div>
                 <?php
                     $no++;
                 } ?>
