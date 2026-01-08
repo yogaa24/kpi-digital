@@ -28,8 +28,8 @@
                         <select class="form-control" name="jenis_sp" id="jenisSP<?=$hasilsfa['id']?>" required onchange="updatePenaltyInfo<?=$hasilsfa['id']?>()">
                             <option value="">-- Pilih Jenis SP --</option>
                             <option value="SP1">SP 1 (Pengurangan 2 poin)</option>
-                            <option value="SP2">SP 2 (Pengurangan 3 poin)</option>
-                            <option value="SP3">SP 3 (Pengurangan 4 poin)</option>
+                            <option value="SP2">SP 2 (Pengurangan 3.5 poin)</option>
+                            <option value="SP3">SP 3 (Pengurangan 5 poin)</option>
                         </select>
                         <div id="penaltyInfo<?=$hasilsfa['id']?>" class="mt-2"></div>
                     </div>
@@ -106,8 +106,8 @@ function updatePenaltyInfo<?=$hasilsfa['id']?>() {
     
     const penalties = {
         'SP1': { poin: 2, class: 'warning', icon: 'exclamation-circle' },
-        'SP2': { poin: 3, class: 'danger', icon: 'exclamation-triangle' },
-        'SP3': { poin: 4, class: 'dark', icon: 'x-octagon' }
+        'SP2': { poin: 3.5, class: 'danger', icon: 'exclamation-triangle' },
+        'SP3': { poin: 5, class: 'dark', icon: 'x-octagon' }
     };
     
     if (jenisSP && penalties[jenisSP]) {

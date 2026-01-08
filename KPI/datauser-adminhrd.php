@@ -61,7 +61,7 @@ if (isset($_POST['edit_user'])) {
     
     // Tentukan level berdasarkan jabatan
     $level = 1; // Default Karyawan
-    if ($jabatan == 'Kabag') {
+    if ($jabatan == 'Manager') {
         $level = 2;
     } elseif ($jabatan == 'Kadep') {
         $level = 3;
@@ -137,7 +137,7 @@ if (isset($_POST['register_user'])) {
                 
                 // Tentukan level berdasarkan jabatan
                 $level = 1; // Default Karyawan
-                if ($jabatan == 'Kabag') {
+                if ($jabatan == 'Manager') {
                     $level = 2;
                 } elseif ($jabatan == 'Kadep') {
                     $level = 3;
@@ -250,7 +250,7 @@ if (isset($_POST['register_user'])) {
                                 <option value="">Semua Jabatan</option>
                                 <option value="Direktur">Direktur</option>
                                 <option value="Kadep">Kadep</option>
-                                <option value="Kabag">Kabag</option>
+                                <option value="Manager">Manager</option>
                                 <option value="Karyawan">Karyawan</option>
                                 <option value="Driver">Driver</option>
                             </select>
@@ -294,7 +294,7 @@ if (isset($_POST['register_user'])) {
                                                     $level_name = '';
                                                     switch($user['level']) {
                                                         case 1: $level_name = 'Karyawan'; break;
-                                                        case 2: $level_name = 'Kabag'; break;
+                                                        case 2: $level_name = 'Manager'; break;
                                                         case 3: $level_name = 'Kadep'; break;
                                                         case 4: $level_name = 'Direktur'; break;
                                                         case 5: $level_name = 'Admin HRD'; break;
@@ -384,7 +384,7 @@ if (isset($_POST['register_user'])) {
                                                                             <select class="form-select" name="jabatan" required>
                                                                                 <option value="">-- Pilih Jabatan --</option>
                                                                                 <option value="Karyawan" <?= $user['jabatan'] == 'Karyawan' ? 'selected' : '' ?>>Karyawan (Level 1)</option>
-                                                                                <option value="Kabag" <?= $user['jabatan'] == 'Kabag' ? 'selected' : '' ?>>Kabag (Level 2)</option>
+                                                                                <option value="Manager" <?= $user['jabatan'] == 'Manager' ? 'selected' : '' ?>>Manager (Level 2)</option>
                                                                                 <option value="Kadep" <?= $user['jabatan'] == 'Kadep' ? 'selected' : '' ?>>Kadep (Level 3)</option>
                                                                                 <option value="Direktur" <?= $user['jabatan'] == 'Direktur' ? 'selected' : '' ?>>Direktur (Level 4)</option>
                                                                             </select>

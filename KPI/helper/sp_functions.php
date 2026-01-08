@@ -33,8 +33,8 @@ function getActiveSP($conn, $id_user) {
 function getSPPenalty($jenis_sp) {
     $penalties = [
         'SP1' => 2,
-        'SP2' => 3,
-        'SP3' => 4
+        'SP2' => 3.5,
+        'SP3' => 5
     ];
     return isset($penalties[$jenis_sp]) ? $penalties[$jenis_sp] : 0;
 }

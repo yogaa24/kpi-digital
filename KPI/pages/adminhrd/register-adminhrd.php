@@ -47,6 +47,8 @@
                                 <option value="HRD">HRD</option>
                                 <option value="Logistik">Logistik</option>
                                 <option value="GA">GA</option>
+                                <option value="Unit Bisnis Seed">Unit Bisnis Seed</option>
+                                <option value="Unit Bisnis CP">Unit Bisnis CP</option>
                             </select>
                         </div>
                     </div>
@@ -62,7 +64,7 @@
                                 <option value="">Pilih Jabatan</option>
                                 <option value="Direktur">Direktur</option>
                                 <option value="Kadep">Kadep</option>
-                                <option value="Kabag">Kabag</option>
+                                <option value="Manager">Manager</option>
                                 <option value="Karyawan">Karyawan</option>
                             </select>
                         </div>
@@ -103,7 +105,7 @@ document.getElementById('departemen_register').addEventListener('change', functi
 
     if (this.value === 'Keuangan & Sales') {
         penilaiInput.value = 'Diana Wulandari';
-        items = ["Pilih Atasan", "Ibnu", "Evi Yulia Purnama Sari", "Ahmad Syaiti", "Fairin"];
+        items = ["Pilih Atasan", "Ibnu Sutoro", "Evi Yulia Purnama Sari", "Ahmad Syaiti", "Iva Isti Farini"];
     }
     if (this.value === 'IT') {
         penilaiInput.value = 'Diana Wulandari';
@@ -125,6 +127,14 @@ document.getElementById('departemen_register').addEventListener('change', functi
         penilaiInput.value = 'Nandang Ernoko';
         items = ["Pilih Atasan", "Nandang", "Wawan"];
     }
+    else if (this.value === 'Unit Bisnis Seed') {
+        penilaiInput.value = 'Heru Sucahyo';
+        items = ["Pilih Atasan", "Acep Andriyanto", "Yama Muhammad", "Ahmad Muhlisin"];
+    }
+     else if (this.value === 'Unit Bisnis CP') {
+        penilaiInput.value = 'Arfin Indra Cahyadi';
+        items = ["Pilih Atasan", "Arfin Indra Cahyadi"];
+    }
 
     renderAtasan(items, atasanSelect);
 });
@@ -134,8 +144,8 @@ document.getElementById('jabatan_register').addEventListener('change', function(
     const atasanSelect = document.getElementById('atasan_register');
     let items = [];
 
-    if (this.value === 'Kabag') {
-        items = ["Pilih Atasan", "Diana Wulandari", "Vita Ari Puspita", "Riza Dwi Fitrianingtyas","Kurniawan Pratama Arifin"];
+    if (this.value === 'Manager') {
+        items = ["Pilih Atasan", "Diana Wulandari", "Vita Ari Puspita", "Riza Dwi Fitrianingtyas","Kurniawan Pratama Arifin", "Heru Sucahyo", "Arfin Indra Cahyadi"];
     } 
     else if (this.value === 'Kadep') {
         items = ["Pilih Atasan", "Diana Wulandari"];

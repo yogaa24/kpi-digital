@@ -27,38 +27,31 @@ if (!isset($_SESSION['id_user'])) {
     }
     if (isset($_POST['addsspoin'])) {
         $poin = $_POST['tujuan'];
-        $nilai = $_POST['nilai'];
         $id = $_POST['idss'];
-        $nilai1 = $_POST['nilaiss1'];
-        $nilai2 = $_POST['nilaiss2'];
-        $nilai3 = $_POST['nilaiss3'];
-        $nilai4 = $_POST['nilaiss4'];
 
-        $sql = "INSERT INTO tb_sspoin (`id_user`, `id_ss`, `poinss`, nilai1, nilai2, nilai3, nilai4, `nilaiss`)
-        VALUES ($id_sf, $id, '$poin','$nilai1','$nilai2','$nilai3','$nilai4',0)";
+        $sql = "INSERT INTO tb_sspoin (`id_user`, `id_ss`, `poinss`, `nilaiss`, `deskripsi`)
+        VALUES ($id_user, $id, '$poin', 0, '')";
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
-            echo "<script>alert('Berhasil, Tambah Skill Standard')</script>";
+            exit();
         } else {
             echo "<script>alert('Gagal, Tambah Skill Standard')</script>";
         }
     }
     if (isset($_POST['ss_edit'])) {
         $poin = $_POST['poinsss'];
-        $nilai = $_POST['nilaisss'];
         $id = $_POST['idsss'];
-        $nilai1 = $_POST['nilaiss1'];
-        $nilai2 = $_POST['nilaiss2'];
-        $nilai3 = $_POST['nilaiss3'];
-        $nilai4 = $_POST['nilaiss4'];
+        $nilai = $_POST['nilai'];
+        $deskripsi = $_POST['deskripsi'];
 
         $sql = "UPDATE tb_sspoin 
-        SET poinss='$poin' , nilai1='$nilai1', nilai2='$nilai2', nilai3='$nilai3', nilai4='$nilai4' where id_sspoin =$id";
+        SET poinss='$poin', nilaiss='$nilai', deskripsi='$deskripsi'
+        WHERE id_sspoin=$id";
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
-            echo "<script>alert('Berhasil, Edit Skill Standard')</script>";
+            exit();
         } else {
             echo "<script>alert('Gagal Edit Skill')</script>";
         }
@@ -328,21 +321,22 @@ if (isset($_POST['hapus_kategori_ss'])) {
                                                         <td><?= $no . '.' . $nodd ?></td>
                                                         <td><?= $res['poinss']; ?></td>
                                                         <td>
-                                                            <center><?php if ($res['nilaiss'] != 0) {
-                                                                        echo $res['nilaiss'];
-                                                                    }
-                                                                    if ($res['nilaiss'] == 0) {
-                                                                        echo 'Perlu Di Nilai';
-                                                                    } ?>
+                                                            <center>
+                                                                <?php if ($res['nilaiss'] != 0) { ?>
+                                                                    <span class="badge bg-success fs-8">
+                                                                        <?= number_format($res['nilaiss'], 2); ?>
+                                                                    </span>
+                                                                <?php } else { ?>
+                                                                    <span class="badge bg-warning fs-8">Belum Dinilai</span>
+                                                                <?php } ?>
+                                                            </center>
                                                         </td>
                                                         <td>
-                                                            <center><?php if ($res['nilaiss'] != 0) {
-                                                                        $resdd = 'nilai'.$res['nilaiss'];
-                                                                        echo $res[$resdd];
-                                                                    }
-                                                                    if ($res['nilaiss'] == 0) {
-                                                                        echo 'Perlu Di Nilai';
-                                                                    } ?>
+                                                            <?php if (!empty($res['deskripsi'])) { ?>
+                                                                <small><?= $res['deskripsi']; ?></small>
+                                                            <?php } else { ?>
+                                                                <small class="text-muted fst-italic">Belum ada deskripsi. Klik "Nilai" untuk menambahkan.</small>
+                                                            <?php } ?>
                                                         </td>
                                                         <td class="text-center">
                                                             <button type="button" data-bs-toggle="dropdown"
@@ -361,36 +355,26 @@ if (isset($_POST['hapus_kategori_ss'])) {
                                                             </div>
                                                         </td>
                                                     </tr>
+                                                    <!-- Modal Edit Poin SS -->
                                                     <div class="modal fade" id="EditSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="EditModalLabel" aria-hidden="true">
                                                         <div class="modal-dialog modal-lg">
                                                             <div class="modal-content">
                                                                 <div class="modal-header">
-                                                                    <h5 class="modal-title fw-bold" id="EditModalLabel">Edit Skill Standard</h5>
+                                                                    <h5 class="modal-title fw-bold" id="EditModalLabel">Edit Poin Skill Standard</h5>
                                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                 </div>
                                                                 <div class="modal-body">
                                                                     <form method="POST" action="" class="input">
-                                                                        <input type="input" hidden value="<?= $res['id_sspoin']; ?>" class="form-control" name="idsss">
+                                                                        <input type="hidden" value="<?= $res['id_sspoin']; ?>" name="idsss">
+                                                                        
                                                                         <div class="input-group mb-3">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Poin :</span>
-                                                                            <input type="input" value="<?= $res['poinss']; ?>" class="form-control" name="poinsss" placeholder="Poin SS">
+                                                                            <span style="color : #343A40;" class="input-group-text fw-bold">Poin :</span>
+                                                                            <input type="text" value="<?= $res['poinss']; ?>" class="form-control" 
+                                                                                name="poinsss" placeholder="Poin SS" required>
                                                                         </div>
-                                                                        <div class="divider-line"></div>
-                                                                        <div class="input-group mb-3">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Poin Nilai 1 :</span>
-                                                                            <input type="input" required value="<?= $res['nilai1']; ?>" class="form-control" name="nilaiss1" placeholder="Alasan Nilai SS = 1">
-                                                                        </div>
-                                                                        <div class="input-group mb-3">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Poin Nilai 2 :</span>
-                                                                            <input type="input" required value="<?= $res['nilai2']; ?>" class="form-control" name="nilaiss2" placeholder="Alasan Nilai SS = 2">
-                                                                        </div>
-                                                                        <div class="input-group mb-3">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Poin Nilai 3 :</span>
-                                                                            <input type="input" required value="<?= $res['nilai3']; ?>" class="form-control" name="nilaiss3" placeholder="Alasan Nilai SS = 3">
-                                                                        </div>
-                                                                        <div class="input-group mb-3">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Poin Nilai 4 :</span>
-                                                                            <input type="input" required value="<?= $res['nilai4']; ?>" class="form-control" name="nilaiss4" placeholder="Alasan Nilai SS = 4">
+                                                                        
+                                                                        <div class="alert alert-info">
+                                                                            <i class="bi bi-info-circle"></i> Untuk mengubah nilai, gunakan menu "Nilai"
                                                                         </div>
                                                                 </div>
                                                                 <div class="modal-footer">
@@ -401,33 +385,54 @@ if (isset($_POST['hapus_kategori_ss'])) {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    
-                                                    <div class="modal fade" id="NilaiSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="EditModalLabel" aria-hidden="true">
+
+                                                    <!-- Modal Nilai Skill Standard -->
+                                                    <div class="modal fade" id="NilaiSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="NilaiModalLabel" aria-hidden="true">
                                                         <div class="modal-dialog modal-lg">
                                                             <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title fw-bold" id="EditModalLabel">Nilai Skill Standard</h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                <div class="modal-header bg-primary text-white">
+                                                                    <h5 class="modal-title fw-bold" id="NilaiModalLabel">
+                                                                        <i class="bi bi-star-fill"></i> Beri Nilai Skill Standard
+                                                                    </h5>
+                                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                 </div>
                                                                 <div class="modal-body">
                                                                     <form method="POST" action="" class="input">
-                                                                        <input type="input" hidden value="<?= $res['id_sspoin']; ?>" class="form-control" name="idsss">
-                                                                        <div class="input-group mb-3">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold" id="nilai">Poin :</span>
-                                                                            <input type="input" value="<?= $res['poinss']; ?>" class="form-control" name="poinsss" disabled placeholder="Poin SS">
+                                                                        <input type="hidden" value="<?= $res['id_sspoin']; ?>" name="idnilai">
+                                                                        
+                                                                        <div class="alert alert-info">
+                                                                            <strong>Poin:</strong> <?= $res['poinss']; ?>
                                                                         </div>
-                                                                        <select required class="form-control mb-3 input-group" name="nilaisi" id="nilaisi">
-                                                                            <span style="color : #343A40;" class="input-group-text fw-bold">Nilai :</span>
-                                                                            <option selected>Pilih Nilai</option>
-                                                                            <option value="1">1 : <?= $res['nilai1']; ?></option>
-                                                                            <option value="2">2 : <?= $res['nilai2']; ?></option>
-                                                                            <option value="3">3 : <?= $res['nilai3']; ?></option>
-                                                                            <option value="4">4 : <?= $res['nilai4']; ?></option>
-                                                                        </select>
+                                                                        
+                                                                       <div class="input-group mb-3">
+                                                                            <span style="color:#343A40;" class="input-group-text fw-bold">Nilai :</span>
+                                                                            <input type="number" 
+                                                                                step="0.01" 
+                                                                                min="0"
+                                                                                value="<?= $res['nilaiss'] != 0 ? $res['nilaiss'] : ''; ?>" 
+                                                                                class="form-control" 
+                                                                                name="nilai" 
+                                                                                placeholder="Masukkan nilai"
+                                                                                required>
+                                                                        </div>
+                                                                        
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label fw-bold">Keterangan / Deskripsi :</label>
+                                                                            <textarea class="form-control" name="keterangan" rows="5" 
+                                                                                    placeholder="Jelaskan pencapaian, bukti, atau alasan pemberian nilai ini..." 
+                                                                                    required><?= !empty($res['deskripsi']) ? $res['deskripsi'] : ''; ?></textarea>
+                                                                        </div>
+                                                                        
+                                                                        <div class="alert alert-warning">
+                                                                            <i class="bi bi-info-circle"></i> Nilai dan keterangan yang Anda berikan dapat diubah kapan saja
+                                                                        </div>
+                                                                        
                                                                 </div>
                                                                 <div class="modal-footer">
-                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                                    <button type="submit" name="ss_nilai" class="btn btn-primary">Simpan</button>
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                                    <button type="submit" name="ss_nilai" class="btn btn-primary">
+                                                                        <i class="bi bi-save"></i> Simpan Nilai
+                                                                    </button>
                                                                 </div>
                                                                 </form>
                                                             </div>
