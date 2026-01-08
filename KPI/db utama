@@ -12,7 +12,30 @@ require 'helper/getUser.php';
 $conn_sim = mysqli_connect("localhost", "root", "", "db_simulasi");
 
 $id_user = $_SESSION['id_user'];
+
 $user_level = $_SESSION['level'] ?? 1; // Assume level dari session
+
+// ==================== FILTER PARAMETERS ====================
+$filter_user = isset($_GET['filter_user']) ? $_GET['filter_user'] : $id_user;
+// $filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
+$filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departemen'] : '';
+$filter_comparison = isset($_GET['filter_comparison']) ? $_GET['filter_comparison'] : 'current'; // current, last_month, last_year
+
+// ==================== FETCH FILTER OPTIONS ====================
+// Get all users based on level
+if ($user_level >= 2) {
+    $sql_users = "SELECT id, nama_lngkp, departement, jabatan FROM tb_users WHERE 1=1";
+    if ($user_level == 2) { // Kabag - hanya team sendiri
+        $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
+    } elseif ($user_level == 3) { // Kadep - seluruh departemen
+        $sql_users .= " AND departement = (SELECT departement FROM tb_users WHERE id='$id_user')";
+    }
+
+    $result_users = mysqli_query($conn, $sql_users);
+}
+
+$sql_departments = "SELECT DISTINCT departement FROM tb_users WHERE departement IS NOT NULL AND departement != '' ORDER BY departement";
+$result_departments = mysqli_query($conn, $sql_departments);
 
 // ==================== KPI CALCULATION FUNCTION ====================
 function calculateKPI($conn, $conn_sim, $user_id, $is_simulation = false) {
@@ -80,38 +103,194 @@ function calculateKPI($conn, $conn_sim, $user_id, $is_simulation = false) {
     ];
 }
 
-$kpi_real = calculateKPI($conn, $conn_sim, $id_user, false);
-$kpi_sim = calculateKPI($conn, $conn_sim, $id_user, true);
+// ==================== SAVE KPI HISTORY FUNCTION ====================
+function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
+    $bulan = date('Y-m'); // Format: 2025-01
+    
+    // Check if table exists first
+    $check_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_history'");
+    if (mysqli_num_rows($check_table) == 0) {
+        return false;
+    }
+    
+    // Check if already exists
+    $check = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
+                                   WHERE id_user='$user_id' AND bulan='$bulan'");
+    
+    if ($check === false) {
+        return false;
+    }
+    
+    if (mysqli_num_rows($check) > 0) {
+        // Update existing
+        $sql = "UPDATE tb_kpi_history SET 
+                total_kpi_real = '{$kpi_real['total_kpi']}',
+                total_kpi_target = '{$kpi_sim['total_kpi']}',
+                total_what = '{$kpi_real['total_what']}',
+                total_how = '{$kpi_real['total_how']}',
+                total_what_target = '{$kpi_sim['total_what']}',
+                total_how_target = '{$kpi_sim['total_how']}'
+                WHERE id_user='$user_id' AND bulan='$bulan'";
+    } else {
+        // Insert new
+        $sql = "INSERT INTO tb_kpi_history 
+                (id_user, bulan, total_kpi_real, total_kpi_target, total_what, total_how, total_what_target, total_how_target) 
+                VALUES 
+                ('$user_id', '$bulan', '{$kpi_real['total_kpi']}', '{$kpi_sim['total_kpi']}', 
+                 '{$kpi_real['total_what']}', '{$kpi_real['total_how']}', 
+                 '{$kpi_sim['total_what']}', '{$kpi_sim['total_how']}')";
+    }
+    
+    $result = mysqli_query($conn, $sql);
+    
+    if ($result === false) {
+        return false;
+    }
+    
+    return true;
+}
+
+// Calculate KPI for filtered user
+if ($user_level == 1) {
+    $filter_user = $id_user; // Paksa filter_user = diri sendiri
+}
+
+$kpi_real = calculateKPI($conn, $conn_sim, $filter_user, false);
+$kpi_sim = calculateKPI($conn, $conn_sim, $filter_user, true);
+saveKPIHistory($conn, $id_user, $kpi_real, $kpi_sim);
 
 // Get user info
-$sql_user_info = "SELECT * FROM tb_users WHERE id='$id_user'";
+$sql_user_info = "SELECT * FROM tb_users WHERE id='$filter_user'";
 $result_user_info = mysqli_query($conn, $sql_user_info);
 $user_info = mysqli_fetch_assoc($result_user_info);
 
-// ==================== TREND DATA (Last 6 months) ====================
+// ==================== GET PREVIOUS MONTH DATA ====================
+$bulan_ini = date('Y-m');
+$bulan_kemarin = date('Y-m', strtotime('-1 month'));
+
+// Ambil data bulan ini
+$sql_current = "SELECT * FROM tb_kpi_history 
+                WHERE id_user='$filter_user' AND bulan='$bulan_ini'";
+$result_current = mysqli_query($conn, $sql_current);
+$data_current = mysqli_fetch_assoc($result_current);
+
+// Ambil data bulan kemarin
+$sql_previous = "SELECT * FROM tb_kpi_history 
+                 WHERE id_user='$filter_user' AND bulan='$bulan_kemarin'";
+$result_previous = mysqli_query($conn, $sql_previous);
+$data_previous = mysqli_fetch_assoc($result_previous);
+
+// Jika tidak ada data bulan kemarin, set default 0
+if (!$data_previous) {
+    $data_previous = [
+        'total_kpi_real' => 0,
+        'total_what' => 0,
+        'total_how' => 0,
+        'total_what_target' => 0,
+        'total_how_target' => 0
+    ];
+}
+
+// Jika tidak ada data bulan ini, gunakan perhitungan real-time
+if (!$data_current) {
+    $data_current = [
+        'total_kpi_real' => $kpi_real['total_kpi'],
+        'total_what' => $kpi_real['total_what'],
+        'total_how' => $kpi_real['total_how'],
+        'total_what_target' => $kpi_sim['total_what'],
+        'total_how_target' => $kpi_sim['total_how']
+    ];
+}
+
+// ==================== TREND DATA (Last 6 months) - REAL DATA ====================
 $trend_data = [];
-for ($i = 5; $i >= 0; $i--) {
-    $month = date('Y-m', strtotime("-$i months"));
-    // Simplified - In real implementation, you'd fetch historical data
+
+$sql_trend = "SELECT 
+bulan,
+total_kpi_real AS `real`,
+total_kpi_target AS target
+FROM tb_kpi_history
+WHERE id_user = $filter_user
+ORDER BY bulan DESC
+LIMIT 6;
+";
+
+$result_trend = mysqli_query($conn, $sql_trend);
+
+if (mysqli_num_rows($result_trend) > 0) {
+    $temp_data = [];
+    while ($row = mysqli_fetch_assoc($result_trend)) {
+        $temp_data[] = $row;
+    }
+
+    $trend_data = array_reverse($temp_data);
+
+    foreach ($trend_data as &$item) {
+        $item['month'] = date('M Y', strtotime($item['bulan'] . '-01'));
+    }
+
+} else {
     $trend_data[] = [
-        'month' => date('M Y', strtotime("-$i months")),
-        'real' => $kpi_real['total_kpi'] * (0.85 + ($i * 0.03)), // Simulated trend
+        'month'  => date('M Y'),
+        'real'   => $kpi_real['total_kpi'],
         'target' => $kpi_sim['total_kpi']
     ];
 }
 
-// ==================== DEPARTMENT COMPARISON ====================
+// ==================== DEPARTMENT/TEAM COMPARISON ====================
 $dept_comparison = [];
-if ($user_level >= 3) { // Kadep or higher
-    $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users WHERE departement='{$user_info['departement']}'";
+$comparison_title = "Team Comparison";
+
+if ($user_level >= 2) {
+
+    if ($user_level == 2) {
+        $kabag_name = $user_info['nama_lngkp'];
+        $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
+                          WHERE atasan='$kabag_name' 
+                          ORDER BY nama_lngkp";
+        $comparison_title = "My Team Members Performance";
+
+    } elseif ($user_level == 3) {
+        $target_dept = $user_info['departement'];
+        $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
+                          WHERE departement='$target_dept' 
+                          ORDER BY nama_lngkp";
+        $comparison_title = "Department Team - " . $target_dept;
+
+    } elseif ($user_level >= 4) {
+        $target_dept = !empty($filter_departemen) ? $filter_departemen : $user_info['departement'];
+        $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
+                          WHERE departement='$target_dept' 
+                          ORDER BY nama_lngkp";
+        $comparison_title = "Department Team - " . $target_dept;
+    }
+
     $result_dept_users = mysqli_query($conn, $sql_dept_users);
-    
-    while ($dept_user = mysqli_fetch_assoc($result_dept_users)) {
-        $dept_kpi = calculateKPI($conn, $conn_sim, $dept_user['id'], false);
-        $dept_comparison[] = [
-            'name' => $dept_user['nama_lngkp'],
-            'score' => $dept_kpi['total_kpi']
-        ];
+
+    if ($result_dept_users && mysqli_num_rows($result_dept_users) > 0) {
+        while ($dept_user = mysqli_fetch_assoc($result_dept_users)) {
+            $dept_kpi = calculateKPI($conn, $conn_sim, $dept_user['id'], false);
+
+            if ($dept_kpi['total_kpi'] < 110) {
+
+                $name_display = $dept_user['nama_lngkp'];
+                if ($dept_user['id'] == $id_user) {
+                    $name_display .= ' (You)';
+                } elseif ($dept_user['id'] == $filter_user) {
+                    $name_display .= ' (Selected)';
+                }
+
+                $dept_comparison[] = [
+                    'id'    => $dept_user['id'],
+                    'name'  => $name_display,
+                    'score' => $dept_kpi['total_kpi']
+                ];
+            }
+        }
+
+        usort($dept_comparison, function ($a, $b) {
+            return $b['score'] <=> $a['score'];
+        });
     }
 }
 ?>
@@ -187,14 +366,11 @@ if ($user_level >= 3) { // Kadep or higher
                                             </h3>
                                             <p class="mb-0 opacity-90">Advanced Performance Monitoring & Analysis</p>
                                         </div>
-                                        <div class="col-md-6 text-md-end">
+                                        <!-- <div class="col-md-6 text-md-end">
                                             <button class="btn btn-light btn-sm no-print" onclick="window.print()">
                                                 <i class="bi bi-printer me-1"></i>Print
                                             </button>
-                                            <button class="btn btn-light btn-sm no-print" onclick="exportData()">
-                                                <i class="bi bi-download me-1"></i>Export
-                                            </button>
-                                        </div>
+                                        </div> -->
                                     </div>
                                 </div>
                             </div>
@@ -215,11 +391,27 @@ if ($user_level >= 3) { // Kadep or higher
                                                 <i class="bi bi-speedometer2 me-2"></i>Real KPI Dashboard
                                             </a>
                                         </div>
+                                        
+                                        <?php if ($user_level >= 2) { 
+                                            // Tentukan URL berdasarkan level
+                                            $kpi_anggota_url = 'kpikabag'; // Default level 2
+                                            $kpi_label = 'KPI Anggota';
+                                            
+                                            if ($user_level == 3) {
+                                                $kpi_anggota_url = 'kpikadep';
+                                                $kpi_label = 'KPI Anggota';
+                                            } elseif ($user_level >= 4) {
+                                                $kpi_anggota_url = 'kpidirektur';
+                                                $kpi_label = 'KPI Anggota';
+                                            }
+                                        ?>
                                         <div class="col-md-3">
-                                            <a href="dashboard-simulasi" class="btn btn-outline-success w-100">
-                                                <i class="bi bi-graph-up me-2"></i>Simulation Dashboard
+                                            <a href="<?= $kpi_anggota_url ?>" class="btn btn-outline-secondary w-100">
+                                                <i class="bi bi-people-fill me-2"></i><?= $kpi_label ?>
                                             </a>
                                         </div>
+                                        <?php } ?>
+                                        
                                         <div class="col-md-3">
                                             <a href="skillstandard" class="btn btn-outline-info w-100">
                                                 <i class="bi bi-award me-2"></i>Skill Standard
@@ -235,6 +427,111 @@ if ($user_level >= 3) { // Kadep or higher
                             </div>
                         </div>
                     </div>
+
+                    <!-- ==================== FILTER SECTION ==================== -->
+                    <!-- TAMBAHKAN KONDISI IF DI SINI -->
+                    <?php if ($user_level >= 2) { ?>
+                    <div class="row mb-4 no-print">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filters & Options</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="GET" action="" id="filterForm">
+                                        <div class="row g-3">
+                                            
+                                            <!-- User Filter - Tampil untuk level 2 ke atas -->
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">Select Employee</label>
+                                                <select name="filter_user" class="form-select" onchange="this.form.submit()">
+                                                    <option value="<?= $id_user ?>">My KPI</option>
+                                                    <?php 
+                                                    // Reset pointer result_users jika sudah di-fetch sebelumnya
+                                                    mysqli_data_seek($result_users, 0);
+                                                    while ($user = mysqli_fetch_assoc($result_users)) { 
+                                                    ?>
+                                                        <option value="<?= $user['id'] ?>" <?= $filter_user == $user['id'] ? 'selected' : '' ?>>
+                                                            <?= $user['nama_lngkp'] ?> - <?= $user['jabatan'] ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
+
+                                            <!-- Department Filter -->
+                                            <?php if ($user_level >= 4) { ?>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">Department</label>
+                                                <select name="filter_departemen" class="form-select" onchange="this.form.submit()">
+                                                    <option value="">All Departments</option>
+                                                    <?php 
+                                                    $sql_all_depts = "SELECT DISTINCT departement FROM tb_users 
+                                                                    WHERE departement IS NOT NULL AND departement != '' 
+                                                                    ORDER BY departement";
+                                                    $result_all_depts = mysqli_query($conn, $sql_all_depts);
+                                                    
+                                                    while ($dept = mysqli_fetch_assoc($result_all_depts)) { 
+                                                    ?>
+                                                        <option value="<?= $dept['departement'] ?>" <?= $filter_departemen == $dept['departement'] ? 'selected' : '' ?>>
+                                                            <?= $dept['departement'] ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
+                                            <?php } elseif ($user_level == 3) { ?>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">Department</label>
+                                                <input type="text" class="form-control" value="<?= $user_info['departement'] ?>" readonly>
+                                                <input type="hidden" name="filter_departemen" value="<?= $user_info['departement'] ?>">
+                                                <small class="text-muted">Your department only</small>
+                                            </div>
+                                            <?php } ?>
+
+                                            <!-- Period Filter -->
+                                            <!-- <div class="col-md-3">
+                                                <label class="form-label fw-bold">Period</label>
+                                                <input type="month" name="filter_periode" class="form-control" value="<?= $filter_periode ?>" onchange="this.form.submit()">
+                                            </div> -->
+
+                                            <!-- Spacer atau tombol reset (opsional) -->
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold">&nbsp;</label>
+                                                <a href="dashboard-utama" class="btn btn-outline-secondary w-100">
+                                                    <i class="bi bi-arrow-clockwise me-1"></i>Reset Filter
+                                                </a>
+                                            </div>
+
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php } ?>
+                    <!-- AKHIR FILTER SECTION -->
+
+                    <!-- ==================== DEPARTMENT/TEAM COMPARISON ==================== -->
+                    <?php if (!empty($dept_comparison) && $user_level >= 2) { ?>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">
+                                            <i class="bi bi-people me-2"></i><?= $comparison_title ?>
+                                        </h5>
+                                        <span class="badge bg-primary"><?= count($dept_comparison) ?> Members</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="deptComparisonChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php } ?>
 
                     <!-- ==================== KEY METRICS ==================== -->
                     <div class="row mb-4">
@@ -658,106 +955,218 @@ if ($user_level >= 3) { // Kadep or higher
                         </div>
                     </div>
 
-                    <!-- ==================== DEPARTMENT COMPARISON (if applicable) ==================== -->
-                    <?php if (!empty($dept_comparison) && $user_level >= 3) { ?>
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="card shadow-sm border-0">
-                                <div class="card-header bg-light">
-                                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Department Team Comparison</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="deptComparisonChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php } ?>
-
                     <!-- ==================== DETAILED TABLES ==================== -->
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
-                                    <h5 class="mb-0"><i class="bi bi-table me-2"></i>Detailed KPI Analysis</h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><i class="bi bi-table me-2"></i>Detailed KPI Analysis - Month over Month</h5>
+                                        <div>
+                                            <span class="badge bg-primary me-2">Current: <?= date('M Y') ?></span>
+                                            <span class="badge bg-secondary">Previous: <?= date('M Y', strtotime('-1 month')) ?></span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
-                                        <table class="table table-hover table-sm">
+                                        <table class="table table-hover table-sm fs-6">
                                             <thead class="table-dark">
                                                 <tr>
-                                                    <th>KPI Item</th>
-                                                    <th class="text-center">Weight</th>
-                                                    <th class="text-center">Real Score</th>
-                                                    <th class="text-center">Target Score</th>
-                                                    <th class="text-center">Gap</th>
-                                                    <th class="text-center">Achievement</th>
-                                                    <th class="text-center">Status</th>
+                                                    <th rowspan="2" class="align-middle">Metric</th>
+                                                    <th colspan="2" class="text-center bg-primary">Current Month</th>
+                                                    <th colspan="2" class="text-center bg-secondary">Previous Month</th>
+                                                    <th rowspan="2" class="text-center align-middle">Δ Change</th>
+                                                    <th rowspan="2" class="text-center align-middle">Growth %</th>
+                                                    <th rowspan="2" class="text-center align-middle">Status</th>
+                                                </tr>
+                                                <tr>
+                                                    <th class="text-center bg-primary text-white">Real</th>
+                                                    <th class="text-center bg-primary text-white">Target</th>
+                                                    <th class="text-center bg-secondary text-white">Real</th>
+                                                    <th class="text-center bg-secondary text-white">Target</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php if (!empty($kpi_real['kpi_details'])) { ?>
-                                                    <?php foreach ($kpi_real['kpi_details'] as $idx => $detail) { 
-                                                        
-                                                        // Ambil data simulasi jika ada, jika tidak pakai default
-                                                        $sim_detail = $kpi_sim['kpi_details'][$idx] ?? [
-                                                            'nilai_what' => 0
-                                                        ];
-
-                                                        $real_nilai   = $detail['nilai_what'] ?? 0;
-                                                        $target_nilai = $sim_detail['nilai_what'] ?? 0;
-
-                                                        $achievement = $target_nilai > 0 
-                                                            ? ($real_nilai / $target_nilai) * 100 
+                                                <!-- Total KPI -->
+                                                <tr class="table-light fw-bold">
+                                                    <td><i class="bi bi-trophy-fill text-warning me-2"></i>TOTAL KPI</td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-primary fs-6"><?= number_format($data_current['total_kpi_real'], 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-info fs-6"><?= number_format($kpi_sim['total_kpi'], 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-secondary fs-6"><?= number_format($data_previous['total_kpi_real'], 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-dark fs-6"><?= isset($data_previous['total_kpi_target']) ? number_format($data_previous['total_kpi_target'], 2) : '0.00' ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php 
+                                                        $delta_total = $data_current['total_kpi_real'] - $data_previous['total_kpi_real'];
+                                                        ?>
+                                                        <span class="badge bg-<?= $delta_total >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                            <?= $delta_total >= 0 ? '+' : '' ?><?= number_format($delta_total, 2) ?>
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php 
+                                                        $growth_total = $data_previous['total_kpi_real'] > 0 
+                                                            ? (($data_current['total_kpi_real'] - $data_previous['total_kpi_real']) / $data_previous['total_kpi_real']) * 100 
                                                             : 0;
-                                                    ?>
-                                                    <tr>
-                                                        <td><strong><?= htmlspecialchars($detail['poin_what']) ?></strong></td>
-                                                        <td class="text-center"><?= $detail['bobot_what'] ?>%</td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-primary">
-                                                                <?= number_format($real_nilai, 2) ?>
-                                                            </span>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-success">
-                                                                <?= number_format($target_nilai, 2) ?>
-                                                            </span>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-<?= $real_nilai >= $target_nilai ? 'success' : 'warning' ?>">
-                                                                <?= number_format($real_nilai - $target_nilai, 2) ?>
-                                                            </span>
-                                                        </td>
-                                                        <td class="text-center"><?= number_format($achievement, 1) ?>%</td>
-                                                        <td class="text-center">
-                                                            <?php if ($achievement >= 100) { ?>
-                                                                <i class="bi bi-check-circle-fill text-success"></i>
-                                                            <?php } elseif ($achievement >= 80) { ?>
-                                                                <i class="bi bi-exclamation-circle-fill text-warning"></i>
-                                                            <?php } else { ?>
-                                                                <i class="bi bi-x-circle-fill text-danger"></i>
-                                                            <?php } ?>
-                                                        </td>
-                                                    </tr>
-                                                    <?php } ?>
-                                                <?php } else { ?>
-                                                    <tr>
-                                                        <td colspan="7" class="text-center text-muted">
-                                                            Data KPI belum tersedia
-                                                        </td>
-                                                    </tr>
-                                                <?php } ?>
+                                                        ?>
+                                                        <span class="badge bg-<?= $growth_total >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                            <?= $growth_total >= 0 ? '▲' : '▼' ?> <?= number_format(abs($growth_total), 1) ?>%
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php if ($data_current['total_kpi_real'] >= $kpi_sim['total_kpi']) { ?>
+                                                            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                                        <?php } elseif ($data_current['total_kpi_real'] >= $kpi_sim['total_kpi'] * 0.8) { ?>
+                                                            <i class="bi bi-exclamation-circle-fill text-warning fs-5"></i>
+                                                        <?php } else { ?>
+                                                            <i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                                                        <?php } ?>
+                                                    </td>
+                                                </tr>
+
+                                                <!-- WHAT Component -->
+                                                <tr>
+                                                    <td><i class="bi bi-bullseye text-primary me-2"></i>WHAT (Objective)</td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-primary"><?= number_format($data_current['total_what'], 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-info"><?= number_format($data_current['total_what_target'] ?? $kpi_sim['total_what'], 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-secondary"><?= number_format($data_previous['total_what'], 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-dark"><?= number_format($data_previous['total_what_target'] ?? 0, 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php 
+                                                        $delta_what = $data_current['total_what'] - $data_previous['total_what'];
+                                                        ?>
+                                                        <span class="badge bg-<?= $delta_what >= 0 ? 'success' : 'danger' ?>">
+                                                            <?= $delta_what >= 0 ? '+' : '' ?><?= number_format($delta_what, 2) ?>
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php 
+                                                        $growth_what = $data_previous['total_what'] > 0 
+                                                            ? (($data_current['total_what'] - $data_previous['total_what']) / $data_previous['total_what']) * 100 
+                                                            : 0;
+                                                        ?>
+                                                        <span class="badge bg-<?= $growth_what >= 0 ? 'success' : 'danger' ?>">
+                                                            <?= $growth_what >= 0 ? '▲' : '▼' ?> <?= number_format(abs($growth_what), 1) ?>%
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php 
+                                                        $target_what = $data_current['total_what_target'] ?? $kpi_sim['total_what'];
+                                                        if ($data_current['total_what'] >= $target_what) { ?>
+                                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                                        <?php } elseif ($data_current['total_what'] >= $target_what * 0.8) { ?>
+                                                            <i class="bi bi-exclamation-circle-fill text-warning"></i>
+                                                        <?php } else { ?>
+                                                            <i class="bi bi-x-circle-fill text-danger"></i>
+                                                        <?php } ?>
+                                                    </td>
+                                                </tr>
+
+                                                <!-- HOW Component -->
+                                                <tr>
+                                                    <td><i class="bi bi-gear-fill text-success me-2"></i>HOW (Method)</td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-primary"><?= number_format($data_current['total_how'], 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-info"><?= number_format($data_current['total_how_target'] ?? $kpi_sim['total_how'], 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-secondary"><?= number_format($data_previous['total_how'], 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <span class="badge bg-dark"><?= number_format($data_previous['total_how_target'] ?? 0, 2) ?></span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php 
+                                                        $delta_how = $data_current['total_how'] - $data_previous['total_how'];
+                                                        ?>
+                                                        <span class="badge bg-<?= $delta_how >= 0 ? 'success' : 'danger' ?>">
+                                                            <?= $delta_how >= 0 ? '+' : '' ?><?= number_format($delta_how, 2) ?>
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php 
+                                                        $growth_how = $data_previous['total_how'] > 0 
+                                                            ? (($data_current['total_how'] - $data_previous['total_how']) / $data_previous['total_how']) * 100 
+                                                            : 0;
+                                                        ?>
+                                                        <span class="badge bg-<?= $growth_how >= 0 ? 'success' : 'danger' ?>">
+                                                            <?= $growth_how >= 0 ? '▲' : '▼' ?> <?= number_format(abs($growth_how), 1) ?>%
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php 
+                                                        $target_how = $data_current['total_how_target'] ?? $kpi_sim['total_how'];
+                                                        if ($data_current['total_how'] >= $target_how) { ?>
+                                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                                        <?php } elseif ($data_current['total_how'] >= $target_how * 0.8) { ?>
+                                                            <i class="bi bi-exclamation-circle-fill text-warning"></i>
+                                                        <?php } else { ?>
+                                                            <i class="bi bi-x-circle-fill text-danger"></i>
+                                                        <?php } ?>
+                                                    </td>
+                                                </tr>
                                             </tbody>
                                         </table>
+                                    </div>
+
+                                    <!-- Summary Card -->
+                                    <div class="row mt-4">
+                                        <div class="col-md-4">
+                                            <div class="card border-<?= $delta_total >= 0 ? 'success' : 'danger' ?>">
+                                                <div class="card-body text-center">
+                                                    <h6 class="text-muted mb-2">Overall Trend</h6>
+                                                    <h3 class="text-<?= $delta_total >= 0 ? 'success' : 'danger' ?>">
+                                                        <?= $delta_total >= 0 ? '↑' : '↓' ?> <?= number_format(abs($growth_total), 1) ?>%
+                                                    </h3>
+                                                    <small><?= $delta_total >= 0 ? 'Improved' : 'Declined' ?> from last month</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card border-info">
+                                                <div class="card-body text-center">
+                                                    <h6 class="text-muted mb-2">Best Performing</h6>
+                                                    <h3 class="text-info">
+                                                        <?= $growth_what > $growth_how ? 'WHAT' : 'HOW' ?>
+                                                    </h3>
+                                                    <small><?= number_format(max($growth_what, $growth_how), 1) ?>% growth</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card border-warning">
+                                                <div class="card-body text-center">
+                                                    <h6 class="text-muted mb-2">Target Achievement</h6>
+                                                    <h3 class="text-warning">
+                                                        <?= $kpi_sim['total_kpi'] > 0 ? number_format(($data_current['total_kpi_real'] / $kpi_sim['total_kpi']) * 100, 1) : 0 ?>%
+                                                    </h3>
+                                                    <small>of monthly target</small>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </main>
@@ -769,39 +1178,59 @@ if ($user_level >= 3) { // Kadep or higher
     <script>
         // Trend Chart
         const trendCtx = document.getElementById('trendChart').getContext('2d');
-        const trendChart = new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: <?= json_encode(array_column($trend_data, 'month')) ?>,
-                datasets: [{
-                    label: 'Real Performance',
-                    data: <?= json_encode(array_column($trend_data, 'real')) ?>,
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'Target',
-                    data: <?= json_encode(array_column($trend_data, 'target')) ?>,
-                    borderColor: '#198754',
-                    backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    borderDash: [5, 5]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, position: 'top' },
-                    tooltip: { mode: 'index', intersect: false }
+
+        // Data dari PHP
+        const trendLabels = <?= json_encode(array_column($trend_data, 'month')) ?>;
+        const trendRealData = <?= json_encode(array_column($trend_data, 'real')) ?>;
+        const trendTargetData = <?= json_encode(array_column($trend_data, 'target')) ?>;
+
+        // Validasi data tidak kosong
+        if (trendLabels.length > 0) {
+            const trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        label: 'Real Performance',
+                        data: trendRealData,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Target',
+                        data: trendTargetData,
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderDash: [5, 5]
+                    }]
                 },
-                scales: {
-                    y: { beginAtZero: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
                 }
-            }
-        });
+            });
+        } else {
+            // Jika tidak ada data, tampilkan pesan
+            document.getElementById('trendChart').parentElement.innerHTML = 
+                '<p class="text-center text-muted">Belum ada data history. Data akan tersimpan setiap bulan.</p>';
+        }
 
         // Real vs Target Chart
         const realVsTargetCtx = document.getElementById('realVsTargetChart').getContext('2d');
@@ -859,8 +1288,20 @@ if ($user_level >= 3) { // Kadep or higher
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
+                scales: { 
+                    x: { 
+                        display: false // HILANGKAN LABEL X-AXIS
+                    },
+                    y: { 
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    }
+                }
             }
+            
         });
 
         // KPI Breakdown Simulation
@@ -880,39 +1321,75 @@ if ($user_level >= 3) { // Kadep or higher
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
+                scales: { 
+                    x: { 
+                        display: false // HILANGKAN LABEL X-AXIS
+                    },
+                    y: { 
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    }
+                }
             }
         });
 
-        <?php if (!empty($dept_comparison)) { ?>
-        // Department Comparison Chart
+        <?php if (!empty($dept_comparison) && count($dept_comparison) > 0) { ?>
+        // Department/Team Comparison Chart
         const deptCompCtx = document.getElementById('deptComparisonChart').getContext('2d');
+
+        // Generate colors dynamically
+        const deptColors = <?= json_encode(array_map(function($member, $index) use ($id_user) {
+            // Warna khusus untuk user yang login
+            if (isset($member['id']) && $member['id'] == $id_user) {
+                return '#dc3545'; // Merah untuk diri sendiri
+            }
+            // Gradient untuk lainnya
+            $hue = ($index * 30) % 360;
+            return "hsl($hue, 70%, 60%)";
+        }, $dept_comparison, array_keys($dept_comparison))) ?>;
+
         const deptCompChart = new Chart(deptCompCtx, {
-            type: 'horizontalBar',
+            type: 'bar',
             data: {
                 labels: <?= json_encode(array_column($dept_comparison, 'name')) ?>,
                 datasets: [{
                     label: 'KPI Score',
                     data: <?= json_encode(array_column($dept_comparison, 'score')) ?>,
-                    backgroundColor: '#ffc107',
-                    borderRadius: 5
+                    backgroundColor: deptColors,
+                    borderRadius: 5,
+                    borderWidth: 2,
+                    borderColor: '#fff'
                 }]
             },
             options: {
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true } }
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Score: ' + context.parsed.x.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                scales: { 
+                    x: { 
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'KPI Score'
+                        }
+                    }
+                }
             }
         });
         <?php } ?>
-
-        // Export Function
-        function exportData() {
-            alert('Export feature will generate Excel/PDF report');
-            // Implement export to Excel/PDF here
-        }
     </script>
 
 </body>

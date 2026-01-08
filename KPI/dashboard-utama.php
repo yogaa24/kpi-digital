@@ -104,26 +104,40 @@ function calculateKPI($conn, $conn_sim, $user_id, $is_simulation = false) {
 }
 
 // ==================== SAVE KPI HISTORY FUNCTION ====================
+// ==================== SAVE KPI HISTORY FUNCTION ====================
 function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
     $bulan = date('Y-m'); // Format: 2025-01
+    
+    // ✅ VALIDASI: Pastikan user_id sesuai dengan data yang akan disimpan
+    if (!empty($kpi_real['kpi_details'])) {
+        $first_kpi_id = $kpi_real['kpi_details'][0]['id'];
+        $check_owner = mysqli_query($conn, "SELECT id_user FROM tb_kpi WHERE id='$first_kpi_id' LIMIT 1");
+        
+        if ($check_owner && mysqli_num_rows($check_owner) > 0) {
+            $owner = mysqli_fetch_assoc($check_owner);
+            if ($owner['id_user'] != $user_id) {
+                return false;
+            }
+        }
+    }
     
     // Check if table exists first
     $check_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_history'");
     if (mysqli_num_rows($check_table) == 0) {
-        // Table doesn't exist, skip saving
         return false;
     }
     
+    // ========== SIMPAN DATA SUMMARY (tb_kpi_history) ==========
     // Check if already exists
     $check = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
                                    WHERE id_user='$user_id' AND bulan='$bulan'");
     
     if ($check === false) {
-        return false; // Query failed
+        return false;
     }
     
     if (mysqli_num_rows($check) > 0) {
-        // Update existing
+        // Update existing - HANYA total_kpi_target, total_what, total_how
         $sql = "UPDATE tb_kpi_history SET 
                 total_kpi_real = '{$kpi_real['total_kpi']}',
                 total_kpi_target = '{$kpi_sim['total_kpi']}',
@@ -131,7 +145,7 @@ function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
                 total_how = '{$kpi_real['total_how']}'
                 WHERE id_user='$user_id' AND bulan='$bulan'";
     } else {
-        // Insert new
+        // Insert new - HANYA total_kpi_target, total_what, total_how
         $sql = "INSERT INTO tb_kpi_history 
                 (id_user, bulan, total_kpi_real, total_kpi_target, total_what, total_how) 
                 VALUES 
@@ -142,12 +156,100 @@ function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
     $result = mysqli_query($conn, $sql);
     
     if ($result === false) {
-        // Uncomment untuk debugging:
-        // error_log("KPI History Save Error: " . mysqli_error($conn));
         return false;
     }
     
+    // ========== SIMPAN DETAIL PER ITEM (tb_kpi_detail_history) ==========
+    // Check if detail table exists
+    $check_detail_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_detail_history'");
+    if (mysqli_num_rows($check_detail_table) == 0) {
+        return true; // Summary sudah tersimpan
+    }
+    
+    // Simpan setiap detail KPI
+    foreach ($kpi_real['kpi_details'] as $detail) {
+        $id_kpi = mysqli_real_escape_string($conn, $detail['id']);
+        $poin_what = mysqli_real_escape_string($conn, $detail['poin_what']);
+        $poin_how = mysqli_real_escape_string($conn, $detail['poin_how']);
+        $bobot_what = mysqli_real_escape_string($conn, $detail['bobot_what']);
+        $bobot_how = mysqli_real_escape_string($conn, $detail['bobot_how']);
+        $total_what_raw = mysqli_real_escape_string($conn, $detail['total_what_raw']);
+        $total_how_raw = mysqli_real_escape_string($conn, $detail['total_how_raw']);
+        $nilai_what = mysqli_real_escape_string($conn, $detail['nilai_what']);
+        $nilai_how = mysqli_real_escape_string($conn, $detail['nilai_how']);
+        
+        // Check if detail already exists
+        $check_detail = mysqli_query($conn, "SELECT id FROM tb_kpi_detail_history 
+                                              WHERE id_user='$user_id' 
+                                              AND id_kpi='$id_kpi' 
+                                              AND bulan='$bulan'");
+        
+        if (mysqli_num_rows($check_detail) > 0) {
+            // Update existing detail
+            $sql_detail = "UPDATE tb_kpi_detail_history SET 
+                          poin_what = '$poin_what',
+                          poin_how = '$poin_how',
+                          bobot_what = '$bobot_what',
+                          bobot_how = '$bobot_how',
+                          total_what_raw = '$total_what_raw',
+                          total_how_raw = '$total_how_raw',
+                          nilai_what = '$nilai_what',
+                          nilai_how = '$nilai_how'
+                          WHERE id_user='$user_id' 
+                          AND id_kpi='$id_kpi' 
+                          AND bulan='$bulan'";
+        } else {
+            // Insert new detail
+            $sql_detail = "INSERT INTO tb_kpi_detail_history 
+                          (id_user, id_kpi, bulan, poin_what, poin_how, bobot_what, bobot_how, 
+                           total_what_raw, total_how_raw, nilai_what, nilai_how) 
+                          VALUES 
+                          ('$user_id', '$id_kpi', '$bulan', '$poin_what', '$poin_how', 
+                           '$bobot_what', '$bobot_how', '$total_what_raw', '$total_how_raw', 
+                           '$nilai_what', '$nilai_how')";
+        }
+        
+        mysqli_query($conn, $sql_detail);
+    }
+    
     return true;
+}
+
+// ==================== GET DETAILED KPI FROM HISTORY ====================
+function getDetailedKPIFromHistory($conn, $user_id, $bulan) {
+    $details = [];
+    
+    // Check if detail table exists
+    $check_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_detail_history'");
+    if (mysqli_num_rows($check_table) == 0) {
+        return null; // Table tidak ada
+    }
+    
+    $sql = "SELECT * FROM tb_kpi_detail_history 
+            WHERE id_user='$user_id' AND bulan='$bulan'
+            ORDER BY id ASC";
+    
+    $result = mysqli_query($conn, $sql);
+    
+    if (!$result || mysqli_num_rows($result) == 0) {
+        return null; // Data tidak ada
+    }
+    
+    while ($row = mysqli_fetch_assoc($result)) {
+        $details[] = [
+            'id' => $row['id_kpi'],
+            'poin_what' => $row['poin_what'],
+            'poin_how' => $row['poin_how'],
+            'bobot_what' => $row['bobot_what'],
+            'bobot_how' => $row['bobot_how'],
+            'total_what_raw' => $row['total_what_raw'],
+            'total_how_raw' => $row['total_how_raw'],
+            'nilai_what' => $row['nilai_what'],
+            'nilai_how' => $row['nilai_how']
+        ];
+    }
+    
+    return $details;
 }
 
 // Calculate KPI for filtered user
@@ -157,12 +259,95 @@ if ($user_level == 1) {
 
 $kpi_real = calculateKPI($conn, $conn_sim, $filter_user, false);
 $kpi_sim = calculateKPI($conn, $conn_sim, $filter_user, true);
-saveKPIHistory($conn, $id_user, $kpi_real, $kpi_sim);
+
+// ✅ HANYA SIMPAN HISTORY JIKA USER MELIHAT DATA DIRINYA SENDIRI
+if ($filter_user == $id_user) {
+    saveKPIHistory($conn, $id_user, $kpi_real, $kpi_sim);
+}
 
 // Get user info
 $sql_user_info = "SELECT * FROM tb_users WHERE id='$filter_user'";
 $result_user_info = mysqli_query($conn, $sql_user_info);
 $user_info = mysqli_fetch_assoc($result_user_info);
+
+// ==================== GET PREVIOUS MONTH DATA ====================
+$bulan_ini = date('Y-m');
+$bulan_kemarin = date('Y-m', strtotime('-1 month'));
+
+// Ambil data bulan ini
+$sql_current = "SELECT * FROM tb_kpi_history 
+                WHERE id_user='$filter_user' AND bulan='$bulan_ini'";
+$result_current = mysqli_query($conn, $sql_current);
+$data_current = mysqli_fetch_assoc($result_current);
+
+// Ambil data bulan kemarin
+$sql_previous = "SELECT * FROM tb_kpi_history 
+                 WHERE id_user='$filter_user' AND bulan='$bulan_kemarin'";
+$result_previous = mysqli_query($conn, $sql_previous);
+$data_previous = mysqli_fetch_assoc($result_previous);
+
+// Jika tidak ada data bulan kemarin, set default 0
+if (!$data_previous) {
+    $data_previous = [
+        'total_kpi_real' => 0,
+        'total_what' => 0,
+        'total_how' => 0,
+    ];
+}
+
+// Jika tidak ada data bulan ini, gunakan perhitungan real-time
+if (!$data_current) {
+    $data_current = [
+        'total_kpi_real' => $kpi_real['total_kpi'],
+        'total_what' => $kpi_real['total_what'],
+        'total_how' => $kpi_real['total_how'],
+    ];
+}
+
+// ==================== GET DETAILED KPI COMPARISON ====================
+$bulan_ini = date('Y-m');
+$bulan_kemarin = date('Y-m', strtotime('-1 month'));
+
+// Ambil data summary bulan ini
+$sql_current = "SELECT * FROM tb_kpi_history 
+                WHERE id_user='$filter_user' AND bulan='$bulan_ini'";
+$result_current = mysqli_query($conn, $sql_current);
+$data_current = mysqli_fetch_assoc($result_current);
+
+// Ambil data summary bulan kemarin
+$sql_previous = "SELECT * FROM tb_kpi_history 
+                 WHERE id_user='$filter_user' AND bulan='$bulan_kemarin'";
+$result_previous = mysqli_query($conn, $sql_previous);
+$data_previous = mysqli_fetch_assoc($result_previous);
+
+// Jika tidak ada data bulan kemarin, set default 0
+if (!$data_previous) {
+    $data_previous = [
+        'total_kpi_real' => 0,
+        'total_what' => 0,
+        'total_how' => 0
+    ];
+}
+
+// Jika tidak ada data bulan ini, gunakan perhitungan real-time
+if (!$data_current) {
+    $data_current = [
+        'total_kpi_real' => $kpi_real['total_kpi'],
+        'total_what' => $kpi_real['total_what'],
+        'total_how' => $kpi_real['total_how']
+    ];
+}
+
+// Ambil detail KPI bulan ini (gunakan data real-time)
+$kpi_current_detail = $kpi_real['kpi_details'];
+
+// Ambil detail KPI bulan kemarin dari history
+$kpi_previous_detail = getDetailedKPIFromHistory($conn, $filter_user, $bulan_kemarin);
+
+// Jika tidak ada detail bulan kemarin, set null
+if (!$kpi_previous_detail) {
+    $kpi_previous_detail = [];
+}
 
 // ==================== TREND DATA (Last 6 months) - REAL DATA ====================
 $trend_data = [];
@@ -922,84 +1107,385 @@ if ($user_level >= 2) {
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
-                                    <h5 class="mb-0"><i class="bi bi-table me-2"></i>Detailed KPI Analysis</h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><i class="bi bi-table me-2"></i>Detailed KPI Analysis - Month over Month Comparison</h5>
+                                        <div>
+                                            <span class="badge bg-primary me-2"><?= date('M Y') ?> (Current)</span>
+                                            <span class="badge bg-secondary"><?= date('M Y', strtotime('-1 month')) ?> (Previous)</span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover table-sm fs-6">
-                                            <thead class="table-dark">
-                                                <tr>
-                                                    <th>KPI Item</th>
-                                                    <th class="text-center">Weight</th>
-                                                    <th class="text-center">Real Score</th>
-                                                    <th class="text-center">Target Score</th>
-                                                    <th class="text-center">Gap</th>
-                                                    <th class="text-center">Achievement</th>
-                                                    <th class="text-center">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php if (!empty($kpi_real['kpi_details'])) { ?>
-                                                    <?php foreach ($kpi_real['kpi_details'] as $idx => $detail) { 
+                                    
+                                    <!-- Summary Comparison -->
+                                    <div class="row mb-4">
+                                        <div class="col-md-4">
+                                            <div class="card border-primary">
+                                                <div class="card-body text-center">
+                                                    <h6 class="text-muted mb-2">Total KPI</h6>
+                                                    <div class="d-flex justify-content-around align-items-center">
+                                                        <div>
+                                                            <small class="text-muted">Current</small>
+                                                            <h4 class="text-primary mb-0"><?= number_format($data_current['total_kpi_real'], 2) ?></h4>
+                                                        </div>
+                                                        <div>
+                                                            <i class="bi bi-arrow-right text-muted fs-4"></i>
+                                                        </div>
+                                                        <div>
+                                                            <small class="text-muted">Previous</small>
+                                                            <h4 class="text-secondary mb-0"><?= number_format($data_previous['total_kpi_real'], 2) ?></h4>
+                                                        </div>
+                                                    </div>
+                                                    <?php 
+                                                    $delta_total = $data_current['total_kpi_real'] - $data_previous['total_kpi_real'];
+                                                    $growth_total = $data_previous['total_kpi_real'] > 0 
+                                                        ? (($data_current['total_kpi_real'] - $data_previous['total_kpi_real']) / $data_previous['total_kpi_real']) * 100 
+                                                        : 0;
+                                                    ?>
+                                                    <div class="mt-2">
+                                                        <span class="badge bg-<?= $delta_total >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                            <?= $delta_total >= 0 ? '▲' : '▼' ?> <?= number_format(abs($delta_total), 2) ?> 
+                                                            (<?= number_format(abs($growth_total), 1) ?>%)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <div class="card border-info">
+                                                <div class="card-body text-center">
+                                                    <h6 class="text-muted mb-2">WHAT Score</h6>
+                                                    <div class="d-flex justify-content-around align-items-center">
+                                                        <div>
+                                                            <small class="text-muted">Current</small>
+                                                            <h4 class="text-primary mb-0"><?= number_format($data_current['total_what'], 2) ?></h4>
+                                                        </div>
+                                                        <div>
+                                                            <i class="bi bi-arrow-right text-muted fs-4"></i>
+                                                        </div>
+                                                        <div>
+                                                            <small class="text-muted">Previous</small>
+                                                            <h4 class="text-secondary mb-0"><?= number_format($data_previous['total_what'], 2) ?></h4>
+                                                        </div>
+                                                    </div>
+                                                    <?php 
+                                                    $delta_what = $data_current['total_what'] - $data_previous['total_what'];
+                                                    $growth_what = $data_previous['total_what'] > 0 
+                                                        ? (($data_current['total_what'] - $data_previous['total_what']) / $data_previous['total_what']) * 100 
+                                                        : 0;
+                                                    ?>
+                                                    <div class="mt-2">
+                                                        <span class="badge bg-<?= $delta_what >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                            <?= $delta_what >= 0 ? '▲' : '▼' ?> <?= number_format(abs($delta_what), 2) ?> 
+                                                            (<?= number_format(abs($growth_what), 1) ?>%)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <div class="card border-success">
+                                                <div class="card-body text-center">
+                                                    <h6 class="text-muted mb-2">HOW Score</h6>
+                                                    <div class="d-flex justify-content-around align-items-center">
+                                                        <div>
+                                                            <small class="text-muted">Current</small>
+                                                            <h4 class="text-primary mb-0"><?= number_format($data_current['total_how'], 2) ?></h4>
+                                                        </div>
+                                                        <div>
+                                                            <i class="bi bi-arrow-right text-muted fs-4"></i>
+                                                        </div>
+                                                        <div>
+                                                            <small class="text-muted">Previous</small>
+                                                            <h4 class="text-secondary mb-0"><?= number_format($data_previous['total_how'], 2) ?></h4>
+                                                        </div>
+                                                    </div>
+                                                    <?php 
+                                                    $delta_how = $data_current['total_how'] - $data_previous['total_how'];
+                                                    $growth_how = $data_previous['total_how'] > 0 
+                                                        ? (($data_current['total_how'] - $data_previous['total_how']) / $data_previous['total_how']) * 100 
+                                                        : 0;
+                                                    ?>
+                                                    <div class="mt-2">
+                                                        <span class="badge bg-<?= $delta_how >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                            <?= $delta_how >= 0 ? '▲' : '▼' ?> <?= number_format(abs($delta_how), 2) ?> 
+                                                            (<?= number_format(abs($growth_how), 1) ?>%)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Detailed WHAT Comparison -->
+                                    <div class="mb-4">
+                                        <h6 class="fw-bold text-primary mb-3">
+                                            <i class="bi bi-bullseye me-2"></i>WHAT (Objective) - Detailed Comparison
+                                        </h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover table-bordered table-sm">
+                                                <thead class="table-primary">
+                                                    <tr>
+                                                        <th style="width: 5%;" class="text-center">#</th>
+                                                        <th style="width: 35%;">KPI Item</th>
+                                                        <th class="text-center" style="width: 10%;">Weight</th>
+                                                        <th class="text-center" style="width: 12%;">Current Month</th>
+                                                        <th class="text-center" style="width: 12%;">Previous Month</th>
+                                                        <th class="text-center" style="width: 12%;">Δ Change</th>
+                                                        <th class="text-center" style="width: 10%;">Growth %</th>
+                                                        <th class="text-center" style="width: 4%;">Trend</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php 
+                                                    $no = 1;
+                                                    foreach ($kpi_current_detail as $idx => $detail) { 
+                                                        // Cari data bulan lalu berdasarkan id_kpi yang sama
+                                                        $previous_value = 0;
+                                                        $previous_raw = 0;
                                                         
-                                                        // Ambil data simulasi jika ada, jika tidak pakai default
-                                                        $sim_detail = $kpi_sim['kpi_details'][$idx] ?? [
-                                                            'nilai_what' => 0
-                                                        ];
-
-                                                        $real_nilai   = $detail['nilai_what'] ?? 0;
-                                                        $target_nilai = $sim_detail['nilai_what'] ?? 0;
-
-                                                        $achievement = $target_nilai > 0 
-                                                            ? ($real_nilai / $target_nilai) * 100 
+                                                        if (!empty($kpi_previous_detail)) {
+                                                            foreach ($kpi_previous_detail as $prev) {
+                                                                if ($prev['id'] == $detail['id']) {
+                                                                    $previous_value = $prev['nilai_what'];
+                                                                    $previous_raw = $prev['total_what_raw'];
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        $delta = $detail['nilai_what'] - $previous_value;
+                                                        $growth = $previous_value > 0 
+                                                            ? (($detail['nilai_what'] - $previous_value) / $previous_value) * 100 
                                                             : 0;
                                                     ?>
                                                     <tr>
-                                                        <td><strong><?= htmlspecialchars($detail['poin_what']) ?></strong></td>
-                                                        <td class="text-center"><?= $detail['bobot_what'] ?>%</td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-primary">
-                                                                <?= number_format($real_nilai, 2) ?>
-                                                            </span>
+                                                        <td class="text-center"><?= $no++ ?></td>
+                                                        <td>
+                                                            <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                                                <?= htmlspecialchars($detail['poin_what']) ?>
+                                                            </small>
                                                         </td>
                                                         <td class="text-center">
-                                                            <span class="badge bg-success">
-                                                                <?= number_format($target_nilai, 2) ?>
-                                                            </span>
+                                                            <span class="badge bg-warning text-dark"><?= $detail['bobot_what'] ?>%</span>
                                                         </td>
                                                         <td class="text-center">
-                                                            <span class="badge bg-<?= $real_nilai >= $target_nilai ? 'success' : 'warning' ?>">
-                                                                <?= number_format($real_nilai - $target_nilai, 2) ?>
-                                                            </span>
+                                                            <strong class="text-primary"><?= number_format($detail['nilai_what'], 2) ?></strong>
+                                                            <br><small class="text-muted">(Total: <?= number_format($detail['total_what_raw'], 2) ?>)</small>
                                                         </td>
-                                                        <td class="text-center"><?= number_format($achievement, 1) ?>%</td>
                                                         <td class="text-center">
-                                                            <?php if ($achievement >= 100) { ?>
-                                                                <i class="bi bi-check-circle-fill text-success"></i>
-                                                            <?php } elseif ($achievement >= 80) { ?>
-                                                                <i class="bi bi-exclamation-circle-fill text-warning"></i>
+                                                            <?php if ($previous_value > 0) { ?>
+                                                                <strong class="text-secondary"><?= number_format($previous_value, 2) ?></strong>
+                                                                <br><small class="text-muted">(Total: <?= number_format($previous_raw, 2) ?>)</small>
                                                             <?php } else { ?>
-                                                                <i class="bi bi-x-circle-fill text-danger"></i>
+                                                                <span class="text-muted">-</span>
+                                                                <br><small class="text-muted">No data</small>
+                                                            <?php } ?>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <?php if ($previous_value > 0) { ?>
+                                                                <span class="badge bg-<?= $delta >= 0 ? 'success' : 'danger' ?>">
+                                                                    <?= $delta >= 0 ? '+' : '' ?><?= number_format($delta, 2) ?>
+                                                                </span>
+                                                            <?php } else { ?>
+                                                                <span class="text-muted">-</span>
+                                                            <?php } ?>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <?php if ($previous_value > 0) { ?>
+                                                                <span class="badge bg-<?= $growth >= 0 ? 'success' : 'danger' ?>">
+                                                                    <?= number_format(abs($growth), 1) ?>%
+                                                                </span>
+                                                            <?php } else { ?>
+                                                                <span class="badge bg-secondary">New</span>
+                                                            <?php } ?>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <?php if ($previous_value > 0) { ?>
+                                                                <?php if ($growth > 5) { ?>
+                                                                    <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
+                                                                <?php } elseif ($growth < -5) { ?>
+                                                                    <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
+                                                                <?php } else { ?>
+                                                                    <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                                                                <?php } ?>
+                                                            <?php } else { ?>
+                                                                <i class="bi bi-plus-circle-fill text-info fs-5"></i>
                                                             <?php } ?>
                                                         </td>
                                                     </tr>
                                                     <?php } ?>
-                                                <?php } else { ?>
+                                                    <tr class="table-light fw-bold">
+                                                        <td colspan="3" class="text-end">TOTAL WHAT:</td>
+                                                        <td class="text-center text-primary"><?= number_format($data_current['total_what'], 2) ?></td>
+                                                        <td class="text-center text-secondary"><?= number_format($data_previous['total_what'], 2) ?></td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-<?= $delta_what >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                                <?= $delta_what >= 0 ? '+' : '' ?><?= number_format($delta_what, 2) ?>
+                                                            </span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-<?= $growth_what >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                                <?= number_format(abs($growth_what), 1) ?>%
+                                                            </span>
+                                                        </td>
+                                                        <td></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-4">
+
+                                    <!-- Detailed HOW Comparison -->
+                                    <div class="mb-4">
+                                        <h6 class="fw-bold text-success mb-3">
+                                            <i class="bi bi-gear-fill me-2"></i>HOW (Method) - Detailed Comparison
+                                        </h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover table-bordered table-sm">
+                                                <thead class="table-success">
                                                     <tr>
-                                                        <td colspan="7" class="text-center text-muted">
-                                                            Data KPI belum tersedia
+                                                        <th style="width: 5%;" class="text-center">#</th>
+                                                        <th style="width: 35%;">KPI Item</th>
+                                                        <th class="text-center" style="width: 10%;">Weight</th>
+                                                        <th class="text-center" style="width: 12%;">Current Month</th>
+                                                        <th class="text-center" style="width: 12%;">Previous Month</th>
+                                                        <th class="text-center" style="width: 12%;">Δ Change</th>
+                                                        <th class="text-center" style="width: 10%;">Growth %</th>
+                                                        <th class="text-center" style="width: 4%;">Trend</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php 
+                                                    $no = 1;
+                                                    foreach ($kpi_current_detail as $idx => $detail) { 
+                                                        // Cari data bulan lalu berdasarkan id_kpi yang sama
+                                                        $previous_value = 0;
+                                                        $previous_raw = 0;
+                                                        
+                                                        if (!empty($kpi_previous_detail)) {
+                                                            foreach ($kpi_previous_detail as $prev) {
+                                                                if ($prev['id'] == $detail['id']) {
+                                                                    $previous_value = $prev['nilai_how'];
+                                                                    $previous_raw = $prev['total_how_raw'];
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        $delta = $detail['nilai_how'] - $previous_value;
+                                                        $growth = $previous_value > 0 
+                                                            ? (($detail['nilai_how'] - $previous_value) / $previous_value) * 100 
+                                                            : 0;
+                                                    ?>
+                                                    <tr>
+                                                        <td class="text-center"><?= $no++ ?></td>
+                                                        <td>
+                                                            <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                                                <?= htmlspecialchars($detail['poin_how']) ?>
+                                                            </small>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-warning text-dark"><?= $detail['bobot_how'] ?>%</span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <strong class="text-success"><?= number_format($detail['nilai_how'], 2) ?></strong>
+                                                            <br><small class="text-muted">(Total: <?= number_format($detail['total_how_raw'], 2) ?>)</small>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <?php if ($previous_value > 0) { ?>
+                                                                <strong class="text-secondary"><?= number_format($previous_value, 2) ?></strong>
+                                                                <br><small class="text-muted">(Total: <?= number_format($previous_raw, 2) ?>)</small>
+                                                            <?php } else { ?>
+                                                                <span class="text-muted">-</span>
+                                                                <br><small class="text-muted">No data</small>
+                                                            <?php } ?>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <?php if ($previous_value > 0) { ?>
+                                                                <span class="badge bg-<?= $delta >= 0 ? 'success' : 'danger' ?>">
+                                                                    <?= $delta >= 0 ? '+' : '' ?><?= number_format($delta, 2) ?>
+                                                                </span>
+                                                            <?php } else { ?>
+                                                                <span class="text-muted">-</span>
+                                                            <?php } ?>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <?php if ($previous_value > 0) { ?>
+                                                                <span class="badge bg-<?= $growth >= 0 ? 'success' : 'danger' ?>">
+                                                                    <?= number_format(abs($growth), 1) ?>%
+                                                                </span>
+                                                            <?php } else { ?>
+                                                                <span class="badge bg-secondary">New</span>
+                                                            <?php } ?>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <?php if ($previous_value > 0) { ?>
+                                                                <?php if ($growth > 5) { ?>
+                                                                    <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
+                                                                <?php } elseif ($growth < -5) { ?>
+                                                                    <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
+                                                                <?php } else { ?>
+                                                                    <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                                                                <?php } ?>
+                                                            <?php } else { ?>
+                                                                <i class="bi bi-plus-circle-fill text-info fs-5"></i>
+                                                            <?php } ?>
                                                         </td>
                                                     </tr>
-                                                <?php } ?>
-                                            </tbody>
-                                        </table>
+                                                    <?php } ?>
+                                                    <tr class="table-light fw-bold">
+                                                        <td colspan="3" class="text-end">TOTAL HOW:</td>
+                                                        <td class="text-center text-success"><?= number_format($data_current['total_how'], 2) ?></td>
+                                                        <td class="text-center text-secondary"><?= number_format($data_previous['total_how'], 2) ?></td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-<?= $delta_how >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                                <?= $delta_how >= 0 ? '+' : '' ?><?= number_format($delta_how, 2) ?>
+                                                            </span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge bg-<?= $growth_how >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                                <?= number_format(abs($growth_how), 1) ?>%
+                                                            </span>
+                                                        </td>
+                                                        <td></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
+
+                                    <!-- Performance Insight -->
+                                    <div class="alert alert-info mt-4">
+                                        <h6 class="alert-heading"><i class="bi bi-lightbulb me-2"></i>Performance Insights</h6>
+                                        <ul class="mb-0">
+                                            <li><strong>Overall Trend:</strong> Your KPI has <?= $delta_total >= 0 ? 'improved' : 'declined' ?> by 
+                                                <strong><?= number_format(abs($growth_total), 1) ?>%</strong> compared to last month</li>
+                                            <li><strong>Best Component:</strong> 
+                                                <?php if (abs($growth_what) > abs($growth_how)) { ?>
+                                                    WHAT component showed better performance with <?= number_format(abs($growth_what), 1) ?>% growth
+                                                <?php } else { ?>
+                                                    HOW component showed better performance with <?= number_format(abs($growth_how), 1) ?>% growth
+                                                <?php } ?>
+                                            </li>
+                                            <li><strong>Focus Area:</strong> 
+                                                <?php if (abs($growth_what) < abs($growth_how)) { ?>
+                                                    Consider improving WHAT (Objective) achievements
+                                                <?php } else { ?>
+                                                    Consider improving HOW (Method) implementation
+                                                <?php } ?>
+                                            </li>
+                                        </ul>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                </div>
             </div>
         </main>
 

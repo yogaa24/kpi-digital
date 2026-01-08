@@ -22,29 +22,26 @@ if (!isset($_SESSION['id_user'])) {
         $jenis_sp = mysqli_real_escape_string($conn, $_POST['jenis_sp']);
         $nomor_sp = mysqli_real_escape_string($conn, $_POST['nomor_sp']);
         $tanggal_sp = mysqli_real_escape_string($conn, $_POST['tanggal_sp']);
-        $masa_berlaku_mulai = mysqli_real_escape_string($conn, $_POST['masa_berlaku_mulai']);
-        $masa_berlaku_selesai = mysqli_real_escape_string($conn, $_POST['masa_berlaku_selesai']);
         $alasan = mysqli_real_escape_string($conn, $_POST['alasan']);
         $keterangan = mysqli_real_escape_string($conn, $_POST['keterangan']);
         $created_by = $_SESSION['id_user'];
         
-        // Validasi tanggal
-        if ($masa_berlaku_selesai < $masa_berlaku_mulai) {
-            echo "<script>alert('Tanggal selesai tidak boleh lebih kecil dari tanggal mulai!');</script>";
+        // Hitung otomatis masa berlaku 6 bulan dari tanggal SP
+        $masa_berlaku_mulai = $tanggal_sp;
+        $masa_berlaku_selesai = date('Y-m-d', strtotime($tanggal_sp . ' +6 months'));
+        
+        $sql = "INSERT INTO tb_surat_peringatan 
+                (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, keterangan, status, created_by) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
+        
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, "isssssssi", $id_user_sp, $jenis_sp, $nomor_sp, $tanggal_sp, 
+                            $masa_berlaku_mulai, $masa_berlaku_selesai, $alasan, $keterangan, $created_by);
+        
+        if (mysqli_stmt_execute($stmt)) {
+            echo "<script>alert('Surat Peringatan berhasil ditambahkan dengan masa berlaku 6 bulan!'); window.location.href='datakpi-adminhrd';</script>";
         } else {
-            $sql = "INSERT INTO tb_surat_peringatan 
-                    (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, keterangan, status, created_by) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
-            
-            $stmt = mysqli_prepare($conn, $sql);
-            mysqli_stmt_bind_param($stmt, "isssssssi", $id_user_sp, $jenis_sp, $nomor_sp, $tanggal_sp, 
-                                  $masa_berlaku_mulai, $masa_berlaku_selesai, $alasan, $keterangan, $created_by);
-            
-            if (mysqli_stmt_execute($stmt)) {
-                echo "<script>alert('Surat Peringatan berhasil ditambahkan!'); window.location.href='datakpi-adminhrd';</script>";
-            } else {
-                echo "<script>alert('Gagal menambahkan Surat Peringatan: " . mysqli_error($conn) . "');</script>";
-            }
+            echo "<script>alert('Gagal menambahkan Surat Peringatan: " . mysqli_error($conn) . "');</script>";
         }
     }
     

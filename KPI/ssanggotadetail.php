@@ -30,7 +30,7 @@ if (!isset($_SESSION['id_user'])) {
         $id = $_POST['idss'];
 
         $sql = "INSERT INTO tb_sspoin (`id_user`, `id_ss`, `poinss`, `nilaiss`, `deskripsi`)
-        VALUES ($id_user, $id, '$poin', 0, '')";
+        VALUES ($id_sf, $id, '$poin', 0, '')";
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
@@ -42,11 +42,9 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['ss_edit'])) {
         $poin = $_POST['poinsss'];
         $id = $_POST['idsss'];
-        $nilai = $_POST['nilai'];
-        $deskripsi = $_POST['deskripsi'];
 
         $sql = "UPDATE tb_sspoin 
-        SET poinss='$poin', nilaiss='$nilai', deskripsi='$deskripsi'
+        SET poinss='$poin'
         WHERE id_sspoin=$id";
         $result = mysqli_query($conn, $sql);
         if ($result) {
@@ -56,6 +54,7 @@ if (!isset($_SESSION['id_user'])) {
             echo "<script>alert('Gagal Edit Skill')</script>";
         }
     }
+    
     if (isset($_POST['ss_hapus'])) {
         $id = $_POST['idpoin'];
     
@@ -69,17 +68,19 @@ if (!isset($_SESSION['id_user'])) {
         }
     }
     if (isset($_POST['ss_nilai'])) {
-        $id = $_POST['idsss'];
-        $nialiii = $_POST['nilaisi'];
-
+        $id = $_POST['idnilai'];
+        $nilai = $_POST['nilai'];
+        $keterangan = $_POST['keterangan'];
+    
         $sql = "UPDATE tb_sspoin 
-        SET nilaiss=$nialiii where id_sspoin =$id";
+        SET nilaiss='$nilai', deskripsi='$keterangan' 
+        WHERE id_sspoin=$id";
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
-            echo "<script>alert('Berhasil, Hapus Skill Standard')</script>";
+            exit();
         } else {
-            echo "<script>alert('Gagal Edit Skill')</script>";
+            echo "<script>alert('Gagal Memberikan Nilai')</script>";
         }
     }
     if (isset($_POST['update'])) {

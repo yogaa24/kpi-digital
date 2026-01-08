@@ -43,27 +43,30 @@
                                placeholder="Contoh: SP/HRD/001/2024">
                     </div>
                     
-                    <!-- Tanggal SP -->
+                   <!-- Tanggal SP -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">
                             <i class="bi bi-calendar-event"></i> Tanggal Surat Peringatan <span class="text-danger">*</span>
                         </label>
-                        <input type="date" class="form-control" name="tanggal_sp" required value="<?=date('Y-m-d')?>">
+                        <input type="date" class="form-control" name="tanggal_sp" id="tanggalSP<?=$hasilsfa['id']?>" required value="<?=date('Y-m-d')?>" onchange="updateMasaBerlaku<?=$hasilsfa['id']?>()">
                     </div>
-                    
-                    <!-- Masa Berlaku -->
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="bi bi-calendar-check"></i> Masa Berlaku Mulai <span class="text-danger">*</span>
-                            </label>
-                            <input type="date" class="form-control" name="masa_berlaku_mulai" required value="<?=date('Y-m-d')?>">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="bi bi-calendar-x"></i> Masa Berlaku Selesai <span class="text-danger">*</span>
-                            </label>
-                            <input type="date" class="form-control" name="masa_berlaku_selesai" required>
+
+                    <!-- Masa Berlaku (Auto-calculated, read-only) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-calendar-range"></i> Masa Berlaku SP (Otomatis 6 Bulan)
+                        </label>
+                        <div class="alert alert-info mb-0">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Mulai:</strong> <span id="displayMulai<?=$hasilsfa['id']?>"><?=date('d/m/Y')?></span>
+                                    <input type="hidden" name="masa_berlaku_mulai" id="masaMulai<?=$hasilsfa['id']?>" value="<?=date('Y-m-d')?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Selesai:</strong> <span id="displaySelesai<?=$hasilsfa['id']?>"><?=date('d/m/Y', strtotime('+6 months'))?></span>
+                                    <input type="hidden" name="masa_berlaku_selesai" id="masaSelesai<?=$hasilsfa['id']?>" value="<?=date('Y-m-d', strtotime('+6 months'))?>">
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -115,11 +118,42 @@ function updatePenaltyInfo<?=$hasilsfa['id']?>() {
         infoDiv.innerHTML = `
             <div class="alert alert-${p.class} mb-0">
                 <i class="bi bi-${p.icon}-fill"></i> 
-                <strong>Dampak:</strong> Nilai KPI akan dikurangi <strong>${p.poin} poin</strong> selama masa berlaku SP
+                <strong>Dampak:</strong> Nilai KPI akan dikurangi <strong>${p.poin} poin</strong> selama 6 bulan masa berlaku SP
             </div>
         `;
     } else {
         infoDiv.innerHTML = '';
     }
 }
+
+function updateMasaBerlaku<?=$hasilsfa['id']?>() {
+    const tanggalSP = document.getElementById('tanggalSP<?=$hasilsfa['id']?>').value;
+    
+    if (tanggalSP) {
+        const startDate = new Date(tanggalSP);
+        const endDate = new Date(tanggalSP);
+        endDate.setMonth(endDate.getMonth() + 6);
+        
+        // Format tanggal untuk input hidden (Y-m-d)
+        const startDateStr = tanggalSP;
+        const endDateStr = endDate.toISOString().split('T')[0];
+        
+        // Format tanggal untuk display (d/m/Y)
+        const startDisplay = startDate.toLocaleDateString('id-ID');
+        const endDisplay = endDate.toLocaleDateString('id-ID');
+        
+        // Update hidden inputs
+        document.getElementById('masaMulai<?=$hasilsfa['id']?>').value = startDateStr;
+        document.getElementById('masaSelesai<?=$hasilsfa['id']?>').value = endDateStr;
+        
+        // Update display
+        document.getElementById('displayMulai<?=$hasilsfa['id']?>').textContent = startDisplay;
+        document.getElementById('displaySelesai<?=$hasilsfa['id']?>').textContent = endDisplay;
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateMasaBerlaku<?=$hasilsfa['id']?>();
+});
 </script>

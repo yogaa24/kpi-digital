@@ -39,11 +39,9 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['ss_edit'])) {
         $poin = $_POST['poinsss'];
         $id = $_POST['idsss'];
-        $nilai = $_POST['nilai'];
-        $deskripsi = $_POST['deskripsi'];
-
+    
         $sql = "UPDATE tb_sspoin 
-        SET poinss='$poin', nilaiss='$nilai', deskripsi='$deskripsi'
+        SET poinss='$poin' 
         WHERE id_sspoin=$id";
         $result = mysqli_query($conn, $sql);
         if ($result) {
@@ -51,6 +49,22 @@ if (!isset($_SESSION['id_user'])) {
             exit();
         } else {
             echo "<script>alert('Gagal Edit Skill')</script>";
+        }
+    }
+    if (isset($_POST['ss_nilai'])) {
+        $id = $_POST['idnilai'];
+        $nilai = $_POST['nilai'];
+        $keterangan = $_POST['keterangan'];
+    
+        $sql = "UPDATE tb_sspoin 
+        SET nilaiss='$nilai', deskripsi='$keterangan' 
+        WHERE id_sspoin=$id";
+        $result = mysqli_query($conn, $sql);
+        if ($result) {
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            exit();
+        } else {
+            echo "<script>alert('Gagal Memberikan Nilai')</script>";
         }
     }
     if (isset($_POST['ss_hapus'])) {
