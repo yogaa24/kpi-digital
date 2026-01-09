@@ -8,7 +8,7 @@
       <div class="modal-body">
         <form method="POST" action="" class="input">
           <div class="input-group mb-3">
-            <span style="color : #343A40;" class="input-group-text fw-bold" id="poin">What :</span>
+            <span style="color : #343A40;" class="input-group-text fw-bold" id="poin">Goals What :</span>
             <input type="input" class="form-control" name="poin" placeholder="Tujuan KPI" aria-label="Tujuan KPI" aria-describedby="tujuan">
           </div>
           <div class="input-group mb-3">
@@ -16,7 +16,7 @@
             <input type="input" class="form-control" name="bobot" placeholder="10-90" aria-label="Bobot KPI" aria-describedby="bobot">
           </div>
           <div class="input-group mb-3">
-            <span style="color : #343A40;" class="input-group-text fw-bold" id="poin2">How :</span>
+            <span style="color : #343A40;" class="input-group-text fw-bold" id="poin2">Goals How :</span>
             <input type="input" class="form-control" name="poin2" placeholder="Bagaimana Caranya" aria-label="Bobot KPI" aria-describedby="bobot">
           </div>
           <div class="input-group mb-3">

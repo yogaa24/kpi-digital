@@ -13,7 +13,7 @@ if (!isset($_SESSION['id_user'])) {
 if (isset($_POST['submit'])) {
     $ids = $_SESSION['id_user'];
     $poin = $_POST['poin'];
-    $bobot = $_POST['bobot'];
+    $bobot = $_POST['bobot'];                                                                      
     $poin2 = $_POST['poin2'];
     $bobot2 = $_POST['bobot2'];
 

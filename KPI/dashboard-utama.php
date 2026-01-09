@@ -1118,7 +1118,7 @@ if ($user_level >= 2) {
                                 <div class="card-body">
                                     
                                     <!-- Summary Comparison -->
-                                    <div class="row mb-4">
+                                    <!-- <div class="row mb-4">
                                         <div class="col-md-4">
                                             <div class="card border-primary">
                                                 <div class="card-body text-center">
@@ -1217,7 +1217,7 @@ if ($user_level >= 2) {
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> -->
 
                                     <!-- Detailed WHAT Comparison -->
                                     <div class="mb-4">
@@ -1264,24 +1264,29 @@ if ($user_level >= 2) {
                                                     <tr>
                                                         <td class="text-center"><?= $no++ ?></td>
                                                         <td>
-                                                            <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                                            <div class="fw-semibold text-dark fs-6">
                                                                 <?= htmlspecialchars($detail['poin_what']) ?>
-                                                            </small>
+                                                            </div>
                                                         </td>
                                                         <td class="text-center">
                                                             <span class="badge bg-warning text-dark"><?= $detail['bobot_what'] ?>%</span>
                                                         </td>
-                                                        <td class="text-center">
-                                                            <strong class="text-primary"><?= number_format($detail['nilai_what'], 2) ?></strong>
-                                                            <br><small class="text-muted">(Total: <?= number_format($detail['total_what_raw'], 2) ?>)</small>
+                                                        <td class="text-center align-middle">
+                                                            <strong class="text-primary fw-semibold fs-6">
+                                                                <?= number_format($detail['nilai_what'], 2) ?>
+                                                            </strong>
                                                         </td>
-                                                        <td class="text-center">
+                                                        <td class="text-center align-middle">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <strong class="text-secondary"><?= number_format($previous_value, 2) ?></strong>
-                                                                <br><small class="text-muted">(Total: <?= number_format($previous_raw, 2) ?>)</small>
+                                                                <div class="fw-semibold text-dark fs-6">
+                                                                    <?= number_format($previous_value, 2) ?>
+                                                                </div>
+                                                                <div class="text-body-secondary fs-7">
+                                                                    (Total: <?= number_format($previous_raw, 2) ?>)
+                                                                </div>
                                                             <?php } else { ?>
-                                                                <span class="text-muted">-</span>
-                                                                <br><small class="text-muted">No data</small>
+                                                                <div class="fw-semibold text-secondary fs-6">-</div>
+                                                                <div class="text-body-secondary fs-7">No data</div>
                                                             <?php } ?>
                                                         </td>
                                                         <td class="text-center">
@@ -1385,24 +1390,29 @@ if ($user_level >= 2) {
                                                     <tr>
                                                         <td class="text-center"><?= $no++ ?></td>
                                                         <td>
-                                                            <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                                           <div class="fw-semibold text-dark fs-6">
                                                                 <?= htmlspecialchars($detail['poin_how']) ?>
-                                                            </small>
+                                                           </div>
                                                         </td>
                                                         <td class="text-center">
                                                             <span class="badge bg-warning text-dark"><?= $detail['bobot_how'] ?>%</span>
                                                         </td>
-                                                        <td class="text-center">
-                                                            <strong class="text-success"><?= number_format($detail['nilai_how'], 2) ?></strong>
-                                                            <br><small class="text-muted">(Total: <?= number_format($detail['total_how_raw'], 2) ?>)</small>
+                                                        <td class="text-center align-middle">
+                                                            <strong class="text-success fw-semibold fs-6">
+                                                                <?= number_format($detail['nilai_how'], 2) ?>
+                                                            </strong>
                                                         </td>
-                                                        <td class="text-center">
+                                                        <td class="text-center align-middle">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <strong class="text-secondary"><?= number_format($previous_value, 2) ?></strong>
-                                                                <br><small class="text-muted">(Total: <?= number_format($previous_raw, 2) ?>)</small>
+                                                                <div class="fw-semibold text-dark fs-6">
+                                                                    <?= number_format($previous_value, 2) ?>
+                                                                </div>
+                                                                <div class="text-body-secondary fs-7">
+                                                                    (Total: <?= number_format($previous_raw, 2) ?>)
+                                                                </div>
                                                             <?php } else { ?>
-                                                                <span class="text-muted">-</span>
-                                                                <br><small class="text-muted">No data</small>
+                                                                <div class="fw-semibold text-secondary fs-6">-</div>
+                                                                <div class="text-body-secondary fs-7">No data</div>
                                                             <?php } ?>
                                                         </td>
                                                         <td class="text-center">
@@ -1457,29 +1467,6 @@ if ($user_level >= 2) {
                                                 </tbody>
                                             </table>
                                         </div>
-                                    </div>
-
-                                    <!-- Performance Insight -->
-                                    <div class="alert alert-info mt-4">
-                                        <h6 class="alert-heading"><i class="bi bi-lightbulb me-2"></i>Performance Insights</h6>
-                                        <ul class="mb-0">
-                                            <li><strong>Overall Trend:</strong> Your KPI has <?= $delta_total >= 0 ? 'improved' : 'declined' ?> by 
-                                                <strong><?= number_format(abs($growth_total), 1) ?>%</strong> compared to last month</li>
-                                            <li><strong>Best Component:</strong> 
-                                                <?php if (abs($growth_what) > abs($growth_how)) { ?>
-                                                    WHAT component showed better performance with <?= number_format(abs($growth_what), 1) ?>% growth
-                                                <?php } else { ?>
-                                                    HOW component showed better performance with <?= number_format(abs($growth_how), 1) ?>% growth
-                                                <?php } ?>
-                                            </li>
-                                            <li><strong>Focus Area:</strong> 
-                                                <?php if (abs($growth_what) < abs($growth_how)) { ?>
-                                                    Consider improving WHAT (Objective) achievements
-                                                <?php } else { ?>
-                                                    Consider improving HOW (Method) implementation
-                                                <?php } ?>
-                                            </li>
-                                        </ul>
                                     </div>
 
                                 </div>
