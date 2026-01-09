@@ -34,7 +34,7 @@
                     placeholder="Koordinator" aria-label="Koordinator" aria-describedby="atasan-addon">
             </div>
             <div class="input-group mb-3">
-                <span style="color : #343A40;" class="input-group-text fw-bold" id="penilai-addon">Penilai :</span>
+                <span style="color : #343A40;" class="input-group-text fw-bold" id="penilai-addon">Penilai Tambahan:</span>
                 <input disabled type="text" value="<?php echo $penilai; ?>" class="form-control" placeholder="Penilai"
                     aria-label="Penilai" aria-describedby="penilai-addon">
             </div>

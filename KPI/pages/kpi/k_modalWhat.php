@@ -36,8 +36,8 @@
 
           <!-- Tujuan -->
           <div class="input-group mb-3">
-            <span class="input-group-text fw-bold">Tujuan</span>
-            <input type="text" class="form-control" name="tujuan" required placeholder="Tujuan KPI">
+            <span class="input-group-text fw-bold">What</span>
+            <input type="text" class="form-control" name="tujuan" required placeholder="What KPI">
           </div>
 
           <!-- Bobot -->

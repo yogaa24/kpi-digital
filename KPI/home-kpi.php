@@ -459,6 +459,33 @@ if (isset($_POST['update2'])) {
         echo "<script>alert('Gagal, Edit Poin')</script>";
     }
 }
+if (isset($_POST['kpi_hapus'])) {
+    $ids = $_SESSION['id_user'];
+    $idkpi = intval($_POST['idkpi_hapus']);
+
+    mysqli_query($conn, "DELETE iw FROM tb_indikator_whats iw 
+                         INNER JOIN tb_whats w ON iw.id_what = w.id_what 
+                         WHERE w.id_kpi = $idkpi AND w.id_user = '$ids'");
+    
+    mysqli_query($conn, "DELETE FROM tb_whats WHERE id_kpi = $idkpi AND id_user = '$ids'");
+    
+    mysqli_query($conn, "DELETE ih FROM tb_indikator_hows ih 
+                         INNER JOIN tb_hows h ON ih.id_how = h.id_how 
+                         WHERE h.id_kpi = $idkpi AND h.id_user = '$ids'");
+    
+    mysqli_query($conn, "DELETE FROM tb_hows WHERE id_kpi = $idkpi AND id_user = '$ids'");
+    
+    $sql = "DELETE FROM tb_kpi WHERE id = $idkpi AND id_user = '$ids'";
+    $result = mysqli_query($conn, $sql);
+    
+    if ($result) {
+        header('Location: home-kpi');
+        echo "<script>alert('Berhasil menghapus KPI')</script>";
+        exit();
+    } else {
+        echo "<script>alert('Gagal menghapus KPI')</script>";
+    }
+}
 }
 ?>
 
