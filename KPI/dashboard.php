@@ -211,14 +211,14 @@ if (!isset($_SESSION['id_user'])) {
             $addPoin = mysqli_query($connarc,"INSERT INTO tbar_kpi (id_user,id_arcv,poin,bobot,poin2,bobot2) values ($id_user, $idarcv ,'".$ppPoin['poin']."', '".$ppPoin['bobot']."','".$ppPoin['poin2']."','".$ppPoin['bobot2']."')");
             $last_poin = mysqli_insert_id($connarc);
 
-            $panggilHow = mysqli_query($conn,"Select * from tb_hows where id_user = $id_user and id_kpi = ".$ppPoin['id']);
+            $panggilHow = mysqli_query($conn,"SELECT * FROM tb_hows WHERE id_user = $id_user AND id_kpi = ".$ppPoin['id']);
             while($howPoin = mysqli_fetch_assoc($panggilHow)){
-                $addHow = mysqli_query($connarc,"INSERT INTO tbar_hows (id_user, id_kpi, p_how, bobot, hasil, nilai, total, indikatorhow) values ($id_user, $last_poin, '".$howPoin['p_how']."','".$howPoin['bobot']."','".$howPoin['hasil']."','".$howPoin['nilai']."','".$howPoin['total']."','".$howPoin['indikatorhow']."')");
+                $addHow = mysqli_query($connarc,"INSERT INTO tbar_hows (id_user,id_kpi,tipe_how,p_how,bobot,target_omset,hasil,nilai,total) VALUES ($id_user,$last_poin,'".$howPoin['tipe_how']."','".$howPoin['p_how']."','".$howPoin['bobot']."','".$howPoin['target_omset']."','".$howPoin['hasil']."','".$howPoin['nilai']."','".$howPoin['total']."')");
             }
 
-            $panggilWhat = mysqli_query($conn,"Select * from tb_whats where id_user = $id_user and id_kpi = ".$ppPoin['id']);
+            $panggilWhat = mysqli_query($conn,"SELECT * FROM tb_whats WHERE id_user = $id_user AND id_kpi = ".$ppPoin['id']);
             while($whatPoin = mysqli_fetch_assoc($panggilWhat)){
-                $addWhat = mysqli_query($connarc,"INSERT INTO tbar_whats (id_user, id_kpi, p_what, bobot, hasil, nilai, total, indikatorwhat) values ($id_user, $last_poin, '".$whatPoin['p_what']."','".$whatPoin['bobot']."','".$whatPoin['hasil']."','".$whatPoin['nilai']."','".$whatPoin['total']."','".$whatPoin['indikatorwhat']."')");
+                $addWhat = mysqli_query($connarc,"INSERT INTO tbar_whats (id_user,id_kpi,tipe_what,p_what,bobot,target_omset,hasil,nilai,total) VALUES ($id_user,$last_poin,'".$whatPoin['tipe_what']."','".$whatPoin['p_what']."','".$whatPoin['bobot']."','".$whatPoin['target_omset']."','".$whatPoin['hasil']."','".$whatPoin['nilai']."','".$whatPoin['total']."')");
             }
         }
         $panggilbobot = mysqli_query($conn,"Select * from tb_bobotkpi where id_user = $id_user");
