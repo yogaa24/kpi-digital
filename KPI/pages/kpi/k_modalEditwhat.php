@@ -157,12 +157,12 @@ function tambahIndikatorEdit<?=$res['id_what']?>() {
     div.innerHTML = `
       <div class="row g-2 align-items-center">
         <div class="col-md-8">
+          <input type="hidden" name="indikator_id[]" value="0">
           <textarea class="form-control form-control-sm"
                     name="indikator_keterangan[]"
                     rows="1"
                     required
                     placeholder="Keterangan indikator"></textarea>
-          <input type="hidden" name="indikator_id[]" value="0">
         </div>
 
         <div class="col-md-3">

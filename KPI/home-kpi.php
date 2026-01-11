@@ -169,6 +169,10 @@ if (isset($_POST['nilai_what'])) {
 
 // Handler untuk edit what (WHAT A dan WHAT B)
 if (isset($_POST['what_edit'])) {
+    echo "<pre>";
+    print_r($_POST);
+    echo "</pre>";
+    exit();
     $ids = $_SESSION['id_user'];
     $idw = intval($_POST['idkw']);
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanw']);
@@ -195,14 +199,18 @@ if (isset($_POST['what_edit'])) {
             }
             
             // Update atau insert indikator
-            if (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai'])) {
+            if (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai']) && isset($_POST['indikator_id'])) {
                 $keterangans = $_POST['indikator_keterangan'];
                 $nilais = $_POST['indikator_nilai'];
                 $ids_indikator = $_POST['indikator_id'];
                 
-                for ($i = 0; $i < count($keterangans); $i++) {
-                    if (!empty($keterangans[$i])) {
-                        $ket = mysqli_real_escape_string($conn, $keterangans[$i]);
+                // Pastikan semua array memiliki jumlah yang sama
+                $count = min(count($keterangans), count($nilais), count($ids_indikator));
+                
+                for ($i = 0; $i < $count; $i++) {
+                    // Cek apakah keterangan dan nilai tidak kosong
+                    if (!empty(trim($keterangans[$i])) && $nilais[$i] !== '') {
+                        $ket = mysqli_real_escape_string($conn, trim($keterangans[$i]));
                         $nil = floatval($nilais[$i]);
                         $id_indi = intval($ids_indikator[$i]);
                         $urutan = $i + 1;

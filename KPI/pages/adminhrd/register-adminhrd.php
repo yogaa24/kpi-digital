@@ -79,7 +79,9 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Penilai <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="penilai" id="penilai_register" required readonly>
+                            <select class="form-select" name="penilai[]" id="penilai_register" multiple size="3" required>
+                                <option value="">Pilih Penilai</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -96,46 +98,49 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // ====== CHANGE DEPARTEMEN ======
 document.getElementById('departemen_register').addEventListener('change', function() {
-    const penilaiInput = document.getElementById('penilai_register');
+    const penilaiSelect = document.getElementById('penilai_register');
     const atasanSelect = document.getElementById('atasan_register');
     let items = [];
+    let penilaiItems = [];
 
     if (this.value === 'Keuangan & Sales') {
-        penilaiInput.value = 'Diana Wulandari';
+        penilaiItems = ['Diana Wulandari', 'Vita Ari Puspitasari'];
         items = ["Pilih Atasan", "Ibnu Sutoro", "Evi Yulia Purnama Sari", "Ahmad Syaiti", "Iva Isti Farini"];
     }
-    if (this.value === 'IT') {
-        penilaiInput.value = 'Diana Wulandari';
+    else if (this.value === 'IT') {
+        penilaiItems = ['Diana Wulandari'];
         items = ["Pilih Atasan", "Wahyu Arif Prasetyo"];
     }  
     else if (this.value === 'Purchasing') {
-        penilaiInput.value = 'Diana Wulandari';
+        penilaiItems = ['Diana Wulandari'];
         items = ["Pilih Atasan", "Evi Yulia", "Heru Sucahyo"];
     } 
     else if (this.value === 'HRD') {
-        penilaiInput.value = 'Diana Wulandari';
+        penilaiItems = ['Diana Wulandari'];
         items = ["Pilih Atasan", "Riza Dwi Fitrianingtyas"];
     }
     else if (this.value === 'Logistik') {
-        penilaiInput.value = 'Diana Wulandari';
+        penilaiItems = ['Diana Wulandari'];
         items = ["Pilih Atasan", "Fauzan","Wildan Ma'ruf N. W."];
     } 
     else if (this.value === 'GA') {
-        penilaiInput.value = 'Nandang Ernoko';
+        penilaiItems = ['Nandang Ernoko'];
         items = ["Pilih Atasan", "Nandang", "Wawan"];
     }
     else if (this.value === 'Unit Bisnis Seed') {
-        penilaiInput.value = 'Heru Sucahyo';
+        penilaiItems = ['Heru Sucahyo'];
         items = ["Pilih Atasan", "Acep Andriyanto", "Yama Muhammad", "Ahmad Muhlisin"];
     }
-     else if (this.value === 'Unit Bisnis CP') {
-        penilaiInput.value = 'Arfin Indra Cahyadi';
+    else if (this.value === 'Unit Bisnis CP') {
+        penilaiItems = ['Arfin Indra Cahyadi'];
         items = ["Pilih Atasan", "Arfin Indra Cahyadi"];
     }
 
+    renderPenilai(penilaiItems, penilaiSelect);
     renderAtasan(items, atasanSelect);
 });
 
@@ -162,6 +167,14 @@ document.getElementById('jabatan_register').addEventListener('change', function(
 });
 
 // ====== FUNCTION RENDER OPTION ======
+function renderPenilai(items, selectElement) {
+    let str = "";
+    for (let item of items) {
+        str += `<option value="${item}" selected>${item}</option>`;
+    }
+    selectElement.innerHTML = str;
+}
+
 function renderAtasan(items, selectElement) {
     let str = "";
     for (let item of items) {
@@ -169,5 +182,4 @@ function renderAtasan(items, selectElement) {
     }
     selectElement.innerHTML = str;
 }
-
 </script>

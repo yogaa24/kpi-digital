@@ -19,18 +19,29 @@ $user_level = $_SESSION['level'] ?? 1; // Assume level dari session
 $filter_user = isset($_GET['filter_user']) ? $_GET['filter_user'] : $id_user;
 // $filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
 $filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departemen'] : '';
-$filter_comparison = isset($_GET['filter_comparison']) ? $_GET['filter_comparison'] : 'current'; // current, last_month, last_year
+// $filter_comparison = isset($_GET['filter_comparison']) ? $_GET['filter_comparison'] : 'current'; // current, last_month, last_year
 
-// ==================== FETCH FILTER OPTIONS ====================
+/// ==================== FETCH FILTER OPTIONS ====================
 // Get all users based on level
 if ($user_level >= 2) {
     $sql_users = "SELECT id, nama_lngkp, departement, jabatan FROM tb_users WHERE 1=1";
-    if ($user_level == 2) { // Kabag - hanya team sendiri
+    $sql_users .= " AND username NOT IN ('itboy', 'adminhrd')";
+    
+    if ($user_level == 2) {         // Kabag - hanya team sendiri
         $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
-    } elseif ($user_level == 3) { // Kadep - seluruh departemen
+        
+    } elseif ($user_level == 3) {         // Kadep - seluruh departemen
         $sql_users .= " AND departement = (SELECT departement FROM tb_users WHERE id='$id_user')";
+        
+    } elseif ($user_level >= 4) {         // Direktur/Level 4+ - filter berdasarkan departemen yang dipilih
+        if (!empty($filter_departemen)) {
+            // Jika ada departemen dipilih, hanya tampilkan user dari departemen tersebut
+            $sql_users .= " AND departement = '" . mysqli_real_escape_string($conn, $filter_departemen) . "'";
+        }
+        // Jika tidak ada departemen dipilih, tampilkan semua user
     }
-
+    
+    $sql_users .= " ORDER BY departement, nama_lngkp";
     $result_users = mysqli_query($conn, $sql_users);
 }
 
@@ -104,9 +115,8 @@ function calculateKPI($conn, $conn_sim, $user_id, $is_simulation = false) {
 }
 
 // ==================== SAVE KPI HISTORY FUNCTION ====================
-// ==================== SAVE KPI HISTORY FUNCTION ====================
 function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
-    $bulan = date('Y-m'); // Format: 2025-01
+    $bulan = date('Y-m');
     
     // ✅ VALIDASI: Pastikan user_id sesuai dengan data yang akan disimpan
     if (!empty($kpi_real['kpi_details'])) {
@@ -121,52 +131,42 @@ function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
         }
     }
     
-    // Check if table exists first
+    // Check if table exists
     $check_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_history'");
     if (mysqli_num_rows($check_table) == 0) {
         return false;
     }
     
-    // ========== SIMPAN DATA SUMMARY (tb_kpi_history) ==========
-    // Check if already exists
-    $check = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
-                                   WHERE id_user='$user_id' AND bulan='$bulan'");
+    // ========== 1. SIMPAN/UPDATE SUMMARY ROW ==========
+    $check_summary = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
+                                          WHERE id_user='$user_id' 
+                                          AND bulan='$bulan' 
+                                          AND is_summary=1");
     
-    if ($check === false) {
-        return false;
-    }
-    
-    if (mysqli_num_rows($check) > 0) {
-        // Update existing - HANYA total_kpi_target, total_what, total_how
-        $sql = "UPDATE tb_kpi_history SET 
-                total_kpi_real = '{$kpi_real['total_kpi']}',
-                total_kpi_target = '{$kpi_sim['total_kpi']}',
-                total_what = '{$kpi_real['total_what']}',
-                total_how = '{$kpi_real['total_how']}'
-                WHERE id_user='$user_id' AND bulan='$bulan'";
+    if (mysqli_num_rows($check_summary) > 0) {
+        // Update summary
+        $sql_summary = "UPDATE tb_kpi_history SET 
+                       total_kpi_real = '{$kpi_real['total_kpi']}',
+                       total_kpi_target = '{$kpi_sim['total_kpi']}',
+                       total_what = '{$kpi_real['total_what']}',
+                       total_how = '{$kpi_real['total_how']}'
+                       WHERE id_user='$user_id' 
+                       AND bulan='$bulan' 
+                       AND is_summary=1";
     } else {
-        // Insert new - HANYA total_kpi_target, total_what, total_how
-        $sql = "INSERT INTO tb_kpi_history 
-                (id_user, bulan, total_kpi_real, total_kpi_target, total_what, total_how) 
-                VALUES 
-                ('$user_id', '$bulan', '{$kpi_real['total_kpi']}', '{$kpi_sim['total_kpi']}', 
-                 '{$kpi_real['total_what']}', '{$kpi_real['total_how']}')";
+        // Insert summary
+        $sql_summary = "INSERT INTO tb_kpi_history 
+                       (id_user, id_kpi, bulan, is_summary, total_kpi_real, total_kpi_target, total_what, total_how) 
+                       VALUES 
+                       ('$user_id', NULL, '$bulan', 1, '{$kpi_real['total_kpi']}', '{$kpi_sim['total_kpi']}', 
+                        '{$kpi_real['total_what']}', '{$kpi_real['total_how']}')";
     }
     
-    $result = mysqli_query($conn, $sql);
-    
-    if ($result === false) {
+    if (!mysqli_query($conn, $sql_summary)) {
         return false;
     }
     
-    // ========== SIMPAN DETAIL PER ITEM (tb_kpi_detail_history) ==========
-    // Check if detail table exists
-    $check_detail_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_detail_history'");
-    if (mysqli_num_rows($check_detail_table) == 0) {
-        return true; // Summary sudah tersimpan
-    }
-    
-    // Simpan setiap detail KPI
+    // ========== 2. SIMPAN/UPDATE DETAIL ROWS ==========
     foreach ($kpi_real['kpi_details'] as $detail) {
         $id_kpi = mysqli_real_escape_string($conn, $detail['id']);
         $poin_what = mysqli_real_escape_string($conn, $detail['poin_what']);
@@ -178,15 +178,16 @@ function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
         $nilai_what = mysqli_real_escape_string($conn, $detail['nilai_what']);
         $nilai_how = mysqli_real_escape_string($conn, $detail['nilai_how']);
         
-        // Check if detail already exists
-        $check_detail = mysqli_query($conn, "SELECT id FROM tb_kpi_detail_history 
-                                              WHERE id_user='$user_id' 
-                                              AND id_kpi='$id_kpi' 
-                                              AND bulan='$bulan'");
+        // Check if detail exists
+        $check_detail = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
+                                             WHERE id_user='$user_id' 
+                                             AND id_kpi='$id_kpi' 
+                                             AND bulan='$bulan'
+                                             AND is_summary=0");
         
         if (mysqli_num_rows($check_detail) > 0) {
-            // Update existing detail
-            $sql_detail = "UPDATE tb_kpi_detail_history SET 
+            // Update detail
+            $sql_detail = "UPDATE tb_kpi_history SET 
                           poin_what = '$poin_what',
                           poin_how = '$poin_how',
                           bobot_what = '$bobot_what',
@@ -197,14 +198,16 @@ function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
                           nilai_how = '$nilai_how'
                           WHERE id_user='$user_id' 
                           AND id_kpi='$id_kpi' 
-                          AND bulan='$bulan'";
+                          AND bulan='$bulan'
+                          AND is_summary=0";
         } else {
-            // Insert new detail
-            $sql_detail = "INSERT INTO tb_kpi_detail_history 
-                          (id_user, id_kpi, bulan, poin_what, poin_how, bobot_what, bobot_how, 
-                           total_what_raw, total_how_raw, nilai_what, nilai_how) 
+            // Insert detail
+            $sql_detail = "INSERT INTO tb_kpi_history 
+                          (id_user, id_kpi, bulan, is_summary, poin_what, poin_how, 
+                           bobot_what, bobot_how, total_what_raw, total_how_raw, 
+                           nilai_what, nilai_how) 
                           VALUES 
-                          ('$user_id', '$id_kpi', '$bulan', '$poin_what', '$poin_how', 
+                          ('$user_id', '$id_kpi', '$bulan', 0, '$poin_what', '$poin_how', 
                            '$bobot_what', '$bobot_how', '$total_what_raw', '$total_how_raw', 
                            '$nilai_what', '$nilai_how')";
         }
@@ -219,20 +222,17 @@ function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
 function getDetailedKPIFromHistory($conn, $user_id, $bulan) {
     $details = [];
     
-    // Check if detail table exists
-    $check_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_detail_history'");
-    if (mysqli_num_rows($check_table) == 0) {
-        return null; // Table tidak ada
-    }
-    
-    $sql = "SELECT * FROM tb_kpi_detail_history 
-            WHERE id_user='$user_id' AND bulan='$bulan'
+    // Ambil detail rows (is_summary = 0)
+    $sql = "SELECT * FROM tb_kpi_history 
+            WHERE id_user='$user_id' 
+            AND bulan='$bulan'
+            AND is_summary=0
             ORDER BY id ASC";
     
     $result = mysqli_query($conn, $sql);
     
     if (!$result || mysqli_num_rows($result) == 0) {
-        return null; // Data tidak ada
+        return null;
     }
     
     while ($row = mysqli_fetch_assoc($result)) {
@@ -270,53 +270,23 @@ $sql_user_info = "SELECT * FROM tb_users WHERE id='$filter_user'";
 $result_user_info = mysqli_query($conn, $sql_user_info);
 $user_info = mysqli_fetch_assoc($result_user_info);
 
-// ==================== GET PREVIOUS MONTH DATA ====================
-$bulan_ini = date('Y-m');
-$bulan_kemarin = date('Y-m', strtotime('-1 month'));
-
-// Ambil data bulan ini
-$sql_current = "SELECT * FROM tb_kpi_history 
-                WHERE id_user='$filter_user' AND bulan='$bulan_ini'";
-$result_current = mysqli_query($conn, $sql_current);
-$data_current = mysqli_fetch_assoc($result_current);
-
-// Ambil data bulan kemarin
-$sql_previous = "SELECT * FROM tb_kpi_history 
-                 WHERE id_user='$filter_user' AND bulan='$bulan_kemarin'";
-$result_previous = mysqli_query($conn, $sql_previous);
-$data_previous = mysqli_fetch_assoc($result_previous);
-
-// Jika tidak ada data bulan kemarin, set default 0
-if (!$data_previous) {
-    $data_previous = [
-        'total_kpi_real' => 0,
-        'total_what' => 0,
-        'total_how' => 0,
-    ];
-}
-
-// Jika tidak ada data bulan ini, gunakan perhitungan real-time
-if (!$data_current) {
-    $data_current = [
-        'total_kpi_real' => $kpi_real['total_kpi'],
-        'total_what' => $kpi_real['total_what'],
-        'total_how' => $kpi_real['total_how'],
-    ];
-}
-
 // ==================== GET DETAILED KPI COMPARISON ====================
 $bulan_ini = date('Y-m');
 $bulan_kemarin = date('Y-m', strtotime('-1 month'));
 
-// Ambil data summary bulan ini
+// Ambil data summary bulan ini (is_summary = 1)
 $sql_current = "SELECT * FROM tb_kpi_history 
-                WHERE id_user='$filter_user' AND bulan='$bulan_ini'";
+                WHERE id_user='$filter_user' 
+                AND bulan='$bulan_ini'
+                AND is_summary=1";
 $result_current = mysqli_query($conn, $sql_current);
 $data_current = mysqli_fetch_assoc($result_current);
 
-// Ambil data summary bulan kemarin
+// Ambil data summary bulan kemarin (is_summary = 1)
 $sql_previous = "SELECT * FROM tb_kpi_history 
-                 WHERE id_user='$filter_user' AND bulan='$bulan_kemarin'";
+                 WHERE id_user='$filter_user' 
+                 AND bulan='$bulan_kemarin'
+                 AND is_summary=1";
 $result_previous = mysqli_query($conn, $sql_previous);
 $data_previous = mysqli_fetch_assoc($result_previous);
 
@@ -353,14 +323,14 @@ if (!$kpi_previous_detail) {
 $trend_data = [];
 
 $sql_trend = "SELECT 
-bulan,
-total_kpi_real AS `real`,
-total_kpi_target AS target
+    bulan,
+    total_kpi_real AS `real`,
+    total_kpi_target AS target
 FROM tb_kpi_history
 WHERE id_user = $filter_user
+AND is_summary = 1
 ORDER BY bulan DESC
-LIMIT 6;
-";
+LIMIT 6";
 
 $result_trend = mysqli_query($conn, $sql_trend);
 
@@ -394,6 +364,7 @@ if ($user_level >= 2) {
         $kabag_name = $user_info['nama_lngkp'];
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE atasan='$kabag_name' 
+                          AND username NOT IN ('itboy', 'adminhrd')
                           ORDER BY nama_lngkp";
         $comparison_title = "My Team Members Performance";
 
@@ -401,6 +372,7 @@ if ($user_level >= 2) {
         $target_dept = $user_info['departement'];
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE departement='$target_dept' 
+                          AND username NOT IN ('itboy', 'adminhrd')
                           ORDER BY nama_lngkp";
         $comparison_title = "Department Team - " . $target_dept;
 
@@ -408,6 +380,7 @@ if ($user_level >= 2) {
         $target_dept = !empty($filter_departemen) ? $filter_departemen : $user_info['departement'];
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE departement='$target_dept' 
+                          AND username NOT IN ('itboy', 'adminhrd')
                           ORDER BY nama_lngkp";
         $comparison_title = "Department Team - " . $target_dept;
     }
@@ -524,7 +497,7 @@ if ($user_level >= 2) {
                         </div>
                     </div>
 
-                    <!-- ==================== QUICK ACTIONS ==================== -->
+                   <!-- ==================== QUICK ACTIONS ==================== -->
                     <div class="row mb-4 no-print">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
@@ -533,11 +506,13 @@ if ($user_level >= 2) {
                                 </div>
                                 <div class="card-body">
                                     <div class="row g-2">
+                                        <?php if ($user_level == 1) { ?>
                                         <div class="col-md-3">
                                             <a href="dashboard" class="btn btn-outline-primary w-100">
                                                 <i class="bi bi-speedometer2 me-2"></i>Real KPI Dashboard
                                             </a>
                                         </div>
+                                        <?php } ?>
                                         
                                         <?php if ($user_level >= 2) { 
                                             // Tentukan URL berdasarkan level
@@ -569,6 +544,14 @@ if ($user_level >= 2) {
                                                 <i class="bi bi-folder me-2"></i>Evidence
                                             </a>
                                         </div>
+
+                                        <!-- 🔥 TAMBAHAN ARCHIVE (TANPA MENGUBAH KODE LAIN) -->
+                                        <div class="col-md-3">
+                                            <a href="archive-kpi" class="btn btn-outline-dark w-100">
+                                                <i class="bi bi-archive me-2"></i>Archive KPI
+                                            </a>
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
@@ -576,7 +559,6 @@ if ($user_level >= 2) {
                     </div>
 
                     <!-- ==================== FILTER SECTION ==================== -->
-                    <!-- TAMBAHKAN KONDISI IF DI SINI -->
                     <?php if ($user_level >= 2) { ?>
                     <div class="row mb-4 no-print">
                         <div class="col-12">
@@ -588,28 +570,16 @@ if ($user_level >= 2) {
                                     <form method="GET" action="" id="filterForm">
                                         <div class="row g-3">
                                             
-                                            <!-- User Filter - Tampil untuk level 2 ke atas -->
-                                            <div class="col-md-3">
-                                                <label class="form-label fw-bold">Select Employee</label>
-                                                <select name="filter_user" class="form-select" onchange="this.form.submit()">
-                                                    <option value="<?= $id_user ?>">My KPI</option>
-                                                    <?php 
-                                                    // Reset pointer result_users jika sudah di-fetch sebelumnya
-                                                    mysqli_data_seek($result_users, 0);
-                                                    while ($user = mysqli_fetch_assoc($result_users)) { 
-                                                    ?>
-                                                        <option value="<?= $user['id'] ?>" <?= $filter_user == $user['id'] ? 'selected' : '' ?>>
-                                                            <?= $user['nama_lngkp'] ?> - <?= $user['jabatan'] ?>
-                                                        </option>
-                                                    <?php } ?>
-                                                </select>
-                                            </div>
-
-                                            <!-- Department Filter -->
                                             <?php if ($user_level >= 4) { ?>
+                                            <!-- Department Filter - Tampil duluan untuk level 4+ -->
                                             <div class="col-md-3">
-                                                <label class="form-label fw-bold">Department</label>
-                                                <select name="filter_departemen" class="form-select" onchange="this.form.submit()">
+                                                <label class="form-label fw-bold">
+                                                    Department 
+                                                    <?php if (!empty($filter_departemen)) { ?>
+                                                        <span class="badge bg-primary"><?= $filter_departemen ?></span>
+                                                    <?php } ?>
+                                                </label>
+                                                <select name="filter_departemen" class="form-select" id="departmentSelect" onchange="this.form.submit()">
                                                     <option value="">All Departments</option>
                                                     <?php 
                                                     $sql_all_depts = "SELECT DISTINCT departement FROM tb_users 
@@ -624,8 +594,59 @@ if ($user_level >= 2) {
                                                         </option>
                                                     <?php } ?>
                                                 </select>
+                                                <?php if (!empty($filter_departemen)) { ?>
+                                                    <small class="text-muted">Employee list filtered by this department</small>
+                                                <?php } ?>
                                             </div>
-                                            <?php } elseif ($user_level == 3) { ?>
+                                            <?php } ?>
+                                            
+                                            <!-- User Filter - Tampil untuk level 2 ke atas -->
+                                            <div class="col-md-<?= $user_level >= 4 ? '3' : '4' ?>">
+                                                <label class="form-label fw-bold">
+                                                    Select Employee
+                                                    <?php if (mysqli_num_rows($result_users) > 0) { ?>
+                                                        <span class="badge bg-secondary"><?= mysqli_num_rows($result_users) ?> users</span>
+                                                    <?php } ?>
+                                                </label>
+                                                <select name="filter_user" class="form-select" id="userSelect" onchange="this.form.submit()">
+                                                    <option value="<?= $id_user ?>" <?= $filter_user == $id_user ? 'selected' : '' ?>>My KPI</option>
+                                                    <?php 
+                                                    if (mysqli_num_rows($result_users) > 0) {
+                                                        // Reset pointer result_users
+                                                        mysqli_data_seek($result_users, 0);
+                                                        
+                                                        $current_dept = '';
+                                                        while ($user = mysqli_fetch_assoc($result_users)) {
+                                                            // Untuk level 4, tampilkan grouping by department
+                                                            if ($user_level >= 4 && empty($filter_departemen)) {
+                                                                if ($current_dept != $user['departement']) {
+                                                                    if ($current_dept != '') echo '</optgroup>';
+                                                                    echo '<optgroup label="' . htmlspecialchars($user['departement']) . '">';
+                                                                    $current_dept = $user['departement'];
+                                                                }
+                                                            }
+                                                    ?>
+                                                            <option value="<?= $user['id'] ?>" <?= $filter_user == $user['id'] ? 'selected' : '' ?>>
+                                                                <?= $user['nama_lngkp'] ?> - <?= $user['jabatan'] ?>
+                                                            </option>
+                                                    <?php 
+                                                        }
+                                                        // Close last optgroup if exists
+                                                        if ($user_level >= 4 && empty($filter_departemen) && $current_dept != '') {
+                                                            echo '</optgroup>';
+                                                        }
+                                                    } else {
+                                                        echo '<option value="" disabled>No employees found</option>';
+                                                    }
+                                                    ?>
+                                                </select>
+                                                <?php if ($user_level >= 4 && empty($filter_departemen)) { ?>
+                                                    <small class="text-muted">Select department first to filter employees</small>
+                                                <?php } ?>
+                                            </div>
+
+                                            <?php if ($user_level == 3) { ?>
+                                            <!-- Department (Read-only for Kadep) -->
                                             <div class="col-md-3">
                                                 <label class="form-label fw-bold">Department</label>
                                                 <input type="text" class="form-control" value="<?= $user_info['departement'] ?>" readonly>
@@ -634,19 +655,15 @@ if ($user_level >= 2) {
                                             </div>
                                             <?php } ?>
 
-                                            <!-- Period Filter -->
-                                            <!-- <div class="col-md-3">
-                                                <label class="form-label fw-bold">Period</label>
-                                                <input type="month" name="filter_periode" class="form-control" value="<?= $filter_periode ?>" onchange="this.form.submit()">
-                                            </div> -->
-
-                                            <!-- Spacer atau tombol reset (opsional) -->
-                                            <div class="col-md-3">
+                                            <!-- Reset Button -->
+                                            <div class="col-md-<?= $user_level >= 4 ? '3' : '4' ?>">
                                                 <label class="form-label fw-bold">&nbsp;</label>
                                                 <a href="dashboard-utama" class="btn btn-outline-secondary w-100">
                                                     <i class="bi bi-arrow-clockwise me-1"></i>Reset Filter
                                                 </a>
                                             </div>
+                                            
+                             
 
                                         </div>
                                     </form>
@@ -654,6 +671,19 @@ if ($user_level >= 2) {
                             </div>
                         </div>
                     </div>
+
+                    <!-- JavaScript untuk Clear Department -->
+                    <script>
+                    function clearDepartment() {
+                        const form = document.getElementById('filterForm');
+                        const deptSelect = document.getElementById('departmentSelect');
+                        if (deptSelect) {
+                            deptSelect.value = '';
+                            form.submit();
+                        }
+                    }
+                    </script>
+
                     <?php } ?>
                     <!-- AKHIR FILTER SECTION -->
 
@@ -1309,9 +1339,9 @@ if ($user_level >= 2) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <?php if ($growth > 5) { ?>
+                                                                <?php if ($growth > 3) { ?>
                                                                     <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
-                                                                <?php } elseif ($growth < -5) { ?>
+                                                                <?php } elseif ($growth < -3) { ?>
                                                                     <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
                                                                 <?php } else { ?>
                                                                     <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
