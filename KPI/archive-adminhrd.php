@@ -66,21 +66,32 @@ while ($user = mysqli_fetch_assoc($result_users)) {
     }
 }
 
-// Tambahkan error checking untuk debugging
-if (!$result_users) {
-    echo "<div class='alert alert-danger m-3'>";
-    echo "<strong>Error Query:</strong><br>";
-    echo mysqli_error($connarc);
-    echo "<br><br><strong>Query:</strong><br>";
-    echo htmlspecialchars($sql_users);
-    echo "</div>";
-    exit();
+// Ambil data untuk filter dropdown (dari users yang punya archive)
+$jabatan_list = array();
+$departemen_list = array();
+$bagian_list = array();
+
+foreach ($users_with_archive as $user) {
+    if (!empty($user['jabatan']) && !in_array($user['jabatan'], $jabatan_list)) {
+        $jabatan_list[] = $user['jabatan'];
+    }
+    if (!empty($user['departement']) && !in_array($user['departement'], $departemen_list)) {
+        $departemen_list[] = $user['departement'];
+    }
+    if (!empty($user['bagian']) && !in_array($user['bagian'], $bagian_list)) {
+        $bagian_list[] = $user['bagian'];
+    }
 }
+
+sort($jabatan_list);
+sort($departemen_list);
+sort($bagian_list);
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <?php include("pages/part/p_header.php"); ?>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
     <div class="app-wrapper">
@@ -121,6 +132,74 @@ if (!$result_users) {
                         </div>
                     </div>
 
+                    <!-- Filter Section -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="row g-3 align-items-end">
+                                        <!-- Filter Jabatan -->
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold">
+                                                <i class="bi bi-award me-1"></i>Jabatan
+                                            </label>
+                                            <select id="filterJabatan" class="form-select form-select-sm">
+                                                <option value="">-- Semua Jabatan --</option>
+                                                <?php foreach ($jabatan_list as $jab) { ?>
+                                                    <option value="<?= htmlspecialchars($jab) ?>">
+                                                        <?= htmlspecialchars($jab) ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+
+                                        <!-- Filter Departemen -->
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold">
+                                                <i class="bi bi-building me-1"></i>Departemen
+                                            </label>
+                                            <select id="filterDepartemen" class="form-select form-select-sm">
+                                                <option value="">-- Semua Departemen --</option>
+                                                <?php foreach ($departemen_list as $dept) { ?>
+                                                    <option value="<?= htmlspecialchars($dept) ?>">
+                                                        <?= htmlspecialchars($dept) ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+
+                                        <!-- Filter Bagian -->
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold">
+                                                <i class="bi bi-diagram-3 me-1"></i>Bagian
+                                            </label>
+                                            <select id="filterBagian" class="form-select form-select-sm">
+                                                <option value="">-- Semua Bagian --</option>
+                                                <?php foreach ($bagian_list as $bag) { ?>
+                                                    <option value="<?= htmlspecialchars($bag) ?>">
+                                                        <?= htmlspecialchars($bag) ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+
+                                        <!-- Tombol Reset -->
+                                        <div class="col-md-3">
+                                            <button id="resetFilter" class="btn btn-secondary btn-sm w-100">
+                                                <i class="bi bi-arrow-clockwise me-1"></i>Reset Filter
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Table -->
                     <div class="row">
                         <div class="col-12">
@@ -128,7 +207,7 @@ if (!$result_users) {
                                 <div class="card-body">
                                     
                                     <?php if (count($users_with_archive) > 0) { ?>
-    
+
                                     <div class="table-responsive">
                                         <table id="datatablenya" class="table table-hover table-bordered">
                                             <thead class="table-dark">
@@ -220,5 +299,67 @@ if (!$result_users) {
 
         <?php include("pages/part/p_footer.php"); ?>
     </div>
+    <!-- jQuery harus dimuat pertama -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <?php if (count($users_with_archive) > 0) { ?>
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            var table = $('#datatablenya').DataTable({
+                "responsive": true,
+                "language": {
+                    "search": "Cari:",
+                    "lengthMenu": "Tampilkan _MENU_ data per halaman",
+                    "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                    "infoEmpty": "Menampilkan 0 sampai 0 dari 0 data",
+                    "infoFiltered": "(difilter dari _MAX_ total data)",
+                    "paginate": {
+                        "first": "Pertama",
+                        "last": "Terakhir",
+                        "next": "Selanjutnya",
+                        "previous": "Sebelumnya"
+                    },
+                    "zeroRecords": "Data tidak ditemukan"
+                },
+                "pageLength": 10,
+                "order": [[1, 'asc']], // Urutkan berdasarkan nama
+                "columnDefs": [
+                    { "orderable": false, "targets": [0, 7] } // No dan Aksi tidak bisa diurutkan
+                ]
+            });
+            
+            // Filter Jabatan - otomatis
+            $('#filterJabatan').on('change', function() {
+                var jabatan = $(this).val();
+                table.column(3).search(jabatan).draw(); // Kolom 3 = Jabatan
+            });
+            
+            // Filter Departemen - otomatis
+            $('#filterDepartemen').on('change', function() {
+                var dept = $(this).val();
+                table.column(4).search(dept).draw(); // Kolom 4 = Departemen
+            });
+            
+            // Filter Bagian - otomatis
+            $('#filterBagian').on('change', function() {
+                var bagian = $(this).val();
+                table.column(5).search(bagian).draw(); // Kolom 5 = Bagian
+            });
+            
+            // Reset Filter
+            $('#resetFilter').on('click', function() {
+                $('#filterJabatan').val('');
+                $('#filterDepartemen').val('');
+                $('#filterBagian').val('');
+                table.search('').columns().search('').draw();
+            });
+        });
+    </script>
+    <?php } ?>
 </body>
 </html>
