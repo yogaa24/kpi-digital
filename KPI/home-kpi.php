@@ -169,10 +169,6 @@ if (isset($_POST['nilai_what'])) {
 
 // Handler untuk edit what (WHAT A dan WHAT B)
 if (isset($_POST['what_edit'])) {
-    echo "<pre>";
-    print_r($_POST);
-    echo "</pre>";
-    exit();
     $ids = $_SESSION['id_user'];
     $idw = intval($_POST['idkw']);
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanw']);

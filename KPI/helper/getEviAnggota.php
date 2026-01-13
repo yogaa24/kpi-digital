@@ -9,7 +9,7 @@ WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
 ORDER BY 
     CASE 
     	WHEN jabatan = 'Kadep' THEN 1
-        WHEN jabatan = 'Kabag' THEN 2
+        WHEN jabatan = 'Manager' THEN 2
         WHEN jabatan = 'Karyawan' THEN 3
         ELSE 4
     END,

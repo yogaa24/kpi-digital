@@ -149,7 +149,7 @@ echo '
                                 class="bi bi-list"></i> </a> </li>
                     <li class="nav-item d-none d-md-block"> <a href="dashboard-utama" class="nav-link">Dashboard</a> </li>
                     <?php if (
-                        $jabatan == "Kabag" ||
+                        $jabatan == "Manager" ||
                         $jabatan == "Kadep MT" ||
                         $jabatan == "Kadep"
                     ) { ?>

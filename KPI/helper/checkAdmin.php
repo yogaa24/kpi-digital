@@ -49,7 +49,7 @@ function getUserLevelName($level) {
         case 3:
             return "Kadep";
         case 2:
-            return "Kabag";
+            return "Manager";
         case 1:
             return "Karyawan";
         default:

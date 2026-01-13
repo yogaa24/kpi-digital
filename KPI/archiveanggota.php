@@ -144,7 +144,7 @@ echo '
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                 class="bi bi-list"></i> </a> </li>
-                    <?php if($jabatan=="Kabag"){?>
+                    <?php if($jabatan=="Manager"){?>
                         <li class="nav-item d-none d-md-block"> <a href="archivekabag" class="nav-link">Kembali</a> </li>
                     <?php }?>
                     <!-- <li class="nav-item d-none d-md-block"> <a href="dashboard" class="nav-link">Archive SS</a> </li> -->

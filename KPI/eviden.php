@@ -135,7 +135,7 @@ if (isset($_POST['editevi'])) {
                     <li class="nav-item d-none d-md-block"> <a href="dashboard-utama" class="nav-link">Dashboard</a> </li>
                     <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#tambahEviModal" class="nav-link">Tambah Eviden</a> </li>
                     <?php if (
-                        $jabatan == "Kabag" ||
+                        $jabatan == "Manager" ||
                         $jabatan == "Kadep MT" ||
                         $jabatan == "Kadep"
                     ) { ?>

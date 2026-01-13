@@ -63,7 +63,7 @@ if (isset($_POST['submit'])) {
             <div class="input-group" style=" margin-top: 15px;">
                 <button name="submit" class="btn">Login</button>
             </div>
-            <p class="login-register-text"><a href="register">Register?, </a> Hubungi IT</p>
+            <!-- <p class="login-register-text"><a href="register">Register?, </a> Hubungi IT</p> -->
         </form>
     </div>
 </body>

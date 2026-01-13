@@ -198,7 +198,7 @@ WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
 ORDER BY 
     CASE 
         WHEN jabatan = 'Kadep' THEN 1
-        WHEN jabatan = 'Kabag' THEN 2
+        WHEN jabatan = 'Manager' THEN 2
         WHEN jabatan = 'Karyawan' THEN 3
         ELSE 4
     END,
@@ -242,7 +242,7 @@ ORDER BY
                                                 <center><?= getkpi(getnilai($conn, $hasilsfa['id'])); ?></center>
                                             </td>
                                             <td>
-                                                <?php if ($hasilsfa['jabatan'] != 'Kabag' && $hasilsfa['jabatan'] != 'Kadep') { ?>
+                                                <?php if ($hasilsfa['jabatan'] != 'Manager' && $hasilsfa['jabatan'] != 'Kadep') { ?>
                                                     <center>
                                                         <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>"
                                                             class="btn btn-success btn-sm" title="Lihat Detail">

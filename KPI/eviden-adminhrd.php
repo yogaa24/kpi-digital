@@ -196,7 +196,7 @@ $result_bagian = mysqli_query($conn, $sql_bagian);
                                                     if ($user['jabatan'] == 'Kadep') {
                                                         $badge_color = 'danger';
                                                         $badge_icon = 'award-fill';
-                                                    } elseif ($user['jabatan'] == 'Kabag') {
+                                                    } elseif ($user['jabatan'] == 'Manager') {
                                                         $badge_color = 'warning';
                                                         $badge_icon = 'star-fill';
                                                     } elseif ($user['jabatan'] == 'Karyawan') {

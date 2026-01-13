@@ -235,7 +235,7 @@ if (!isset($_SESSION['id_user'])) {
                         $sql_stats = "SELECT 
                                         COUNT(*) as total_karyawan,
                                         SUM(CASE WHEN u.jabatan = 'Kadep' THEN 1 ELSE 0 END) as total_kadep,
-                                        SUM(CASE WHEN u.jabatan = 'Kabag' THEN 1 ELSE 0 END) as total_kabag,
+                                        SUM(CASE WHEN u.jabatan = 'Manager' THEN 1 ELSE 0 END) as total_manager,
                                         SUM(CASE WHEN u.jabatan = 'Karyawan' THEN 1 ELSE 0 END) as total_karyawan_biasa
                                       FROM tb_users u
                                       INNER JOIN tb_auth a ON u.id = a.id_user
@@ -291,8 +291,8 @@ if (!isset($_SESSION['id_user'])) {
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">Kabag</h6>
-                                            <h3 class="fw-bold mb-0"><?=$stats['total_kabag']?></h3>
+                                            <h6 class="text-muted mb-1">Manager</h6>
+                                            <h3 class="fw-bold mb-0"><?=$stats['total_manager']?></h3>
                                         </div>
                                         <div class="text-warning">
                                             <i class="bi bi-star-fill" style="font-size: 2.5rem;"></i>

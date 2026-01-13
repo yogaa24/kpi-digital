@@ -310,7 +310,7 @@ function getkpi($nilair)
                                     <select id="filterJabatan" class="form-select form-select-sm">
                                         <option value="">Semua Jabatan</option>
                                         <option value="Kadep">Kadep</option>
-                                        <option value="Kabag">Kabag</option>
+                                        <option value="Manager">Manager</option>
                                         <option value="Karyawan">Karyawan</option>
                                         <option value="Driver">Driver</option>
                                     </select>
@@ -387,7 +387,7 @@ function getkpi($nilair)
                                         ORDER BY 
                                             CASE 
                                                 WHEN u.jabatan = 'Kadep' THEN 1
-                                                WHEN u.jabatan = 'Kabag' THEN 2
+                                                WHEN u.jabatan = 'Manager' THEN 2
                                                 WHEN u.jabatan = 'Karyawan' THEN 3
                                                 ELSE 4
                                             END,
@@ -402,7 +402,7 @@ function getkpi($nilair)
                                             if ($hasilsfa['jabatan'] == 'Kadep') {
                                                 $badge_color = 'danger';
                                                 $badge_icon = 'award-fill';
-                                            } elseif ($hasilsfa['jabatan'] == 'Kabag') {
+                                            } elseif ($hasilsfa['jabatan'] == 'Manager') {
                                                 $badge_color = 'warning';
                                                 $badge_icon = 'star-fill';
                                             } elseif ($hasilsfa['jabatan'] == 'Karyawan') {
