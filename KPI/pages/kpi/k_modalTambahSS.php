@@ -13,12 +13,35 @@
                     <div class="input-group mb-3">
                         <span style="color : #343A40;" class="input-group-text fw-bold">Poin :</span>
                         <input type="text" class="form-control" name="tujuan" 
-                               placeholder="Contoh: Kemampuan Komunikasi Verbal" required>
+                               placeholder="Poin skill standard" required>
+                    </div>
+
+                    <small class="fs-6 fw-bold">Indikator Penilaian</small>
+                    
+                    <div class="input-group mb-3">
+                        <span style="color : #343A40;" class="input-group-text fw-bold">Nilai 1</span>
+                        <input type="text" class="form-control" name="indikator_1" 
+                               placeholder="Indikator 1 ..." required>
                     </div>
                     
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> Setelah menambahkan poin, Anda dapat memberikan nilai melalui menu "Nilai"
+                    <div class="input-group mb-3">
+                        <span style="color : #343A40;" class="input-group-text fw-bold">Nilai 2</span>
+                        <input type="text" class="form-control" name="indikator_2" 
+                               placeholder="Indikator 2 ..." required>
                     </div>
+
+                    <div class="input-group mb-3">
+                        <span style="color : #343A40;" class="input-group-text fw-bold">Nilai 3</span>
+                        <input type="text" class="form-control" name="indikator_3" 
+                               placeholder="Indikator 3 ..." required>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span style="color : #343A40;" class="input-group-text fw-bold">Nilai 4</span>
+                        <input type="text" class="form-control" name="indikator_4" 
+                               placeholder="Indikator 4 ..." required>
+                    </div>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

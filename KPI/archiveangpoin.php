@@ -9,6 +9,15 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/configarchive.php';
     require 'helper/config.php';
 
+    // Ambil level user yang sedang login
+    $id_user_login = $_SESSION['id_user'];
+    $sql_login = "SELECT * FROM tb_auth WHERE id_user='$id_user_login'";
+    $result_login = mysqli_query($conn, $sql_login);
+    $leveel_login = '';
+    while ($hasil_login = mysqli_fetch_assoc($result_login)) {
+        $leveel_login = $hasil_login['level'];
+    }
+
     $id_user = $_GET['id'];
 
     $sql = "SELECT * FROM tb_users WHERE id='$id_user'";
@@ -161,9 +170,17 @@ if (!isset($_SESSION['id_user'])) {
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                 class="bi bi-list"></i> </a> </li>
-                    <li class="nav-item d-none d-md-block"> <a href="archiveanggota?id=<?= $id_user ?>" class="nav-link">Kembali</a> </li>
+                    <?php if ($leveel_login == 5) { ?>
+                        <li class="nav-item d-none d-md-block">
+                            <a href="archive-adminhrd-detail?id=<?= $id_user ?>" class="nav-link">Kembali</a>
+                        </li>
+                    <?php } else { ?>
+                        <li class="nav-item d-none d-md-block">
+                            <a href="archiveanggota?id=<?= $id_user ?>" class="nav-link">Kembali</a>
+                        </li>
+                    <?php } ?>
                     <li class="nav-item d-none d-md-block"> <a href="archiveangdet?id=<?= $id_user ?>&idar=<?= $idar ?>" class="nav-link">Detail KPI</a> </li>
-                </ul> 
+                </ul>
 
                 <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->
                     <li class="nav-item"> <a class="nav-link" href="#" data-lte-toggle="fullscreen"> <i

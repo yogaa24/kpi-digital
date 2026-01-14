@@ -47,9 +47,9 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
           <!-- HEADER INDIKATOR -->
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h6 class="fw-bold mb-0">Indikator Penilaian</h6>
-            <button type="button" class="btn btn-sm btn-primary" onclick="tambahIndikatorEdit<?=$res['id_what']?>()">
+            <!-- <button type="button" class="btn btn-sm btn-primary" onclick="tambahIndikatorEdit<?=$res['id_what']?>()">
               <i class="bi bi-plus-circle"></i> Tambah
-            </button>
+            </button> -->
           </div>
 
           <!-- INDIKATOR CONTAINER -->
