@@ -117,14 +117,14 @@ document.getElementById('departemen_register').addEventListener('change', functi
     }  
     else if (this.value === 'Purchasing') {
         penilaiItems = ['Diana Wulandari'];
-        items = ["Pilih Atasan", "Evi Yulia", "Heru Sucahyo"];
+        items = ["Pilih Atasan", "Arini Dina Yasmin"];
     } 
     else if (this.value === 'HRD') {
         penilaiItems = ['Diana Wulandari'];
         items = ["Pilih Atasan", "Riza Dwi Fitrianingtyas"];
     }
     else if (this.value === 'Logistik') {
-        penilaiItems = ['Diana Wulandari'];
+        penilaiItems = ['Diana Wulandari',"Kurniawan Pratama Arifin"];
         items = ["Pilih Atasan", "Fauzan","Wildan Ma'ruf N. W."];
     } 
     else if (this.value === 'GA') {
@@ -136,7 +136,7 @@ document.getElementById('departemen_register').addEventListener('change', functi
         items = ["Pilih Atasan", "Acep Andriyanto", "Yama Muhammad", "Ahmad Muhlisin"];
     }
     else if (this.value === 'Unit Bisnis CP') {
-        penilaiItems = ['Arfin Indra Cahyadi'];
+        penilaiItems = ['Diana Wulandari','Arfin Indra Cahyadi'];
         items = ["Pilih Atasan", "Arfin Indra Cahyadi"];
     }
 

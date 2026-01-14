@@ -13,16 +13,45 @@
         </ul>
         <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
                 
-        <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->
-            <li class="nav-item"> <a class="nav-link" href="#" data-lte-toggle="fullscreen"> <i data-lte-icon="maximize" class="bi bi-arrows-fullscreen"></i> <i data-lte-icon="minimize" class="bi bi-fullscreen-exit" style="display: none;"></i> </a> </li> <!--end::Fullscreen Toggle--> <!--begin::User Menu Dropdown-->
-            <li class="nav-item dropdown user-menu"> <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown"> <img style="margin-top: -2px;" src="assets/img/profile.png" class="user-image rounded-circle shadow" alt="User Image"> <span class="d-none d-md-inline"><?php echo $username?></span> </a>
-                <ul style="width: 80px;" class="dropdown-menu dropdown-menu-end"> <!--begin::User Image-->
-                    <li class="user-footer">
-                        <center> <a href="logout.php" class="btn btn-default btn-flat float-center">Sign out</a></center>
-                    </li> <!--end::Menu Footer-->
-                </ul>
-            </li> <!--end::User Menu Dropdown-->
-        </ul> <!--end::End Navbar Links-->        
+        <ul class="navbar-nav ms-auto">
+
+    <!-- FULLSCREEN ICON -->
+    <li class="nav-item">
+        <a class="nav-link" href="#" data-lte-toggle="fullscreen">
+            <i data-lte-icon="maximize" class="bi bi-arrows-fullscreen"></i>
+            <i data-lte-icon="minimize" class="bi bi-fullscreen-exit" style="display:none"></i>
+        </a>
+    </li>
+
+    <!-- USER MENU -->
+    <li class="nav-item dropdown user-menu">
+        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+            <img src="assets/img/profile.png"
+                 class="user-image rounded-circle shadow"
+                 alt="User Image">
+            <span class="d-none d-md-inline">
+                <?php echo $username ?>
+            </span>
+        </a>
+
+        <ul class="dropdown-menu dropdown-menu-end">
+            
+
+            <li class="user-body text-center">
+                <a href="profile-settings" class="d-block">
+                    <i class="bi bi-gear-fill me-1"></i> Account Settings
+                </a>
+            </li>
+
+            <li class="user-footer px-3">
+                <a href="logout.php" class="btn btn-default btn-flat w-100">
+                    <i class="bi bi-box-arrow-right me-1"></i> Sign out
+                </a>
+            </li>
+        </ul>
+    </li>
+</ul>
+       
         
     </div> <!--end::Container-->
 </nav> <!--end::Header--> <!--begin::Sidebar-->
