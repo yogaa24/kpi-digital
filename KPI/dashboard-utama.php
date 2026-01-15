@@ -547,7 +547,7 @@ if ($user_level >= 2) {
 
                                         <!-- 🔥 TAMBAHAN ARCHIVE (TANPA MENGUBAH KODE LAIN) -->
                                         <div class="col-md-3">
-                                            <a href="archive-kpi" class="btn btn-outline-dark w-100">
+                                            <a href="archive" class="btn btn-outline-dark w-100">
                                                 <i class="bi bi-archive me-2"></i>Archive KPI
                                             </a>
                                         </div>

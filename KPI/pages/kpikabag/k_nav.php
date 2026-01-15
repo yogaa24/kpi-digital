@@ -2,7 +2,7 @@
     <div class="container-fluid"> <!--begin::Start Navbar Links-->
         <ul class="navbar-nav">
             <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i class="bi bi-list"></i> </a> </li>
-            <li class="nav-item d-none d-md-block"> <a href="dashboard" class="nav-link">Dashboard</a> </li>
+            <li class="nav-item d-none d-md-block"> <a href="dashboard-utama" class="nav-link">Dashboard</a> </li>
            <!-- <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#detailModal" class="nav-link">Tambah Detail Poin KPI</a> </li> -->
         </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
         <ul class="navbar-nav ms-auto">
