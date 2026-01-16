@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <?php
 session_start();
 if (!isset($_SESSION['id_user'])) {
@@ -16,10 +15,28 @@ if (!isset($_SESSION['id_user'])) {
 
     $user_id = isset($id_sf) ? $id_sf : $id_user;
 
+    // PINDAHKAN BAGIAN INI KE ATAS (sebelum pengecekan archive)
+    $blan = date('m/Y');
+    $busd = explode('/', $blan);
+
+    // Baru sekarang cek apakah bulan sebelumnya sudah di-archive
+    $bulan_archive = str_pad($busd[0]-1, 2, '0', STR_PAD_LEFT);
+    $tahun_archive = $busd[1];
+
+    // Perbaikan untuk bulan Januari (bulan sebelumnya adalah Desember tahun lalu)
+    if ($busd[0] == '01') {
+        $bulan_archive = '12';
+        $tahun_archive = $busd[1] - 1;
+    }
+
+    $periode_archive = $bulan_archive . '/' . $tahun_archive;
+
+    $cek_archive = mysqli_query($connarc, "SELECT id_archive FROM tbar_archive WHERE bulan = '$periode_archive' AND id_user = $id_user");
+    $sudah_archive = mysqli_num_rows($cek_archive) > 0;
+
+    // Lanjutkan kode yang lain...
     $zboth = 0;
     $zbotw = 0;
-    
-    $blan = '';
 
     $totalws = 0;
     $result = mysqli_query($conn, $sql);
@@ -186,10 +203,9 @@ if (!isset($_SESSION['id_user'])) {
     
 
     if (isset($_POST['archiveNow'])) {
-        $forIdArc=0;
+        // Cek ulang apakah sudah pernah archive
         $odkgh = $busd[0]-1;
         
-        // Perbaikan: jika bulan jadi 0, ubah ke 12 dan tahun mundur 1
         if ($odkgh == 0) {
             $odkgh = 12;
             $tahunArchive = $busd[1] - 1;
@@ -197,30 +213,57 @@ if (!isset($_SESSION['id_user'])) {
             $tahunArchive = $busd[1];
         }
         
-        $tgslk = $odkgh.'/'.$tahunArchive;
+        $tgslk = str_pad($odkgh, 2, '0', STR_PAD_LEFT) . '/' . $tahunArchive;
+        
+        // Validasi: cek apakah sudah ada archive untuk periode ini
+        $cek_existing = mysqli_query($connarc, "SELECT id_archive FROM tbar_archive WHERE bulan = '$tgslk' AND id_user = $id_user");
+        
+        if (mysqli_num_rows($cek_existing) > 0) {
+            echo "<script>
+                alert('Archive untuk periode " . tmapil($odkgh, $tahunArchive) . " sudah pernah dibuat!');
+                window.location.href = '" . $_SERVER['PHP_SELF'] . "';
+            </script>";
+            exit();
+        }
+        
         $sqlksf = "INSERT INTO tbar_archive (bulan, id_user) VALUES ('$tgslk',$id_user)";
         $resuarc = mysqli_query($connarc, $sqlksf);
         $last_id = mysqli_insert_id($connarc);
-
+    
         $resultrtyhj = mysqli_query($connarc, "SELECT * FROM tbar_archive WHERE id_archive = $last_id and id_user = $id_user");
         $rosagw = mysqli_fetch_assoc($resultrtyhj);
         $idarcv = $rosagw['id_archive'];
-
+    
         $panggilPoin = mysqli_query($conn,"Select * from tb_kpi where id_user = $id_user");
         while($ppPoin = mysqli_fetch_assoc($panggilPoin)){
             $addPoin = mysqli_query($connarc,"INSERT INTO tbar_kpi (id_user,id_arcv,poin,bobot,poin2,bobot2) values ($id_user, $idarcv ,'".$ppPoin['poin']."', '".$ppPoin['bobot']."','".$ppPoin['poin2']."','".$ppPoin['bobot2']."')");
             $last_poin = mysqli_insert_id($connarc);
-
+    
             $panggilHow = mysqli_query($conn,"SELECT * FROM tb_hows WHERE id_user = $id_user AND id_kpi = ".$ppPoin['id']);
             while($howPoin = mysqli_fetch_assoc($panggilHow)){
                 $addHow = mysqli_query($connarc,"INSERT INTO tbar_hows (id_user,id_kpi,tipe_how,p_how,bobot,target_omset,hasil,nilai,total) VALUES ($id_user,$last_poin,'".$howPoin['tipe_how']."','".$howPoin['p_how']."','".$howPoin['bobot']."','".$howPoin['target_omset']."','".$howPoin['hasil']."','".$howPoin['nilai']."','".$howPoin['total']."')");
+                
+                // TAMBAHKAN KODE INI - Archive indikator hows
+                $last_how_id = mysqli_insert_id($connarc);
+                $panggilIndikatorHow = mysqli_query($conn,"SELECT * FROM tb_indikator_hows WHERE id_how = ".$howPoin['id_how']." ORDER BY urutan");
+                while($indHow = mysqli_fetch_assoc($panggilIndikatorHow)){
+                    $addIndHow = mysqli_query($connarc,"INSERT INTO tbar_indikator_hows (id_how, keterangan, nilai, urutan) VALUES ($last_how_id, '".mysqli_real_escape_string($connarc, $indHow['keterangan'])."', '".$indHow['nilai']."', '".$indHow['urutan']."')");
+                }
             }
-
+    
             $panggilWhat = mysqli_query($conn,"SELECT * FROM tb_whats WHERE id_user = $id_user AND id_kpi = ".$ppPoin['id']);
             while($whatPoin = mysqli_fetch_assoc($panggilWhat)){
                 $addWhat = mysqli_query($connarc,"INSERT INTO tbar_whats (id_user,id_kpi,tipe_what,p_what,bobot,target_omset,hasil,nilai,total) VALUES ($id_user,$last_poin,'".$whatPoin['tipe_what']."','".$whatPoin['p_what']."','".$whatPoin['bobot']."','".$whatPoin['target_omset']."','".$whatPoin['hasil']."','".$whatPoin['nilai']."','".$whatPoin['total']."')");
+                
+                // TAMBAHKAN KODE INI - Archive indikator whats
+                $last_what_id = mysqli_insert_id($connarc);
+                $panggilIndikatorWhat = mysqli_query($conn,"SELECT * FROM tb_indikator_whats WHERE id_what = ".$whatPoin['id_what']." ORDER BY urutan");
+                while($indWhat = mysqli_fetch_assoc($panggilIndikatorWhat)){
+                    $addIndWhat = mysqli_query($connarc,"INSERT INTO tbar_indikator_whats (id_what, keterangan, nilai, urutan) VALUES ($last_what_id, '".mysqli_real_escape_string($connarc, $indWhat['keterangan'])."', '".$indWhat['nilai']."', '".$indWhat['urutan']."')");
+                }
             }
         }
+        
         $panggilbobot = mysqli_query($conn,"Select * from tb_bobotkpi where id_user = $id_user");
         while($bobotPoin = mysqli_fetch_assoc($panggilbobot)){
             $addbobot = mysqli_query($connarc,"INSERT INTO tbar_bobotkpi (id_user, id_arcv, bobotwhat, bobothow) values ($id_user,$idarcv, ".$bobotPoin['bobotwhat'].",".$bobotPoin['bobothow'].")");

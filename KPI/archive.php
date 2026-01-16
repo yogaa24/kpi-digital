@@ -1,3 +1,4 @@
+<!-- archive.php -->
 <!DOCTYPE html>
 <?php
 session_start();
@@ -8,6 +9,7 @@ if (!isset($_SESSION['id_user'])) {
 
     require 'helper/configarchive.php';
     require 'helper/getUser.php';
+    require 'helper/status_functions.php';
 
     function getnilaiaa($connarc,$idar,$id_user){
         $sql= "SELECT tbar_kpi.* FROM tbar_kpi INNER JOIN tbar_archive ON tbar_archive.id_archive = tbar_kpi.id_arcv WHERE tbar_archive.bulan = '$idar' AND tbar_archive.id_user = $id_user";
@@ -126,8 +128,12 @@ if (!isset($_SESSION['id_user'])) {
         return $bulannnn;
     }
 
-    $archivec = "SELECT bulan FROM tbar_archive WHERE id_user = $id_user group by bulan";
-    $getArch = mysqli_query($connarc, $archivec); 
+   // Jika setiap bulan hanya ada 1 archive per user
+$archivec = "SELECT DISTINCT ta.id_archive, ta.bulan, ta.status, ta.reviewed_by, ta.reviewed_at, ta.approved_by, ta.approved_at 
+            FROM tbar_archive ta
+            WHERE ta.id_user = $id_user
+            ORDER BY ta.bulan DESC";
+$getArch = mysqli_query($connarc, $archivec);
 }
 ?>
 <html lang="en">
@@ -186,37 +192,42 @@ echo '
                                     <table id="datatablenya" class="table align-midle table-hover table-bordered">
                                         <thead class="table-dark">
                                             <tr>
-                                                <th width="3%">
-                                                    <center>No</center>
-                                                </th>
-                                                <th>
-                                                    <center>Bulan</center>
-                                                </th>
-                                                <th width="25%">
-                                                    <center>Nilai</center>
-                                                </th>
-                                                <th width="25%">
-                                                    <center>KPI</center>
-                                                </th>
-                                                <th width="10%">
-                                                    <center>#</center>
-                                                </th>
+                                                <th width="3%"><center>No</center></th>
+                                                <th><center>Bulan</center></th>
+                                                <th width="15%"><center>Nilai</center></th>
+                                                <th width="15%"><center>KPI</center></th>
+                                                <th width="15%"><center>Status</center></th> <!-- TAMBAH KOLOM INI -->
+                                                <th width="10%"><center>#</center></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php $no = 1; if($getArch){ while ($row = mysqli_fetch_assoc($getArch)) { ?>
+                                            <?php $no = 1; if($getArch){ while ($row = mysqli_fetch_assoc($getArch)) { 
+                                                $nilai = round(getnilaiaa($connarc,$row['bulan'],$id_user),2);
+                                                $status = $row['status'];
+                                            ?>
                                             <tr>
-                                                <td>
-                                                    <center><?= $no; ?></center>
+                                                <td><center><?= $no; ?></center></td>
+                                                <td><center><?= tmaadfl($row['bulan']) ?></center></td>
+                                                <td><center><?= $nilai ?></center></td>
+                                                <td style="color:<?= getsfo($nilai) ?>">
+                                                    <center><?= getstatad($nilai) ?></center>
                                                 </td>
-                                                <td>
-                                                    <center><?= tmaadfl($row['bulan']) ?></center>
-                                                </td>
-                                                <td>
-                                                    <center><?= round(getnilaiaa($connarc,$row['bulan'],$id_user),2) ?></center>
-                                                </td>
-                                                <td  style="color:<?= getsfo( getnilaiaa($connarc,$row['bulan'],$id_user)) ?>">
-                                                    <center><?= getstatad( getnilaiaa($connarc,$row['bulan'],$id_user)) ?></center>
+                                                <td> <!-- KOLOM STATUS BARU -->
+                                                    <center>
+                                                        <?= getStatusBadge($status) ?>
+                                                        
+                                                        <?php if ($status == 2 && !empty($row['reviewed_at'])) { ?>
+                                                            <br><small class="text-muted" style="font-size: 10px;">
+                                                                <i class="bi bi-calendar-check"></i> 
+                                                                <?= date('d/m/Y H:i', strtotime($row['reviewed_at'])) ?>
+                                                            </small>
+                                                        <?php } elseif ($status == 3 && !empty($row['approved_at'])) { ?>
+                                                            <br><small class="text-success" style="font-size: 10px;">
+                                                                <i class="bi bi-check-all"></i> 
+                                                                <?= date('d/m/Y H:i', strtotime($row['approved_at'])) ?>
+                                                            </small>
+                                                        <?php } ?>
+                                                    </center>
                                                 </td>
                                                 <td>
                                                     <center>
@@ -225,9 +236,7 @@ echo '
                                                     </center>
                                                 </td>
                                             </tr>
-                                            <?php $no++; } }else{
-                                                    
-                                                }?>
+                                            <?php $no++; } }?>
                                         </tbody>
                                     </table>
                                 </div>

@@ -503,9 +503,6 @@ if (isset($_POST['update2'])) {
                                 <?php
                                 // Tentukan URL kembali berdasarkan parameter ref
                                 $back_url = 'kpianggota?id=' . $_GET['id']; // default
-                                if (isset($_GET['ref']) && $_GET['ref'] == 'home-adminedp') {
-                                    $back_url = 'home-adminedp?driver_id=' . $_GET['id'];
-                                }
                                 ?>
 
                                 <li class="nav-item d-none d-md-block"> 

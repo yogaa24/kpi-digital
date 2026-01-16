@@ -7,9 +7,6 @@
                 </a>
             </li>
 
-            <li class="nav-item d-none d-md-block">
-                <a href="dashboard-utama" class="nav-link">Dashboard</a>
-            </li>
         </ul>
         <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
                 

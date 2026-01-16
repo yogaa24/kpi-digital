@@ -45,14 +45,25 @@
         <div style="height: 50px; margin-top: -3px;" class="card-header bg-warning bg-gradient">
             <h5 style="color:black;" class="card-title fw-bolder">TOTAL NILAI KPI</h5>
             <div class="card-tools">
-                <button style="color: white; margin-top: -20px; margin-right: 5px; " type="button"
-                    data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
-                    <i class="bi bi-plus-circle fs-6"></i>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end" role="menu">
+            <button type="button"
+                data-bs-toggle="dropdown"
+                class="btn btn-tool dropdown-toggle"
+                style="color: white; margin-top: -10px; margin-right: 5px;">
+                <i class="bi bi-archive-fill fs-5"></i>
+            </button>
+
+            <div class="dropdown-menu dropdown-menu-end" role="menu">
+                <?php if ($sudah_archive) { ?>
+                    <a href="#" class="dropdown-item disabled text-muted">
+                        <i class="bi bi-check-circle"></i> Sudah Di-Archive - <?= tmapil($busd[0]-1,$busd[1]); ?>
+                    </a>
+                <?php } else { ?>
                     <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                        data-bs-target="#archiveModal">Archive - <?= tmapil($busd[0]-1,$busd[1]); ?> </a>
-                </div>
+                        data-bs-target="#archiveModal">
+                        <i class="bi bi-archive"></i> Archive - <?= tmapil($busd[0]-1,$busd[1]); ?>
+                    </a>
+                <?php } ?>
+            </div>
             </div>
         </div>
         <!-- ---------------------------------------------------------------------->
