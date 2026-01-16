@@ -185,7 +185,7 @@ function getkpi($nilair)
                                         <th width="10%">
                                             <center>KPI</center>
                                         </th>
-                                        <th width="8%">
+                                        <th width="10%">
                                             <center>#</center>
                                         </th>
                                     </tr>
@@ -243,6 +243,7 @@ ORDER BY
                                                 <center><?= getkpi(getnilai($conn, $hasilsfa['id'])); ?></center>
                                             </td>
                                             <td>
+                                                
                                                 <?php if ($hasilsfa['jabatan'] != 'Manager' && $hasilsfa['jabatan'] != 'Kadep') { ?>
                                                     <center>
                                                         <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>"

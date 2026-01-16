@@ -34,7 +34,35 @@ if (!isset($_SESSION['id_user'])) {
     $cek_archive = mysqli_query($connarc, "SELECT id_archive FROM tbar_archive WHERE bulan = '$periode_archive' AND id_user = $id_user");
     $sudah_archive = mysqli_num_rows($cek_archive) > 0;
 
-    // Lanjutkan kode yang lain...
+    require 'helper/verified_functions.php';
+
+    // Cek status verified
+    $bulan_sekarang = date('m/Y');
+    $verified_status = checkKPIVerified($conn, $id_user, $bulan_sekarang);
+
+    // Proses verify/unverify
+    if (isset($_POST['verifyKPI'])) {
+        $keterangan = $_POST['keterangan'] ?? '';
+        if (verifyKPI($conn, $id_user, $id_user, $keterangan, $bulan_sekarang)) {
+            echo "<script>
+                alert('KPI berhasil diverifikasi!');
+                window.location.href = '" . $_SERVER['PHP_SELF'] . "?id=" . $id_user . "';
+            </script>";
+        } else {
+            echo "<script>alert('Gagal memverifikasi KPI!');</script>";
+        }
+    }
+
+    if (isset($_POST['unverifyKPI'])) {
+        if (unverifyKPI($conn, $id_user, $bulan_sekarang)) {
+            echo "<script>
+                alert('Verifikasi KPI berhasil dibatalkan!');
+                window.location.href = '" . $_SERVER['PHP_SELF'] . "?id=" . $id_user . "';
+            </script>";
+        } else {
+            echo "<script>alert('Gagal membatalkan verifikasi!');</script>";
+        }
+    }
     $zboth = 0;
     $zbotw = 0;
 
