@@ -136,8 +136,8 @@ if (isset($_POST['editevi'])) {
                     <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#tambahEviModal" class="nav-link">Tambah Eviden</a> </li>
                     <?php if (
                         $jabatan == "Manager" ||
-                        $jabatan == "Kadep MT" ||
-                        $jabatan == "Kadep"
+                        $jabatan == "Kadep" ||
+                        $jabatan == "Direktur"
                     ) { ?>
                         <li class="nav-item d-none d-md-block">
                             <a href="evidenkabag" class="nav-link">Eviden Anggota</a>

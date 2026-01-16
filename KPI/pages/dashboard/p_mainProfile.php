@@ -51,27 +51,6 @@
                     </span>
                 <?php } ?>
             </h5>
-            <?php if ($leveel == 2 || $leveel == 4 || $leveel == 5) { ?>
-            <div class="card-tools">
-                <button style="color: black; margin-top: -20px; margin-right: 5px;" type="button"
-                    data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
-                    <i class="bi bi-shield-check fs-6"></i>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end" role="menu">
-                    <?php if ($verified_status) { ?>
-                        <a href="#" class="dropdown-item text-danger" data-bs-toggle="modal"
-                            data-bs-target="#unverifyModal">
-                            <i class="bi bi-x-circle"></i> Batalkan Verifikasi
-                        </a>
-                    <?php } else { ?>
-                        <a href="#" class="dropdown-item text-success" data-bs-toggle="modal"
-                            data-bs-target="#verifyModal">
-                            <i class="bi bi-check-circle"></i> Verifikasi KPI
-                        </a>
-                    <?php } ?>
-                </div>
-            </div>
-            <?php } ?>
             <div class="card-tools">
             <button type="button"
                 data-bs-toggle="dropdown"
@@ -190,7 +169,7 @@
             <?php } ?>
         </div>
     </div>
-
+    
     <?php if ($verified_status) { 
         $verifier_name = getVerifierName($conn, $verified_status['verified_by']);
     ?>
@@ -211,67 +190,6 @@
             </div>
         </div>
     <?php } ?>
-
-    <!-- Modal Verify KPI -->
-    <div class="modal fade" id="verifyModal" tabindex="-1" aria-labelledby="verifyModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title fw-bold" id="verifyModalLabel">
-                        <i class="bi bi-check-circle"></i> Verifikasi KPI
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="POST" action="">
-                    <div class="modal-body">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i> 
-                            Anda akan memverifikasi KPI <strong><?= $nama_lngkpan ?></strong> untuk periode <strong><?= date('F Y') ?></strong>
-                        </div>
-                        <div class="mb-3">
-                            <label for="keterangan" class="form-label">Catatan (Opsional)</label>
-                            <textarea class="form-control" id="keterangan" name="keterangan" rows="3" 
-                                placeholder="Tambahkan catatan verifikasi..."></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" name="verifyKPI" class="btn btn-success">
-                            <i class="bi bi-check-circle"></i> Verifikasi
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Unverify KPI -->
-    <div class="modal fade" id="unverifyModal" tabindex="-1" aria-labelledby="unverifyModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title fw-bold" id="unverifyModalLabel">
-                        <i class="bi bi-x-circle"></i> Batalkan Verifikasi
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form method="POST" action="">
-                    <div class="modal-body">
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle"></i> 
-                            Apakah Anda yakin ingin membatalkan verifikasi KPI ini?
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tidak</button>
-                        <button type="submit" name="unverifyKPI" class="btn btn-danger">
-                            <i class="bi bi-x-circle"></i> Ya, Batalkan
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
         <div class="modal-dialog">

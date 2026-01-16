@@ -153,8 +153,8 @@ echo '
                     <li class="nav-item d-none d-md-block"> <a href="dashboard-utama" class="nav-link">Dashboard</a> </li>
                     <?php if (
                         $jabatan == "Manager" ||
-                        $jabatan == "Kadep MT" ||
-                        $jabatan == "Kadep"
+                        $jabatan == "Kadep" ||
+                        $jabatan == "Direktur"
                     ) { ?>
                         <li class="nav-item d-none d-md-block"> <a href="archivekabag" class="nav-link">Archive KPI Anggota</a> </li>
                     <?php }?>
