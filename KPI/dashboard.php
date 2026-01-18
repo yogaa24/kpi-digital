@@ -231,6 +231,16 @@ if (!isset($_SESSION['id_user'])) {
     
 
     if (isset($_POST['archiveNow'])) {
+        $bulan_sekarang = date('m/Y');
+        $verified_status = checkKPIVerified($conn, $id_user, $bulan_sekarang);
+        
+        if (!$verified_status) {
+            echo "<script>
+                alert('KPI belum diverifikasi oleh atasan! Archive tidak dapat dilakukan.');
+                window.location.href = '" . $_SERVER['PHP_SELF'] . "';
+            </script>";
+            exit();
+        }
         // Cek ulang apakah sudah pernah archive
         $odkgh = $busd[0]-1;
         
@@ -303,6 +313,18 @@ if (!isset($_SESSION['id_user'])) {
 <html lang="en">
 
 <?php include("pages/part/p_header.php"); ?>
+<style>
+    .dropdown-item.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.dropdown-item.disabled small {
+    font-size: 10px;
+    display: block;
+    margin-top: 3px;
+}
+</style>
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
     <div class="app-wrapper">

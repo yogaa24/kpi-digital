@@ -1,3 +1,4 @@
+<!-- k_main.php -->
 <div class="row">
     <div class="col-lg connectedSortable">
         <div class="d-flex">
@@ -53,21 +54,109 @@
                         </thead>
                         
                         <tbody>
-                            <?php $sql1 = "SELECT * FROM tb_whats WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
-                            $ql = mysqli_query($conn, $sql1);
-                            while ($res = mysqli_fetch_assoc($ql)) {
-                            ?>
-                            <tr class="align-middle">
+                        <?php 
+                        $sql1 = "SELECT * FROM tb_whats WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
+                        $ql = mysqli_query($conn, $sql1);
+                        while ($res = mysqli_fetch_assoc($ql)) {
+                            // CEK: Hanya tampilkan info edited jika DIUBAH ATASAN (edited_by != id_user)
+                            $is_edited_by_superior = ($res['is_edited'] && $res['edited_by'] != $id_user && !empty($res['edited_by']));
+                            $row_class = $is_edited_by_superior ? 'edited-row' : '';
+                        ?>
+                            <tr class="align-middle <?= $row_class ?>">
+                                <!-- KOLOM WHATS -->
                                 <td>
                                     <?= $res['p_what']; ?>
+                                    
+                                    <?php if ($is_edited_by_superior && !empty($res['original_p_what']) && $res['original_p_what'] != $res['p_what']) { ?>
+                                        <span class="edited-badge"><i class="bi bi-pencil-fill"></i> DIUBAH ATASAN</span>
+                                        <div class="change-info">
+                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <span class="old-val"><?= htmlspecialchars(substr($res['original_p_what'], 0, 50)) ?><?= strlen($res['original_p_what']) > 50 ? '...' : '' ?></span>
+                                            <br>
+                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <span class="new-val"><?= htmlspecialchars(substr($res['p_what'], 0, 50)) ?><?= strlen($res['p_what']) > 50 ? '...' : '' ?></span>
+                                        </div>
+                                    <?php } ?>
+                                    
                                     <?php if ($res['tipe_what'] == 'B' && $res['target_omset'] > 0) { ?>
-                                        <br><small class="text-muted fw-semibold fs-6">Target: <?=number_format($res['target_omset'], 2)?></small>
+                                        <br><small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
+                                             Target: <?=number_format($res['target_omset'], 2)?>
+                                        </small>
+                                        
+                                        <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info">
+                                                <strong style="font-size: 9px;">Target Sebelum:</strong> 
+                                                <span class="old-val"><?= number_format($res['original_target_omset'], 2) ?></span>
+                                                <br>
+                                                <strong style="font-size: 9px;">Target Sesudah:</strong> 
+                                                <span class="new-val"><?= number_format($res['target_omset'], 2) ?></span>
+                                            </div>
+                                        <?php } ?>
                                     <?php } ?>
                                 </td>
-                                <td><?= $res['hasil']; ?></td>
-                                <td><center><?= $res['nilai']; ?></center></td>
-                                <td><center><?= $res['bobot']; ?>%</center></td>
-                                <td><center><?= $res['total']; ?></center></td>
+                                
+                                <!-- KOLOM HASIL -->
+                                <td>
+                                    <?= $res['hasil']; ?>
+                                    <?php if ($is_edited_by_superior && !empty($res['original_hasil']) && $res['original_hasil'] != $res['hasil']) { ?>
+                                        <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                        <div class="change-info">
+                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <span class="old-val"><?= htmlspecialchars(substr($res['original_hasil'], 0, 30)) ?><?= strlen($res['original_hasil']) > 30 ? '...' : '' ?></span>
+                                            <br>
+                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <span class="new-val"><?= htmlspecialchars(substr($res['hasil'], 0, 30)) ?><?= strlen($res['hasil']) > 30 ? '...' : '' ?></span>
+                                        </div>
+                                    <?php } ?>
+                                </td>
+                                
+                                <!-- KOLOM NILAI -->
+                                <td>
+                                    <center>
+                                        <?= $res['nilai']; ?>
+                                        <?php if ($is_edited_by_superior && $res['original_nilai'] != null && $res['original_nilai'] != $res['nilai']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_nilai'] ?></span> 
+                                                → 
+                                                <span class="new-val"><?= $res['nilai'] ?></span>
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM BOBOT -->
+                                <td>
+                                    <center>
+                                        <?= $res['bobot']; ?>%
+                                        <?php if ($is_edited_by_superior && $res['original_bobot'] != null && $res['original_bobot'] != $res['bobot']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_bobot'] ?>%</span> 
+                                                → 
+                                                <span class="new-val"><?= $res['bobot'] ?>%</span>
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM TOTAL -->
+                                <td>
+                                    <center>
+                                        <?= $res['total']; ?>
+                                        <?php if ($is_edited_by_superior && $res['original_total'] != null && $res['original_total'] != $res['total']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_total'] ?></span> 
+                                                → 
+                                                <span class="new-val"><?= $res['total'] ?></span>
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM ACTION -->
                                 <td class="text-center">
                                     <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
                                         <i class="bi bi-eye fs-8"></i>
@@ -82,6 +171,12 @@
                                         <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
                                             data-bs-target="#NilaiWhatModal<?= $res['id_what'] ?>">Nilai</a>
                                     </div>
+                                    
+                                    <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>
+                                        <div class="change-timestamp mt-1">
+                                            <i class="bi bi-clock"></i> <?= date('d/m H:i', strtotime($res['edited_at'])) ?>
+                                        </div>
+                                    <?php } ?>
                                 </td>
 
                                 <?php include('pages/kpi/k_modalHapuswhat.php'); ?>
@@ -232,22 +327,112 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php
+                        <?php
                             $sql1 = "SELECT * FROM tb_hows WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
                             $ql = mysqli_query($conn, $sql1);
                             while ($res = mysqli_fetch_assoc($ql)) {
+                                // CEK: Hanya tampilkan jika DIUBAH ATASAN
+                                $is_edited_by_superior = ($res['is_edited'] && $res['edited_by'] != $id_user && !empty($res['edited_by']));
+                                $row_class = $is_edited_by_superior ? 'edited-row' : '';
                             ?>
-                            <tr class="align-middle">
+                            <tr class="align-middle <?= $row_class ?>">
+                                <!-- KOLOM HOWS -->
                                 <td>
                                     <?= $res['p_how']; ?>
+                                    
+                                    <?php if ($is_edited_by_superior && !empty($res['original_p_how']) && $res['original_p_how'] != $res['p_how']) { ?>
+                                        <span class="edited-badge"><i class="bi bi-pencil-fill"></i> DIUBAH ATASAN</span>
+                                        <div class="change-info">
+                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <span class="old-val"><?= htmlspecialchars(substr($res['original_p_how'], 0, 50)) ?><?= strlen($res['original_p_how']) > 50 ? '...' : '' ?></span>
+                                            <br>
+                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <span class="new-val"><?= htmlspecialchars(substr($res['p_how'], 0, 50)) ?><?= strlen($res['p_how']) > 50 ? '...' : '' ?></span>
+                                        </div>
+                                    <?php } ?>
+                                    
                                     <?php if ($res['tipe_how'] == 'B' && $res['target_omset'] > 0) { ?>
-                                        <br><small class="text-muted fw-semibold fs-6">Target: <?=number_format($res['target_omset'], 2)?></small>
+                                        <br><small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
+                                            Target: <?=number_format($res['target_omset'], 2)?>
+                                        </small>
+                                        
+                                        <!-- ===== TAMBAHAN BARU: TAMPILKAN PERUBAHAN TARGET OMSET HOW B ===== -->
+                                        <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info">
+                                                <strong style="font-size: 9px;">Target Sebelum:</strong> 
+                                                <span class="old-val"><?= number_format($res['original_target_omset'], 2) ?></span>
+                                                <br>
+                                                <strong style="font-size: 9px;">Target Sesudah:</strong> 
+                                                <span class="new-val"><?= number_format($res['target_omset'], 2) ?></span>
+                                            </div>
+                                        <?php } ?>
+                                        <!-- ===== AKHIR TAMBAHAN ===== -->
                                     <?php } ?>
                                 </td>
-                                <td><?= $res['hasil']; ?></td>
-                                <td><center><?= $res['nilai']; ?></center></td>
-                                <td><center><?= $res['bobot']; ?>%</center></td>
-                                <td><center><?= $res['total']; ?></center></td>
+                                
+                                <!-- KOLOM HASIL -->
+                                <td>
+                                    <?= $res['hasil']; ?>
+                                    <?php if ($is_edited_by_superior && !empty($res['original_hasil']) && $res['original_hasil'] != $res['hasil']) { ?>
+                                        <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                        <div class="change-info">
+                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <span class="old-val"><?= htmlspecialchars(substr($res['original_hasil'], 0, 30)) ?><?= strlen($res['original_hasil']) > 30 ? '...' : '' ?></span>
+                                            <br>
+                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <span class="new-val"><?= htmlspecialchars(substr($res['hasil'], 0, 30)) ?><?= strlen($res['hasil']) > 30 ? '...' : '' ?></span>
+                                        </div>
+                                    <?php } ?>
+                                </td>
+                                
+                                <!-- KOLOM NILAI -->
+                                <td>
+                                    <center>
+                                        <?= $res['nilai']; ?>
+                                        <?php if ($is_edited_by_superior && $res['original_nilai'] != null && $res['original_nilai'] != $res['nilai']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_nilai'] ?></span> 
+                                                → 
+                                                <span class="new-val"><?= $res['nilai'] ?></span>
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM BOBOT -->
+                                <td>
+                                    <center>
+                                        <?= $res['bobot']; ?>%
+                                        <?php if ($is_edited_by_superior && $res['original_bobot'] != null && $res['original_bobot'] != $res['bobot']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_bobot'] ?>%</span> 
+                                                → 
+                                                <span class="new-val"><?= $res['bobot'] ?>%</span>
+
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM TOTAL -->
+                                <td>
+                                    <center>
+                                        <?= $res['total']; ?>
+                                        <?php if ($is_edited_by_superior && $res['original_total'] != null && $res['original_total'] != $res['total']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_total'] ?></span> 
+                                                → 
+                                                <span class="new-val"><?= $res['total'] ?></span>
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- ACTION -->
                                 <td class="text-center">
                                     <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
                                         <i class="bi bi-eye fs-8"></i>
@@ -262,6 +447,12 @@
                                         <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
                                             data-bs-target="#NilaiHowModal<?= $res['id_how'] ?>">Nilai</a>
                                     </div>
+                                    
+                                    <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>
+                                        <div class="change-timestamp mt-1">
+                                            <i class="bi bi-clock"></i> <?= date('d/m H:i', strtotime($res['edited_at'])) ?>
+                                        </div>
+                                    <?php } ?>
                                 </td>
                             </tr>
                             

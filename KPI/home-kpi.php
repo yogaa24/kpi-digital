@@ -106,11 +106,15 @@ if (isset($_POST['nilai_what'])) {
     $id_what = intval($_POST['idkpi']);
     
     // Ambil data what untuk cek tipe
-    $sql_what = "SELECT tipe_what, bobot FROM tb_whats WHERE id_what = $id_what";
+    $sql_what = "SELECT tipe_what, bobot, id_user FROM tb_whats WHERE id_what = $id_what";
     $result_what = mysqli_query($conn, $sql_what);
     $data_what = mysqli_fetch_assoc($result_what);
     $tipe_what = $data_what['tipe_what'];
     $bobot = $data_what['bobot'];
+    
+    // ===== TAMBAHAN BARU: CEK PEMILIK =====
+    $is_owner = ($data_what['id_user'] == $ids);
+    // ===== AKHIR TAMBAHAN =====
     
     if ($tipe_what == 'A') {
         // WHAT A: Ambil nilai dari indikator yang dipilih
@@ -125,38 +129,71 @@ if (isset($_POST['nilai_what'])) {
         // Hitung total
         $total = number_format($nilai * $bobot / 100, 2);
         
-        // Update tb_whats
-        $sql_update = "UPDATE tb_whats 
-                       SET nilai = $nilai, hasil = '$keterangan', total = $total 
-                       WHERE id_what = $id_what AND id_user = '$ids'";
+        // ===== UBAH BAGIAN UPDATE INI =====
+        if ($is_owner) {
+            // Karyawan menilai sendiri - RESET tracking
+            $sql_update = "UPDATE tb_whats 
+                           SET nilai = $nilai, 
+                               hasil = '$keterangan', 
+                               total = $total,
+                               is_edited=0,
+                               edited_by=NULL,
+                               edited_at=NULL,
+                               original_p_what=NULL,
+                               original_bobot=NULL,
+                               original_hasil=NULL,
+                               original_nilai=NULL,
+                               original_total=NULL
+                           WHERE id_what = $id_what AND id_user = '$ids'";
+        } else {
+            $sql_update = "UPDATE tb_whats 
+                           SET nilai = $nilai, hasil = '$keterangan', total = $total 
+                           WHERE id_what = $id_what AND id_user = '$ids'";
+        }
         
     } else {
         // WHAT B: Hitung dari target omset dan hasil
         $target_omset = floatval($_POST['target_omset']);
         $hasil_omset = floatval($_POST['hasil_omset']);
         
-        // Hitung persentase pencapaian
         if ($target_omset > 0) {
             $persentase = ($hasil_omset / $target_omset) * 100;
-            $nilai = round($persentase, 2); // Nilai = persentase pencapaian
+            $nilai = round($persentase, 2);
         } else {
             $nilai = 0;
         }
         
-        // Hitung total
         $total = number_format($nilai * $bobot / 100, 2);
-        
-        // Format hasil untuk ditampilkan
         $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 2);
         $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
         
-        // Update tb_whats
-        $sql_update = "UPDATE tb_whats 
-                       SET target_omset = $target_omset, 
-                           nilai = $nilai, 
-                           hasil = '$hasil_text', 
-                           total = $total 
-                       WHERE id_what = $id_what AND id_user = '$ids'";
+        // ===== UBAH BAGIAN UPDATE INI =====
+        if ($is_owner) {
+            // Karyawan menilai sendiri - RESET tracking
+            $sql_update = "UPDATE tb_whats 
+                           SET target_omset = $target_omset, 
+                               nilai = $nilai, 
+                               hasil = '$hasil_text', 
+                               total = $total,
+                               is_edited=0,
+                               edited_by=NULL,
+                               edited_at=NULL,
+                               original_p_what=NULL,
+                               original_bobot=NULL,
+                               original_hasil=NULL,
+                               original_nilai=NULL,
+                               original_total=NULL
+                           WHERE id_what = $id_what AND id_user = '$ids'";
+        } else {
+            // Atasan menilai
+            $sql_update = "UPDATE tb_whats 
+                           SET target_omset = $target_omset, 
+                               nilai = $nilai, 
+                               hasil = '$hasil_text', 
+                               total = $total 
+                           WHERE id_what = $id_what AND id_user = '$ids'";
+        }
+        // ===== AKHIR PERUBAHAN =====
     }
     
     if (mysqli_query($conn, $sql_update)) {
@@ -174,19 +211,44 @@ if (isset($_POST['what_edit'])) {
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanw']);
     $bobot = floatval($_POST['bobotw']);
     
+    // ===== TAMBAHAN BARU: CEK APAKAH YANG EDIT ADALAH PEMILIK =====
+    $sql_check_owner = "SELECT id_user FROM tb_whats WHERE id_what = $idw";
+    $result_owner = mysqli_query($conn, $sql_check_owner);
+    $data_owner = mysqli_fetch_assoc($result_owner);
+    
+    $is_owner = ($data_owner['id_user'] == $ids);
+    // ===== AKHIR TAMBAHAN =====
+    
     // Ambil tipe what
     $sql_check = "SELECT tipe_what FROM tb_whats WHERE id_what = $idw";
     $result_check = mysqli_query($conn, $sql_check);
     $data_check = mysqli_fetch_assoc($result_check);
     $tipe_what = $data_check['tipe_what'];
     
-    // Update tb_whats
-    $sql = "UPDATE tb_whats SET p_what='$tujuan', bobot=$bobot WHERE id_what=$idw AND id_user='$ids'";
+    // ===== UBAH BAGIAN UPDATE INI =====
+    if ($is_owner) {
+        // Karyawan edit sendiri - RESET tracking
+        $sql = "UPDATE tb_whats 
+                SET p_what='$tujuan', 
+                    bobot=$bobot,
+                    is_edited=0,
+                    edited_by=NULL,
+                    edited_at=NULL,
+                    original_p_what=NULL,
+                    original_bobot=NULL,
+                    original_hasil=NULL,
+                    original_nilai=NULL,
+                    original_total=NULL
+                WHERE id_what=$idw AND id_user='$ids'";
+    } else {
+        // Atasan edit - tetap sama seperti sebelumnya
+        $sql = "UPDATE tb_whats SET p_what='$tujuan', bobot=$bobot WHERE id_what=$idw AND id_user='$ids'";
+    }
     
     if (mysqli_query($conn, $sql)) {
         // Jika What A, kelola indikator
         if ($tipe_what == 'A') {
-            // Hapus indikator yang ditandai untuk dihapus
+            // ... (kode indikator tetap sama seperti sebelumnya)
             if (isset($_POST['indikator_hapus']) && is_array($_POST['indikator_hapus'])) {
                 foreach ($_POST['indikator_hapus'] as $id_hapus) {
                     $id_hapus = intval($id_hapus);
@@ -194,17 +256,14 @@ if (isset($_POST['what_edit'])) {
                 }
             }
             
-            // Update atau insert indikator
             if (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai']) && isset($_POST['indikator_id'])) {
                 $keterangans = $_POST['indikator_keterangan'];
                 $nilais = $_POST['indikator_nilai'];
                 $ids_indikator = $_POST['indikator_id'];
                 
-                // Pastikan semua array memiliki jumlah yang sama
                 $count = min(count($keterangans), count($nilais), count($ids_indikator));
                 
                 for ($i = 0; $i < $count; $i++) {
-                    // Cek apakah keterangan dan nilai tidak kosong
                     if (!empty(trim($keterangans[$i])) && $nilais[$i] !== '') {
                         $ket = mysqli_real_escape_string($conn, trim($keterangans[$i]));
                         $nil = floatval($nilais[$i]);
@@ -212,13 +271,11 @@ if (isset($_POST['what_edit'])) {
                         $urutan = $i + 1;
                         
                         if ($id_indi > 0) {
-                            // Update indikator yang sudah ada
                             $sql_update = "UPDATE tb_indikator_whats 
                                            SET keterangan='$ket', nilai=$nil, urutan=$urutan 
                                            WHERE id_indikator=$id_indi";
                             mysqli_query($conn, $sql_update);
                         } else {
-                            // Insert indikator baru
                             $sql_insert = "INSERT INTO tb_indikator_whats (id_what, keterangan, nilai, urutan) 
                                            VALUES ($idw, '$ket', $nil, $urutan)";
                             mysqli_query($conn, $sql_insert);
@@ -281,11 +338,15 @@ if (isset($_POST['nilai_how'])) {
     $id_how = intval($_POST['idkpi']);
     
     // Ambil data how untuk cek tipe
-    $sql_how = "SELECT tipe_how, bobot FROM tb_hows WHERE id_how = $id_how";
+    $sql_how = "SELECT tipe_how, bobot, id_user FROM tb_hows WHERE id_how = $id_how";
     $result_how = mysqli_query($conn, $sql_how);
     $data_how = mysqli_fetch_assoc($result_how);
     $tipe_how = $data_how['tipe_how'];
     $bobot = $data_how['bobot'];
+    
+    // ===== TAMBAHAN BARU: CEK PEMILIK =====
+    $is_owner = ($data_how['id_user'] == $ids);
+    // ===== AKHIR TAMBAHAN =====
     
     if ($tipe_how == 'A') {
         // HOW A: Ambil nilai dari indikator yang dipilih
@@ -297,42 +358,75 @@ if (isset($_POST['nilai_how'])) {
         $nilai = $data['nilai'];
         $keterangan = mysqli_real_escape_string($conn, $data['keterangan']);
         
-        // Hitung total
         $total = number_format($nilai * $bobot / 100, 2);
         
-        // Update tb_hows
-        $sql_update = "UPDATE tb_hows 
-                       SET nilai = $nilai, hasil = '$keterangan', total = $total 
-                       WHERE id_how = $id_how AND id_user = '$ids'";
+        // ===== UBAH BAGIAN UPDATE INI =====
+        if ($is_owner) {
+            // Karyawan menilai sendiri - RESET tracking
+            $sql_update = "UPDATE tb_hows 
+                           SET nilai = $nilai, 
+                               hasil = '$keterangan', 
+                               total = $total,
+                               is_edited=0,
+                               edited_by=NULL,
+                               edited_at=NULL,
+                               original_p_how=NULL,
+                               original_bobot=NULL,
+                               original_hasil=NULL,
+                               original_nilai=NULL,
+                               original_total=NULL
+                           WHERE id_how = $id_how AND id_user = '$ids'";
+        } else {
+            // Atasan menilai
+            $sql_update = "UPDATE tb_hows 
+                           SET nilai = $nilai, hasil = '$keterangan', total = $total 
+                           WHERE id_how = $id_how AND id_user = '$ids'";
+        }
+        // ===== AKHIR PERUBAHAN =====
         
     } else {
         // HOW B: Hitung dari target omset dan hasil
         $target_omset = floatval($_POST['target_omset']);
         $hasil_omset = floatval($_POST['hasil_omset']);
         
-        // Hitung persentase pencapaian
         if ($target_omset > 0) {
             $persentase = ($hasil_omset / $target_omset) * 100;
-            $nilai = $persentase; // Nilai = persentase pencapaian
+            $nilai = $persentase;
         } else {
             $nilai = 0;
         }
         
-        // Hitung total
         $total = number_format($nilai * $bobot / 100, 2);
-        
-        // Format hasil untuk ditampilkan
-        // Format hasil untuk ditampilkan
         $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 2);
         $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
         
-        // Update tb_hows
-        $sql_update = "UPDATE tb_hows 
-                       SET target_omset = $target_omset, 
-                           nilai = $nilai, 
-                           hasil = '$hasil_text', 
-                           total = $total 
-                       WHERE id_how = $id_how AND id_user = '$ids'";
+        // ===== UBAH BAGIAN UPDATE INI =====
+        if ($is_owner) {
+            // Karyawan menilai sendiri - RESET tracking
+            $sql_update = "UPDATE tb_hows 
+                           SET target_omset = $target_omset, 
+                               nilai = $nilai, 
+                               hasil = '$hasil_text', 
+                               total = $total,
+                               is_edited=0,
+                               edited_by=NULL,
+                               edited_at=NULL,
+                               original_p_how=NULL,
+                               original_bobot=NULL,
+                               original_hasil=NULL,
+                               original_nilai=NULL,
+                               original_total=NULL
+                           WHERE id_how = $id_how AND id_user = '$ids'";
+        } else {
+            // Atasan menilai
+            $sql_update = "UPDATE tb_hows 
+                           SET target_omset = $target_omset, 
+                               nilai = $nilai, 
+                               hasil = '$hasil_text', 
+                               total = $total 
+                           WHERE id_how = $id_how AND id_user = '$ids'";
+        }
+        // ===== AKHIR PERUBAHAN =====
     }
     
     if (mysqli_query($conn, $sql_update)) {
@@ -350,19 +444,44 @@ if (isset($_POST['how_edit'])) {
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanh']);
     $bobot = floatval($_POST['boboth']);
     
+    // ===== TAMBAHAN BARU: CEK PEMILIK =====
+    $sql_check_owner = "SELECT id_user FROM tb_hows WHERE id_how = $idh";
+    $result_owner = mysqli_query($conn, $sql_check_owner);
+    $data_owner = mysqli_fetch_assoc($result_owner);
+    
+    $is_owner = ($data_owner['id_user'] == $ids);
+    // ===== AKHIR TAMBAHAN =====
+    
     // Ambil tipe how
     $sql_check = "SELECT tipe_how FROM tb_hows WHERE id_how = $idh";
     $result_check = mysqli_query($conn, $sql_check);
     $data_check = mysqli_fetch_assoc($result_check);
     $tipe_how = $data_check['tipe_how'];
     
-    // Update tb_hows
-    $sql = "UPDATE tb_hows SET p_how='$tujuan', bobot=$bobot WHERE id_how=$idh AND id_user='$ids'";
+    // ===== UBAH BAGIAN UPDATE INI =====
+    if ($is_owner) {
+        // Karyawan edit sendiri - RESET tracking
+        $sql = "UPDATE tb_hows 
+                SET p_how='$tujuan', 
+                    bobot=$bobot,
+                    is_edited=0,
+                    edited_by=NULL,
+                    edited_at=NULL,
+                    original_p_how=NULL,
+                    original_bobot=NULL,
+                    original_hasil=NULL,
+                    original_nilai=NULL,
+                    original_total=NULL
+                WHERE id_how=$idh AND id_user='$ids'";
+    } else {
+        // Atasan edit
+        $sql = "UPDATE tb_hows SET p_how='$tujuan', bobot=$bobot WHERE id_how=$idh AND id_user='$ids'";
+    }
+    // ===== AKHIR PERUBAHAN =====
     
     if (mysqli_query($conn, $sql)) {
-        // Jika How A, kelola indikator
+        // Jika How A, kelola indikator (kode tetap sama)
         if ($tipe_how == 'A') {
-            // Hapus indikator yang ditandai untuk dihapus
             if (isset($_POST['indikator_hapus']) && is_array($_POST['indikator_hapus'])) {
                 foreach ($_POST['indikator_hapus'] as $id_hapus) {
                     $id_hapus = intval($id_hapus);
@@ -370,7 +489,6 @@ if (isset($_POST['how_edit'])) {
                 }
             }
             
-            // Update atau insert indikator
             if (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai'])) {
                 $keterangans = $_POST['indikator_keterangan'];
                 $nilais = $_POST['indikator_nilai'];
@@ -384,13 +502,11 @@ if (isset($_POST['how_edit'])) {
                         $urutan = $i + 1;
                         
                         if ($id_indi > 0) {
-                            // Update indikator yang sudah ada
                             $sql_update = "UPDATE tb_indikator_hows 
                                            SET keterangan='$ket', nilai=$nil, urutan=$urutan 
                                            WHERE id_indikator=$id_indi";
                             mysqli_query($conn, $sql_update);
                         } else {
-                            // Insert indikator baru
                             $sql_insert = "INSERT INTO tb_indikator_hows (id_how, keterangan, nilai, urutan) 
                                            VALUES ($idh, '$ket', $nil, $urutan)";
                             mysqli_query($conn, $sql_insert);
@@ -496,6 +612,49 @@ if (isset($_POST['kpi_hapus'])) {
 <html lang="en">
 
 <?php include("pages/part/p_header.php"); ?>
+
+<style>
+.edited-badge {
+    background-color: #ffc107;
+    color: #000;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-left: 3px;
+    font-weight: bold;
+}
+
+.edited-row {
+    background-color: #fff3cd !important;
+    border-left: 3px solid #ffc107 !important;
+}
+
+.change-info {
+    font-size: 10px;
+    margin-top: 3px;
+    padding: 3px 5px;
+    background-color: #f8f9fa;
+    border-radius: 3px;
+    border-left: 2px solid #0d6efd;
+}
+
+.old-val {
+    color: #dc3545;
+    text-decoration: line-through;
+    font-weight: normal;
+}
+
+.new-val {
+    color: #198754;
+    font-weight: bold;
+}
+
+.change-timestamp {
+    font-size: 9px;
+    color: #6c757d;
+    font-style: italic;
+}
+</style>
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
     <!--begin::App Wrapper-->

@@ -52,25 +52,34 @@
                 <?php } ?>
             </h5>
             <div class="card-tools">
-            <button type="button"
-                data-bs-toggle="dropdown"
-                class="btn btn-tool dropdown-toggle"
-                style="color: white; margin-top: -10px; margin-right: 5px;">
-                <i class="bi bi-archive-fill fs-5"></i>
-            </button>
+                <button type="button"
+                    data-bs-toggle="dropdown"
+                    class="btn btn-tool dropdown-toggle"
+                    style="color: white; margin-top: -10px; margin-right: 5px;">
+                    <i class="bi bi-archive-fill fs-5"></i>
+                </button>
 
-            <div class="dropdown-menu dropdown-menu-end" role="menu">
-                <?php if ($sudah_archive) { ?>
-                    <a href="#" class="dropdown-item disabled text-muted">
-                        <i class="bi bi-check-circle"></i> Sudah Di-Archive - <?= tmapil($busd[0]-1,$busd[1]); ?>
-                    </a>
-                <?php } else { ?>
-                    <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                        data-bs-target="#archiveModal">
-                        <i class="bi bi-archive"></i> Archive - <?= tmapil($busd[0]-1,$busd[1]); ?>
-                    </a>
-                <?php } ?>
-            </div>
+                <div class="dropdown-menu dropdown-menu-end" role="menu">
+                    <?php if ($sudah_archive) { ?>
+                        <!-- Jika sudah di-archive -->
+                        <a href="#" class="dropdown-item disabled text-muted">
+                            <i class="bi bi-check-circle"></i> Sudah Di-Archive - <?= tmapil($busd[0]-1,$busd[1]); ?>
+                        </a>
+                    <?php } elseif (!$verified_status) { ?>
+                        <!-- ===== TAMBAHAN BARU: Jika belum diverifikasi ===== -->
+                        <a href="#" class="dropdown-item disabled text-muted" 
+                        title="KPI harus diverifikasi atasan terlebih dahulu">
+                            <i class="bi bi-lock-fill"></i> Archive Terkunci - <?= tmapil($busd[0]-1,$busd[1]); ?>
+                            <br><small class="text-danger">* Menunggu verifikasi atasan</small>
+                        </a>
+                    <?php } else { ?>
+                        <!-- Jika sudah diverifikasi dan belum di-archive -->
+                        <a href="#" class="dropdown-item" data-bs-toggle="modal"
+                            data-bs-target="#archiveModal">
+                            <i class="bi bi-archive"></i> Archive - <?= tmapil($busd[0]-1,$busd[1]); ?>
+                        </a>
+                    <?php } ?>
+                </div>
             </div>
         </div>
         <!-- ---------------------------------------------------------------------->
@@ -194,19 +203,56 @@
     <div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="archiveModalLabel">Simpan KPI Bulan <?= tmapil($busd[0]-1,$busd[1]); ?></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="archiveModalLabel">
+                        <i class="bi bi-archive-fill"></i> Simpan KPI Bulan <?= tmapil($busd[0]-1,$busd[1]); ?>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <form method="POST" action="" class="input">
-                        <center><h3 class="fw-bold text-danger">Apakah Kamu Yakin Menyimpan KPI?</h3></center>
-                       <center><p>Pastikan tidak ada yang salah karena data yang sudah tersimpan tidak bisa dirubah</p></center>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="input" name="archiveNow" class="btn btn-primary">Simpan</button>
-                </div>
+                <form method="POST" action="">
+                    <div class="modal-body">
+                        <!-- ===== TAMBAHAN: Tampilkan info verifikasi ===== -->
+                        <?php if ($verified_status) { 
+                            $verifier_name = getVerifierName($conn, $verified_status['verified_by']);
+                        ?>
+                            <div class="alert alert-success mb-3">
+                                <i class="bi bi-check-circle-fill"></i> 
+                                <strong>KPI Sudah Diverifikasi</strong><br>
+                                <small>
+                                    Oleh: <strong><?= $verifier_name ?></strong><br>
+                                    Pada: <?= date('d/m/Y H:i', strtotime($verified_status['verified_at'])) ?>
+                                </small>
+                            </div>
+                        <?php } ?>
+                        <!-- ===== AKHIR TAMBAHAN ===== -->
+                        
+                        <div class="text-center">
+                            <h4 class="fw-bold text-danger mb-3">
+                                <i class="bi bi-exclamation-triangle-fill"></i> 
+                                Apakah Kamu Yakin Menyimpan KPI?
+                            </h4>
+                            <p class="text-muted">
+                                Pastikan tidak ada yang salah karena data yang sudah tersimpan tidak bisa diubah
+                            </p>
+                        </div>
+                        
+                        <div class="alert alert-warning mt-3">
+                            <strong><i class="bi bi-info-circle"></i> Perhatian:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Data KPI akan disimpan secara permanen</li>
+                                <li>Tidak dapat diubah setelah di-archive</li>
+                                <li>Proses ini hanya bisa dilakukan sekali</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Batal
+                        </button>
+                        <button type="submit" name="archiveNow" class="btn btn-primary">
+                            <i class="bi bi-archive-fill"></i> Ya, Simpan KPI
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
