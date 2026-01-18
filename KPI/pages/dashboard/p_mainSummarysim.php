@@ -47,7 +47,7 @@
                         $bobot = $hasil['bobot'];
                         $dsf = $hasil['id'];
 
-                        $sql3 = "SELECT SUM(total) as total FROM tb_whats WHERE id_user=$id_user AND id_kpi=$dsf";
+                        $sql3 = "SELECT SUM(total) as total FROM tbsim_whats WHERE id_user=$id_user AND id_kpi=$dsf";
                         $result3 = mysqli_query($conn, $sql3);
                         $row3 = mysqli_fetch_assoc($result3);
                         $totalnilai = $row3['total'];
@@ -64,7 +64,7 @@
                                 </tr>";
                     }
 
-                    $sql4 = "SELECT SUM(total) as total FROM tb_whats WHERE id_user=$id_user";
+                    $sql4 = "SELECT SUM(total) as total FROM tbsim_whats WHERE id_user=$id_user";
                     $result4 = mysqli_query($conn, $sql4);
                     $row4 = mysqli_fetch_assoc($result4);
                     $totalnilai4 = $row4['total'];
@@ -102,7 +102,7 @@
                 <tr>
                     <?php
                     $bobotkpiw = 0;
-                    $sql5 = "SELECT bobotwhat as bw FROM tb_bobotkpi WHERE id_user=$id_user";
+                    $sql5 = "SELECT bobotwhat as bw FROM tbsim_bobotkpi WHERE id_user=$id_user";
                     $result5 = mysqli_query($conn, $sql5);
                     while ($row5 = mysqli_fetch_assoc($result5)) {
                         $bobotkpiw = $row5['bw'];
@@ -170,7 +170,7 @@
                         $bobot2 = $hasil['bobot2'];
                         $dsf = $hasil['id'];
 
-                        $sql7 = "SELECT SUM(total) as totalh FROM tb_hows WHERE id_user=$id_user AND id_kpi=$dsf";
+                        $sql7 = "SELECT SUM(total) as totalh FROM tbsim_hows WHERE id_user=$id_user AND id_kpi=$dsf";
                         $result7 = mysqli_query($conn, $sql7);
                         $row7 = mysqli_fetch_assoc($result7);
                         $totalnilaih = $row7['totalh'];
@@ -188,7 +188,7 @@
                                 </tr>";
                     }
 
-                    $sql4 = "SELECT SUM(total) as total FROM tb_hows WHERE id_user=$id_user ";
+                    $sql4 = "SELECT SUM(total) as total FROM tbsim_hows WHERE id_user=$id_user ";
                     $result4 = mysqli_query($conn, $sql4);
                     $row4 = mysqli_fetch_assoc($result4);
                     $totalnilai5 = $row4['total'];
@@ -229,7 +229,7 @@
                     <tr>
                         <?php
                         $bobotkpih = 0;
-                        $sql8 = "SELECT bobothow as bh FROM tb_bobotkpi WHERE id_user=$id_user";
+                        $sql8 = "SELECT bobothow as bh FROM tbsim_bobotkpi WHERE id_user=$id_user";
                         $result8 = mysqli_query($conn, $sql8);
                         while ($row8 = mysqli_fetch_assoc($result8)) {
                             $bobotkpih = $row8['bh'];

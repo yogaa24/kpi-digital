@@ -293,49 +293,69 @@
                                 <tr class="edited-row">
                                     <td colspan="6">
                                         <div class="alert alert-warning mb-0">
-                                            <strong><i class="bi bi-exclamation-triangle-fill"></i> Indikator yang Diubah:</strong>
-                                            <ul class="mb-0 mt-2">
-                                                <?php while ($indikator = mysqli_fetch_assoc($result_indikator)) { 
-                                                    if ($indikator['is_edited'] && !empty($indikator['original_keterangan'])) {
-                                                ?>
-                                                    <li>
-                                                        <small>
-                                                            <strong>Sebelum:</strong> 
-                                                            <span class="old-value">
-                                                                <?= htmlspecialchars($indikator['original_keterangan']) ?> = <?= $indikator['original_nilai'] ?>
+                                            <small>
+                                                <strong>
+                                                    <i class="bi bi-exclamation-triangle-fill"></i> 
+                                                    Indikator yang Diubah
+                                                </strong>
+
+                                                <ul class="mb-0 list-unstyled">
+                                                    <?php while ($indikator = mysqli_fetch_assoc($result_indikator)) { 
+                                                        if ($indikator['is_edited'] && !empty($indikator['original_keterangan'])) {
+                                                    ?>
+                                                        <li class="d-flex align-items-center gap-2">
+                                                            
+                                                            <span class="fw-semibold">Indikator</span>
+
+                                                            <span>|</span>
+
+                                                            <span>
+                                                                <strong>Sebelum:</strong> 
+                                                                <span class="old-value">
+                                                                    <?= htmlspecialchars($indikator['original_keterangan']) ?> = <?= $indikator['original_nilai'] ?>
+                                                                </span>
                                                             </span>
+
                                                             <span class="change-arrow">→</span>
-                                                            <strong>Sesudah:</strong> 
-                                                            <span class="new-value">
-                                                                <?= htmlspecialchars($indikator['keterangan']) ?> = <?= $indikator['nilai'] ?>
+
+                                                            <span>
+                                                                <strong>Sesudah:</strong> 
+                                                                <span class="new-value">
+                                                                    <?= htmlspecialchars($indikator['keterangan']) ?> = <?= $indikator['nilai'] ?>
+                                                                </span>
                                                             </span>
+
                                                             <?php if (!empty($indikator['edited_at'])) { ?>
-                                                                <br><small class="text-muted">
+                                                                <span class="text-muted">
                                                                     <i class="bi bi-clock"></i> 
                                                                     <?= date('d/m/Y H:i', strtotime($indikator['edited_at'])) ?>
-                                                                </small>
+                                                                </span>
                                                             <?php } ?>
-                                                        </small>
-                                                    </li>
-                                                <?php 
-                                                    } elseif ($indikator['is_edited'] && empty($indikator['original_keterangan'])) {
-                                                ?>
-                                                    <li>
-                                                        <small>
+
+                                                        </li>
+
+                                                    <?php 
+                                                        } elseif ($indikator['is_edited'] && empty($indikator['original_keterangan'])) {
+                                                    ?>
+                                                        <li class="d-flex align-items-center gap-2">
                                                             <span class="badge bg-success">BARU</span>
-                                                            <span class="new-value">
+
+                                                            <span>
                                                                 <?= htmlspecialchars($indikator['keterangan']) ?> = <?= $indikator['nilai'] ?>
                                                             </span>
+
                                                             <small class="text-muted">(Ditambahkan oleh atasan)</small>
-                                                        </small>
-                                                    </li>
-                                                <?php 
-                                                    }
-                                                } ?>
-                                            </ul>
+                                                        </li>
+                                                    <?php 
+                                                        }
+                                                    } ?>
+                                                </ul>
+
+                                            </small>
                                         </div>
                                     </td>
                                 </tr>
+
                             <?php 
                                 }
                             }

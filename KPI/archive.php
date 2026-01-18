@@ -7,19 +7,19 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 } else {
 
-    require 'helper/configarchive.php';
+    require 'helper/config.php';
     require 'helper/getUser.php';
     require 'helper/status_functions.php';
 
-    function getnilaiaa($connarc,$idar,$id_user){
+    function getnilaiaa($conn,$idar,$id_user){
         $sql= "SELECT tbar_kpi.* FROM tbar_kpi INNER JOIN tbar_archive ON tbar_archive.id_archive = tbar_kpi.id_arcv WHERE tbar_archive.bulan = '$idar' AND tbar_archive.id_user = $id_user";
 
         $totalws = 0;
-        $resultsaf = mysqli_query($connarc, $sql);
+        $resultsaf = mysqli_query($conn, $sql);
         while ($hasils = mysqli_fetch_assoc($resultsaf)) {
 
             $sql3s = "SELECT SUM(total) as total FROM tbar_whats WHERE id_user=$id_user AND id_kpi=" . $hasils['id'];
-            $result3s = mysqli_query($connarc, $sql3s);
+            $result3s = mysqli_query($conn, $sql3s);
             $row3sd = mysqli_fetch_assoc($result3s);
             $totalnilaisd = $row3sd['total'];
             $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
@@ -27,19 +27,19 @@ if (!isset($_SESSION['id_user'])) {
         }
         $bobotkpid = 0;
         $sql5a = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_user";
-        $result5a = mysqli_query($connarc, $sql5a);
+        $result5a = mysqli_query($conn, $sql5a);
         while ($row5a = mysqli_fetch_assoc($result5a)) {
             $bobotkpid = $row5a['bw'];
         }
         $zbotw = ($totalws * $bobotkpid) / 100;
         // ====================================================================================
         $totalhfg = 0;
-        $resultfg = mysqli_query($connarc, $sql);
+        $resultfg = mysqli_query($conn, $sql);
 
         while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
 
             $sql7fg = "SELECT SUM(total) as totalh FROM tbar_hows WHERE id_user=$id_user AND id_kpi=" . $hasilfg['id'];
-            $result7fg = mysqli_query($connarc, $sql7fg);
+            $result7fg = mysqli_query($conn, $sql7fg);
             $row7fg = mysqli_fetch_assoc($result7fg);
             $totalnilaihfg = $row7fg['totalh'];
 
@@ -48,7 +48,7 @@ if (!isset($_SESSION['id_user'])) {
         }
         $bobotkpias = 0;
         $sql8a = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_user";
-        $result8a = mysqli_query($connarc, $sql8a);
+        $result8a = mysqli_query($conn, $sql8a);
         while ($row8a = mysqli_fetch_assoc($result8a)) {
             $bobotkpias = $row8a['bh'];
         }
@@ -133,7 +133,7 @@ $archivec = "SELECT DISTINCT ta.id_archive, ta.bulan, ta.status, ta.reviewed_by,
             FROM tbar_archive ta
             WHERE ta.id_user = $id_user
             ORDER BY ta.bulan DESC";
-$getArch = mysqli_query($connarc, $archivec);
+$getArch = mysqli_query($conn, $archivec);
 }
 ?>
 <html lang="en">
@@ -196,13 +196,13 @@ echo '
                                                 <th><center>Bulan</center></th>
                                                 <th width="15%"><center>Nilai</center></th>
                                                 <th width="15%"><center>KPI</center></th>
-                                                <th width="15%"><center>Status</center></th> <!-- TAMBAH KOLOM INI -->
+                                                <!-- <th width="15%"><center>Status</center></th>  -->
                                                 <th width="10%"><center>#</center></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php $no = 1; if($getArch){ while ($row = mysqli_fetch_assoc($getArch)) { 
-                                                $nilai = round(getnilaiaa($connarc,$row['bulan'],$id_user),2);
+                                                $nilai = round(getnilaiaa($conn,$row['bulan'],$id_user),2);
                                                 $status = $row['status'];
                                             ?>
                                             <tr>
@@ -212,7 +212,8 @@ echo '
                                                 <td style="color:<?= getsfo($nilai) ?>">
                                                     <center><?= getstatad($nilai) ?></center>
                                                 </td>
-                                                <td> <!-- KOLOM STATUS BARU -->
+                                                <!-- KOLOM STATUS BARU -->
+                                                <!-- <td> 
                                                     <center>
                                                         <?= getStatusBadge($status) ?>
                                                         
@@ -228,7 +229,7 @@ echo '
                                                             </small>
                                                         <?php } ?>
                                                     </center>
-                                                </td>
+                                                </td> -->
                                                 <td>
                                                     <center>
                                                         <a type="button" href="archivepoin?idarc=<?= $row['bulan'];?>"

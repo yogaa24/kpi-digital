@@ -6,7 +6,7 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 } else {
 
-    require 'helper/configarchive.php';
+    require 'helper/config.php';
     require 'helper/getUser.php';
 
 // Handler untuk edit what (WHAT A dan WHAT B)
@@ -14,13 +14,13 @@ if (isset($_POST['what_edit'])) {
     $ids = $_GET['id'];
     $idar = $_GET['idar'];
     $idw = intval($_POST['idkw']);
-    $tujuan = mysqli_real_escape_string($connarc, $_POST['tujuanw']);
+    $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanw']);
     $bobot = floatval($_POST['bobotw']);
     $editor_id = $_SESSION['id_user']; // ID atasan yang mengedit
     
     // Ambil tipe what
     $sql_check = "SELECT tipe_what FROM tbar_whats WHERE id_what = $idw";
-    $result_check = mysqli_query($connarc, $sql_check);
+    $result_check = mysqli_query($conn, $sql_check);
     $data_check = mysqli_fetch_assoc($result_check);
     $tipe_what = $data_check['tipe_what'];
     
@@ -33,14 +33,14 @@ if (isset($_POST['what_edit'])) {
                 edited_at=NOW() 
             WHERE id_what=$idw AND id_user='$ids'";
     
-    if (mysqli_query($connarc, $sql)) {
+    if (mysqli_query($conn, $sql)) {
         // Jika What A, kelola indikator
         if ($tipe_what == 'A') {
             // Hapus indikator yang ditandai untuk dihapus
             if (isset($_POST['indikator_hapus']) && is_array($_POST['indikator_hapus'])) {
                 foreach ($_POST['indikator_hapus'] as $id_hapus) {
                     $id_hapus = intval($id_hapus);
-                    mysqli_query($connarc, "DELETE FROM tbar_indikator_whats WHERE id_indikator = $id_hapus");
+                    mysqli_query($conn, "DELETE FROM tbar_indikator_whats WHERE id_indikator = $id_hapus");
                 }
             }
             
@@ -54,7 +54,7 @@ if (isset($_POST['what_edit'])) {
                 
                 for ($i = 0; $i < $count; $i++) {
                     if (!empty(trim($keterangans[$i])) && $nilais[$i] !== '') {
-                        $ket = mysqli_real_escape_string($connarc, trim($keterangans[$i]));
+                        $ket = mysqli_real_escape_string($conn, trim($keterangans[$i]));
                         $nil = floatval($nilais[$i]);
                         $id_indi = intval($ids_indikator[$i]);
                         $urutan = $i + 1;
@@ -69,13 +69,13 @@ if (isset($_POST['what_edit'])) {
                                                edited_by=$editor_id,
                                                edited_at=NOW()
                                            WHERE id_indikator=$id_indi";
-                            mysqli_query($connarc, $sql_update);
+                            mysqli_query($conn, $sql_update);
                         } else {
                             // Insert indikator baru - TANDAI SEBAGAI BARU (EDITED)
                             $sql_insert = "INSERT INTO tbar_indikator_whats 
                                           (id_what, keterangan, nilai, urutan, is_edited, edited_by, edited_at) 
                                            VALUES ($idw, '$ket', $nil, $urutan, 1, $editor_id, NOW())";
-                            mysqli_query($connarc, $sql_insert);
+                            mysqli_query($conn, $sql_insert);
                         }
                     }
                 }
@@ -98,7 +98,7 @@ if (isset($_POST['nilai_what'])) {
     
     // Ambil data what untuk cek tipe
     $sql_what = "SELECT tipe_what, bobot FROM tbar_whats WHERE id_what = $id_what";
-    $result_what = mysqli_query($connarc, $sql_what);
+    $result_what = mysqli_query($conn, $sql_what);
     $data_what = mysqli_fetch_assoc($result_what);
     $tipe_what = $data_what['tipe_what'];
     $bobot = $data_what['bobot'];
@@ -108,10 +108,10 @@ if (isset($_POST['nilai_what'])) {
         $id_indikator = intval($_POST['nilaisi']);
         
         $sql_get = "SELECT nilai, keterangan FROM tbar_indikator_whats WHERE id_indikator = $id_indikator";
-        $result_get = mysqli_query($connarc, $sql_get);
+        $result_get = mysqli_query($conn, $sql_get);
         $data = mysqli_fetch_assoc($result_get);
         $nilai = $data['nilai'];
-        $keterangan = mysqli_real_escape_string($connarc, $data['keterangan']);
+        $keterangan = mysqli_real_escape_string($conn, $data['keterangan']);
         
         // Hitung total
         $total = number_format($nilai * $bobot / 100, 2);
@@ -140,7 +140,7 @@ if (isset($_POST['nilai_what'])) {
         
         $total = number_format($nilai * $bobot / 100, 2);
         $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 2);
-        $hasil_text = mysqli_real_escape_string($connarc, $hasil_text);
+        $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
         
         // Update tbar_whats - TAMBAH PENANDA EDIT
         $sql_update = "UPDATE tbar_whats 
@@ -154,11 +154,11 @@ if (isset($_POST['nilai_what'])) {
                        WHERE id_what = $id_what AND id_user = '$ids'";
     }
     
-    if (mysqli_query($connarc, $sql_update)) {
+    if (mysqli_query($conn, $sql_update)) {
         header('Location: archiveangdet.php?id=' . $ids . '&idar=' . urlencode($idar));
         exit();
     } else {
-        echo "<script>alert('Gagal menyimpan penilaian: " . mysqli_error($connarc) . "')</script>";
+        echo "<script>alert('Gagal menyimpan penilaian: " . mysqli_error($conn) . "')</script>";
     }
 }
 
@@ -169,11 +169,11 @@ if (isset($_POST['what_hapus'])) {
     $idkpi = intval($_POST['idkwd']);
 
     // Hapus indikator terkait terlebih dahulu
-    mysqli_query($connarc, "DELETE FROM tbar_indikator_whats WHERE id_what = $idkpi");
+    mysqli_query($conn, "DELETE FROM tbar_indikator_whats WHERE id_what = $idkpi");
     
     // Hapus what
     $sql = "DELETE FROM tbar_whats WHERE id_what=$idkpi AND id_user=$ids";
-    $result = mysqli_query($connarc, $sql);
+    $result = mysqli_query($conn, $sql);
     
     if ($result) {
         header('Location: archiveangdet.php?id=' . $ids . '&idar=' . urlencode($idar));
@@ -188,13 +188,13 @@ if (isset($_POST['how_edit'])) {
     $ids = $_GET['id'];
     $idar = $_GET['idar'];
     $idh = intval($_POST['idkh']);
-    $tujuan = mysqli_real_escape_string($connarc, $_POST['tujuanh']);
+    $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanh']);
     $bobot = floatval($_POST['boboth']);
     $editor_id = $_SESSION['id_user'];
     
     // Ambil tipe how
     $sql_check = "SELECT tipe_how FROM tbar_hows WHERE id_how = $idh";
-    $result_check = mysqli_query($connarc, $sql_check);
+    $result_check = mysqli_query($conn, $sql_check);
     $data_check = mysqli_fetch_assoc($result_check);
     $tipe_how = $data_check['tipe_how'];
     
@@ -207,13 +207,13 @@ if (isset($_POST['how_edit'])) {
                 edited_at=NOW()
             WHERE id_how=$idh AND id_user='$ids'";
     
-    if (mysqli_query($connarc, $sql)) {
+    if (mysqli_query($conn, $sql)) {
         // Jika How A, kelola indikator
         if ($tipe_how == 'A') {
             if (isset($_POST['indikator_hapus']) && is_array($_POST['indikator_hapus'])) {
                 foreach ($_POST['indikator_hapus'] as $id_hapus) {
                     $id_hapus = intval($id_hapus);
-                    mysqli_query($connarc, "DELETE FROM tbar_indikator_hows WHERE id_indikator = $id_hapus");
+                    mysqli_query($conn, "DELETE FROM tbar_indikator_hows WHERE id_indikator = $id_hapus");
                 }
             }
             
@@ -224,7 +224,7 @@ if (isset($_POST['how_edit'])) {
                 
                 for ($i = 0; $i < count($keterangans); $i++) {
                     if (!empty($keterangans[$i])) {
-                        $ket = mysqli_real_escape_string($connarc, $keterangans[$i]);
+                        $ket = mysqli_real_escape_string($conn, $keterangans[$i]);
                         $nil = floatval($nilais[$i]);
                         $id_indi = intval($ids_indikator[$i]);
                         $urutan = $i + 1;
@@ -239,13 +239,13 @@ if (isset($_POST['how_edit'])) {
                                                edited_by=$editor_id,
                                                edited_at=NOW()
                                            WHERE id_indikator=$id_indi";
-                            mysqli_query($connarc, $sql_update);
+                            mysqli_query($conn, $sql_update);
                         } else {
                             // Insert baru - TANDAI EDITED
                             $sql_insert = "INSERT INTO tbar_indikator_hows 
                                           (id_how, keterangan, nilai, urutan, is_edited, edited_by, edited_at) 
                                            VALUES ($idh, '$ket', $nil, $urutan, 1, $editor_id, NOW())";
-                            mysqli_query($connarc, $sql_insert);
+                            mysqli_query($conn, $sql_insert);
                         }
                     }
                 }
@@ -268,7 +268,7 @@ if (isset($_POST['nilai_how'])) {
     
     // Ambil data how untuk cek tipe
     $sql_how = "SELECT tipe_how, bobot FROM tbar_hows WHERE id_how = $id_how";
-    $result_how = mysqli_query($connarc, $sql_how);
+    $result_how = mysqli_query($conn, $sql_how);
     $data_how = mysqli_fetch_assoc($result_how);
     $tipe_how = $data_how['tipe_how'];
     $bobot = $data_how['bobot'];
@@ -277,10 +277,10 @@ if (isset($_POST['nilai_how'])) {
         $id_indikator = intval($_POST['nilaisi']);
         
         $sql_get = "SELECT nilai, keterangan FROM tbar_indikator_hows WHERE id_indikator = $id_indikator";
-        $result_get = mysqli_query($connarc, $sql_get);
+        $result_get = mysqli_query($conn, $sql_get);
         $data = mysqli_fetch_assoc($result_get);
         $nilai = $data['nilai'];
-        $keterangan = mysqli_real_escape_string($connarc, $data['keterangan']);
+        $keterangan = mysqli_real_escape_string($conn, $data['keterangan']);
         
         $total = number_format($nilai * $bobot / 100, 2);
         
@@ -307,7 +307,7 @@ if (isset($_POST['nilai_how'])) {
         
         $total = number_format($nilai * $bobot / 100, 2);
         $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 2);
-        $hasil_text = mysqli_real_escape_string($connarc, $hasil_text);
+        $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
         
         // Update - TAMBAH PENANDA
         $sql_update = "UPDATE tbar_hows 
@@ -321,11 +321,11 @@ if (isset($_POST['nilai_how'])) {
                        WHERE id_how = $id_how AND id_user = '$ids'";
     }
     
-    if (mysqli_query($connarc, $sql_update)) {
+    if (mysqli_query($conn, $sql_update)) {
         header('Location: archiveangdet.php?id=' . $ids . '&idar=' . urlencode($idar));
         exit();
     } else {
-        echo "<script>alert('Gagal menyimpan penilaian: " . mysqli_error($connarc) . "')</script>";
+        echo "<script>alert('Gagal menyimpan penilaian: " . mysqli_error($conn) . "')</script>";
     }
 }
 
@@ -336,11 +336,11 @@ if (isset($_POST['how_hapus'])) {
     $idkpi = intval($_POST['idkhd']);
 
     // Hapus indikator terkait terlebih dahulu
-    mysqli_query($connarc, "DELETE FROM tbar_indikator_hows WHERE id_how = $idkpi");
+    mysqli_query($conn, "DELETE FROM tbar_indikator_hows WHERE id_how = $idkpi");
     
     // Hapus how
     $sql = "DELETE FROM tbar_hows WHERE id_how=$idkpi AND id_user=$ids";
-    $result = mysqli_query($connarc, $sql);
+    $result = mysqli_query($conn, $sql);
     
     if ($result) {
         header('Location: archiveangdet.php?id=' . $ids . '&idar=' . urlencode($idar));
@@ -354,7 +354,7 @@ if (isset($_POST['how_hapus'])) {
 $idar = $_GET['idar'];
 
 $sql= "SELECT tbar_kpi.* FROM tbar_kpi INNER JOIN tbar_archive ON tbar_archive.id_archive = tbar_kpi.id_arcv WHERE tbar_archive.bulan = '$idar' AND tbar_archive.id_user = $id_user";
-$result = mysqli_query($connarc, $sql);
+$result = mysqli_query($conn, $sql);
 $idKPI;
 $idUSER;
 $poin;
@@ -363,7 +363,7 @@ $poin2;
 $bobot2;
 
 $sql2 = "SELECT sum(bobot) FROM tbar_kpi WHERE id_user=$id_user AND bulan = '$idar'";
-$result2 = mysqli_query($connarc, $sql2);
+$result2 = mysqli_query($conn, $sql2);
 
 }
 ?>
@@ -511,7 +511,7 @@ $result2 = mysqli_query($connarc, $sql2);
                                             <tbody>
                                             <?php 
                                             $sql1 = "SELECT * FROM tbar_whats WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
-                                            $ql = mysqli_query($connarc, $sql1);
+                                            $ql = mysqli_query($conn, $sql1);
                                             while ($res = mysqli_fetch_assoc($ql)) {
                                             ?>
                                                 <tr class="align-middle <?= $res['is_edited'] == 1 ? 'edited-row' : '' ?>">
@@ -541,7 +541,7 @@ $result2 = mysqli_query($connarc, $sql2);
                                                         <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
                                                             <i class="bi bi-eye fs-8"></i>
                                                         </button>
-                                                        <div class="dropdown-menu dropdown-menu-end" role="menu">
+                                                        <!-- <div class="dropdown-menu dropdown-menu-end" role="menu">
                                                             <a value="<?php echo $res['id_what']; ?>" name="what_edit" class="dropdown-item"
                                                                 data-bs-toggle="modal"
                                                                 data-bs-target="#EditWhatModal<?= $res['id_what'] ?>">Edit</a> 
@@ -550,7 +550,7 @@ $result2 = mysqli_query($connarc, $sql2);
                                                             <div class="dropdown-divider"></div>
                                                             <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
                                                                 data-bs-target="#NilaiWhatModal<?= $res['id_what'] ?>">Nilai</a>
-                                                        </div>
+                                                        </div> -->
                                                     </td>
                                                 </tr>
 
@@ -605,7 +605,7 @@ $result2 = mysqli_query($connarc, $sql2);
                                                                                 $sql_indikator = "SELECT * FROM tbar_indikator_whats 
                                                                                                 WHERE id_what = '$id_what' 
                                                                                                 ORDER BY urutan ASC";
-                                                                                $result_indikator = mysqli_query($connarc, $sql_indikator);
+                                                                                $result_indikator = mysqli_query($conn, $sql_indikator);
                                                                                 
                                                                                 while ($indikator = mysqli_fetch_assoc($result_indikator)) {
                                                                                     // Potong keterangan jika terlalu panjang untuk ditampilkan
@@ -694,7 +694,7 @@ $result2 = mysqli_query($connarc, $sql2);
                                             <tbody>
                                             <?php
                                             $sql1 = "SELECT * FROM tbar_hows WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
-                                            $ql = mysqli_query($connarc, $sql1);
+                                            $ql = mysqli_query($conn, $sql1);
                                             while ($res = mysqli_fetch_assoc($ql)) {
                                             ?>
                                                 <tr class="align-middle <?= $res['is_edited'] == 1 ? 'edited-row' : '' ?>">
@@ -724,7 +724,7 @@ $result2 = mysqli_query($connarc, $sql2);
                                                         <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
                                                             <i class="bi bi-eye fs-8"></i>
                                                         </button>
-                                                        <div class="dropdown-menu dropdown-menu-end" role="menu">
+                                                        <!-- <div class="dropdown-menu dropdown-menu-end" role="menu">
                                                             <a value="<?php echo $res['id_how']; ?>" name="how_edit" class="dropdown-item"
                                                                 data-bs-toggle="modal"
                                                                 data-bs-target="#EditHowModal<?= $res['id_how'] ?>">Edit</a>
@@ -733,7 +733,7 @@ $result2 = mysqli_query($connarc, $sql2);
                                                             <div class="dropdown-divider"></div>
                                                             <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
                                                                 data-bs-target="#NilaiHowModal<?= $res['id_how'] ?>">Nilai</a>
-                                                        </div>
+                                                        </div> -->
                                                     </td>
                                                 </tr>
                                                 
@@ -772,7 +772,7 @@ $result2 = mysqli_query($connarc, $sql2);
                                                                                 $sql_indikator = "SELECT * FROM tbar_indikator_hows 
                                                                                                 WHERE id_how = '$id_how' 
                                                                                                 ORDER BY urutan ASC";
-                                                                                $result_indikator = mysqli_query($connarc, $sql_indikator);
+                                                                                $result_indikator = mysqli_query($conn, $sql_indikator);
                                                                                 
                                                                                 while ($indikator = mysqli_fetch_assoc($result_indikator)) {
                                                                                     echo '<option value="'.$indikator['id_indikator'].'">';

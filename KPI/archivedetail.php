@@ -6,7 +6,7 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 } else {
 
-    require 'helper/configarchive.php';
+    require 'helper/config.php';
     require 'helper/getUser.php';
     require 'helper/getKPIArch.php';
 
@@ -124,7 +124,7 @@ if (!isset($_SESSION['id_user'])) {
                                             UNION ALL
                                             SELECT id_how FROM tbar_hows WHERE id_user='$id_user' AND is_edited=1
                                         ) as edited_items";
-                    $result_check = mysqli_query($connarc, $sql_check_edited);
+                    $result_check = mysqli_query($conn, $sql_check_edited);
                     $data_check = mysqli_fetch_assoc($result_check);
                     
                     if ($data_check['total_edited'] > 0) {
@@ -189,7 +189,7 @@ if (!isset($_SESSION['id_user'])) {
                                             <tbody>
                                                 <?php 
                                                 $sql1 = "SELECT * FROM tbar_whats WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
-                                                $ql = mysqli_query($connarc, $sql1);
+                                                $ql = mysqli_query($conn, $sql1);
                                                 while ($res = mysqli_fetch_assoc($ql)) {
                                                 ?>
                                                     <tr class="align-middle <?= ($res['is_edited'] == 1) ? 'edited-row' : '' ?>">
@@ -210,7 +210,7 @@ if (!isset($_SESSION['id_user'])) {
                                                                 if (!empty($res['edited_by'])) {
                                                                     $editor_id = $res['edited_by'];
                                                                     $sql_editor = "SELECT nama_lengkap FROM user WHERE id_user = $editor_id";
-                                                                    $result_editor = mysqli_query($connarc, $sql_editor);
+                                                                    $result_editor = mysqli_query($conn, $sql_editor);
                                                                     if ($result_editor && mysqli_num_rows($result_editor) > 0) {
                                                                         $editor_data = mysqli_fetch_assoc($result_editor);
                                                                         echo '<br><small class="edited-by-info">';
@@ -316,7 +316,7 @@ if (!isset($_SESSION['id_user'])) {
                                             <tbody>
                                                 <?php
                                                 $sql1 = "SELECT * FROM tbar_hows WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
-                                                $ql = mysqli_query($connarc, $sql1);
+                                                $ql = mysqli_query($conn, $sql1);
                                                 while ($res = mysqli_fetch_assoc($ql)) {
                                                 ?>
                                                     <tr class="align-middle <?= ($res['is_edited'] == 1) ? 'edited-row' : '' ?>">
@@ -337,7 +337,7 @@ if (!isset($_SESSION['id_user'])) {
                                                                 if (!empty($res['edited_by'])) {
                                                                     $editor_id = $res['edited_by'];
                                                                     $sql_editor = "SELECT nama_lengkap FROM user WHERE id_user = $editor_id";
-                                                                    $result_editor = mysqli_query($connarc, $sql_editor);
+                                                                    $result_editor = mysqli_query($conn, $sql_editor);
                                                                     if ($result_editor && mysqli_num_rows($result_editor) > 0) {
                                                                         $editor_data = mysqli_fetch_assoc($result_editor);
                                                                         echo '<br><small class="edited-by-info">';

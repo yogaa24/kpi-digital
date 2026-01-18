@@ -9,7 +9,6 @@ require 'helper/config.php';
 require 'helper/getUser.php';
 
 // Koneksi ke database simulasi
-$conn_sim = mysqli_connect("localhost", "root", "", "db_simulasi");
 
 // Cek level Admin HRD
 $sql_check = "SELECT level FROM tb_auth WHERE id_user = '$id_user'";

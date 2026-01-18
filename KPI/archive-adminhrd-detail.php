@@ -6,7 +6,7 @@ if (!isset($_SESSION['id_user'])) {
 }
 
 require 'helper/config.php';
-require 'helper/configarchive.php';
+require 'helper/config.php';
 require 'helper/getUser.php';
 
 // Cek level Admin HRD
@@ -54,16 +54,16 @@ function convertBulan($bulan) {
 }
 
 // Function untuk hitung nilai
-function getnilaiaa($connarc, $idar, $id_userdd) {
+function getnilaiaa($conn, $idar, $id_userdd) {
     $sql = "SELECT tbar_kpi.* FROM tbar_kpi 
             INNER JOIN tbar_archive ON tbar_archive.id_archive = tbar_kpi.id_arcv 
             WHERE tbar_archive.bulan = '$idar' AND tbar_archive.id_user = $id_userdd";
 
     $totalws = 0;
-    $resultsaf = mysqli_query($connarc, $sql);
+    $resultsaf = mysqli_query($conn, $sql);
     while ($hasils = mysqli_fetch_assoc($resultsaf)) {
         $sql3s = "SELECT SUM(total) as total FROM tbar_whats WHERE id_user=$id_userdd AND id_kpi=" . $hasils['id'];
-        $result3s = mysqli_query($connarc, $sql3s);
+        $result3s = mysqli_query($conn, $sql3s);
         $row3sd = mysqli_fetch_assoc($result3s);
         $totalnilaisd = $row3sd['total'];
         $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
@@ -72,17 +72,17 @@ function getnilaiaa($connarc, $idar, $id_userdd) {
     
     $bobotkpid = 0;
     $sql5a = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_userdd";
-    $result5a = mysqli_query($connarc, $sql5a);
+    $result5a = mysqli_query($conn, $sql5a);
     while ($row5a = mysqli_fetch_assoc($result5a)) {
         $bobotkpid = $row5a['bw'];
     }
     $zbotw = ($totalws * $bobotkpid) / 100;
 
     $totalhfg = 0;
-    $resultfg = mysqli_query($connarc, $sql);
+    $resultfg = mysqli_query($conn, $sql);
     while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
         $sql7fg = "SELECT SUM(total) as totalh FROM tbar_hows WHERE id_user=$id_userdd AND id_kpi=" . $hasilfg['id'];
-        $result7fg = mysqli_query($connarc, $sql7fg);
+        $result7fg = mysqli_query($conn, $sql7fg);
         $row7fg = mysqli_fetch_assoc($result7fg);
         $totalnilaihfg = $row7fg['totalh'];
         $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
@@ -91,7 +91,7 @@ function getnilaiaa($connarc, $idar, $id_userdd) {
     
     $bobotkpias = 0;
     $sql8a = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_userdd";
-    $result8a = mysqli_query($connarc, $sql8a);
+    $result8a = mysqli_query($conn, $sql8a);
     while ($row8a = mysqli_fetch_assoc($result8a)) {
         $bobotkpias = $row8a['bh'];
     }
@@ -126,7 +126,7 @@ function getsfo($nilair) {
 
 // Ambil archive user tersebut
 $archivec = "SELECT bulan FROM tbar_archive WHERE id_user = $id_user_archive GROUP BY bulan ORDER BY bulan DESC";
-$getArch = mysqli_query($connarc, $archivec);
+$getArch = mysqli_query($conn, $archivec);
 ?>
 
 <!DOCTYPE html>
@@ -199,7 +199,7 @@ $getArch = mysqli_query($connarc, $archivec);
                                                 <?php 
                                                 $no = 1;
                                                 while ($row = mysqli_fetch_assoc($getArch)) { 
-                                                    $nilai = getnilaiaa($connarc, $row['bulan'], $id_user_archive);
+                                                    $nilai = getnilaiaa($conn, $row['bulan'], $id_user_archive);
                                                     $badge_color = getsfo($nilai);
                                                     $status = getstatad($nilai);
                                                 ?>
@@ -259,7 +259,7 @@ $getArch = mysqli_query($connarc, $archivec);
                         $total_nilai = 0;
                         $count = 0;
                         while ($row = mysqli_fetch_assoc($getArch)) {
-                            $total_nilai += getnilaiaa($connarc, $row['bulan'], $id_user_archive);
+                            $total_nilai += getnilaiaa($conn, $row['bulan'], $id_user_archive);
                             $count++;
                         }
                         $avg_nilai = $total_nilai / $count;

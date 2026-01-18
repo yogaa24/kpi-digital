@@ -6,9 +6,10 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 } else {
 
-require 'helper/simulasi-db/config.php';
+require 'helper/config.php';
 require 'helper/getUser.php';
-require 'helper/simulasi-db/getKPI.php';
+require 'helper/getKPI_sim.php';
+
 if (isset($_POST['submit'])) {
     $ids = $_SESSION['id_user'];
     $poin = $_POST['poin'];
@@ -16,7 +17,7 @@ if (isset($_POST['submit'])) {
     $poin2 = $_POST['poin2'];
     $bobot2 = $_POST['bobot2'];
 
-    $sql = "INSERT INTO tb_kpi (id_user,poin,bobot,poin2,bobot2)
+    $sql = "INSERT INTO tbsim_kpi (id_user,poin,bobot,poin2,bobot2)
                     VALUES ('$ids', '$poin','$bobot','$poin2','$bobot2')";
     $result = mysqli_query($conn, $sql);
     if ($result) {
@@ -33,7 +34,7 @@ if (isset($_POST['update'])) {
     $bobot = $_POST['bobot'];
     $idk = $_POST['idk'];
 
-    $sql = "UPDATE tb_kpi SET poin='$poin' ,bobot=$bobot  WHERE id=$idk AND id_user=$ids";
+    $sql = "UPDATE tbsim_kpi SET poin='$poin' ,bobot=$bobot  WHERE id=$idk AND id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
         header('Location: detailkpi-sl');
@@ -48,7 +49,7 @@ if (isset($_POST['update2'])) {
     $bobot2 = $_POST['bobot2'];
     $idk = $_POST['idk'];
 
-    $sql = "UPDATE tb_kpi SET poin2='$poin2', bobot2=$bobot2 WHERE id=$idk AND id_user=$ids";
+    $sql = "UPDATE tbsim_kpi SET poin2='$poin2', bobot2=$bobot2 WHERE id=$idk AND id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
         header('Location: detailkpi-sl');
@@ -67,8 +68,8 @@ if (isset($_POST['what_add'])) {
     $tipe_what = mysqli_real_escape_string($conn, $_POST['tipe_what']); // 'A' atau 'B'
     $target_omset = isset($_POST['target_omset']) ? floatval($_POST['target_omset']) : 0;
     
-    // Insert ke tb_whats
-    $sql = "INSERT INTO tb_whats (id_user, id_kpi, tipe_what, p_what, bobot, target_omset, hasil, nilai, total) 
+    // Insert ke tbsim_whats
+    $sql = "INSERT INTO tbsim_whats (id_user, id_kpi, tipe_what, p_what, bobot, target_omset, hasil, nilai, total) 
             VALUES ('$ids', '$idkpi', '$tipe_what', '$tujuan', '$bobot', '$target_omset', '', 0, 0)";
     
     if (mysqli_query($conn, $sql)) {
@@ -85,7 +86,7 @@ if (isset($_POST['what_add'])) {
                     $nil = floatval($nilais[$i]);
                     $urutan = $i + 1;
                     
-                    $sql_indikator = "INSERT INTO tb_indikator_whats (id_what, keterangan, nilai, urutan) 
+                    $sql_indikator = "INSERT INTO tbsim_indikator_whats (id_what, keterangan, nilai, urutan) 
                                       VALUES ('$id_what', '$ket', '$nil', '$urutan')";
                     mysqli_query($conn, $sql_indikator);
                 }
@@ -105,7 +106,7 @@ if (isset($_POST['nilai_what'])) {
     $id_what = intval($_POST['idkpi']);
     
     // Ambil data what untuk cek tipe
-    $sql_what = "SELECT tipe_what, bobot FROM tb_whats WHERE id_what = $id_what";
+    $sql_what = "SELECT tipe_what, bobot FROM tbsim_whats WHERE id_what = $id_what";
     $result_what = mysqli_query($conn, $sql_what);
     $data_what = mysqli_fetch_assoc($result_what);
     $tipe_what = $data_what['tipe_what'];
@@ -115,7 +116,7 @@ if (isset($_POST['nilai_what'])) {
         // WHAT A: Ambil nilai dari indikator yang dipilih
         $id_indikator = intval($_POST['nilaisi']);
         
-        $sql_get = "SELECT nilai, keterangan FROM tb_indikator_whats WHERE id_indikator = $id_indikator";
+        $sql_get = "SELECT nilai, keterangan FROM tbsim_indikator_whats WHERE id_indikator = $id_indikator";
         $result_get = mysqli_query($conn, $sql_get);
         $data = mysqli_fetch_assoc($result_get);
         $nilai = $data['nilai'];
@@ -124,8 +125,8 @@ if (isset($_POST['nilai_what'])) {
         // Hitung total
         $total = number_format($nilai * $bobot / 100, 2);
         
-        // Update tb_whats
-        $sql_update = "UPDATE tb_whats 
+        // Update tbsim_whats
+        $sql_update = "UPDATE tbsim_whats 
                        SET nilai = $nilai, hasil = '$keterangan', total = $total 
                        WHERE id_what = $id_what AND id_user = '$ids'";
         
@@ -149,8 +150,8 @@ if (isset($_POST['nilai_what'])) {
         $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 2);
         $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
         
-        // Update tb_whats
-        $sql_update = "UPDATE tb_whats 
+        // Update tbsim_whats
+        $sql_update = "UPDATE tbsim_whats 
                        SET target_omset = $target_omset, 
                            nilai = $nilai, 
                            hasil = '$hasil_text', 
@@ -174,13 +175,13 @@ if (isset($_POST['what_edit'])) {
     $bobot = floatval($_POST['bobotw']);
     
     // Ambil tipe what
-    $sql_check = "SELECT tipe_what FROM tb_whats WHERE id_what = $idw";
+    $sql_check = "SELECT tipe_what FROM tbsim_whats WHERE id_what = $idw";
     $result_check = mysqli_query($conn, $sql_check);
     $data_check = mysqli_fetch_assoc($result_check);
     $tipe_what = $data_check['tipe_what'];
     
-    // Update tb_whats
-    $sql = "UPDATE tb_whats SET p_what='$tujuan', bobot=$bobot WHERE id_what=$idw AND id_user='$ids'";
+    // Update tbsim_whats
+    $sql = "UPDATE tbsim_whats SET p_what='$tujuan', bobot=$bobot WHERE id_what=$idw AND id_user='$ids'";
     
     if (mysqli_query($conn, $sql)) {
         // Jika What A, kelola indikator
@@ -189,7 +190,7 @@ if (isset($_POST['what_edit'])) {
             if (isset($_POST['indikator_hapus']) && is_array($_POST['indikator_hapus'])) {
                 foreach ($_POST['indikator_hapus'] as $id_hapus) {
                     $id_hapus = intval($id_hapus);
-                    mysqli_query($conn, "DELETE FROM tb_indikator_whats WHERE id_indikator = $id_hapus");
+                    mysqli_query($conn, "DELETE FROM tbsim_indikator_whats WHERE id_indikator = $id_hapus");
                 }
             }
             
@@ -208,13 +209,13 @@ if (isset($_POST['what_edit'])) {
                         
                         if ($id_indi > 0) {
                             // Update indikator yang sudah ada
-                            $sql_update = "UPDATE tb_indikator_whats 
+                            $sql_update = "UPDATE tbsim_indikator_whats 
                                            SET keterangan='$ket', nilai=$nil, urutan=$urutan 
                                            WHERE id_indikator=$id_indi";
                             mysqli_query($conn, $sql_update);
                         } else {
                             // Insert indikator baru
-                            $sql_insert = "INSERT INTO tb_indikator_whats (id_what, keterangan, nilai, urutan) 
+                            $sql_insert = "INSERT INTO tbsim_indikator_whats (id_what, keterangan, nilai, urutan) 
                                            VALUES ($idw, '$ket', $nil, $urutan)";
                             mysqli_query($conn, $sql_insert);
                         }
@@ -238,8 +239,8 @@ if (isset($_POST['how_add'])) {
     $tipe_how = mysqli_real_escape_string($conn, $_POST['tipe_how']); // 'A' atau 'B'
     $target_omset = isset($_POST['target_omset']) ? floatval($_POST['target_omset']) : 0;
     
-    // Insert ke tb_hows
-    $sql = "INSERT INTO tb_hows (id_user, id_kpi, tipe_how, p_how, bobot, target_omset, hasil, nilai, total) 
+    // Insert ke tbsim_hows
+    $sql = "INSERT INTO tbsim_hows (id_user, id_kpi, tipe_how, p_how, bobot, target_omset, hasil, nilai, total) 
             VALUES ('$ids', '$idkpi', '$tipe_how', '$tujuan', '$bobot', '$target_omset', '', 0, 0)";
     
     if (mysqli_query($conn, $sql)) {
@@ -256,7 +257,7 @@ if (isset($_POST['how_add'])) {
                     $nil = floatval($nilais[$i]);
                     $urutan = $i + 1;
                     
-                    $sql_indikator = "INSERT INTO tb_indikator_hows (id_how, keterangan, nilai, urutan) 
+                    $sql_indikator = "INSERT INTO tbsim_indikator_hows (id_how, keterangan, nilai, urutan) 
                                       VALUES ('$id_how', '$ket', '$nil', '$urutan')";
                     mysqli_query($conn, $sql_indikator);
                 }
@@ -276,7 +277,7 @@ if (isset($_POST['nilai_how'])) {
     $id_how = intval($_POST['idkpi']);
     
     // Ambil data how untuk cek tipe
-    $sql_how = "SELECT tipe_how, bobot FROM tb_hows WHERE id_how = $id_how";
+    $sql_how = "SELECT tipe_how, bobot FROM tbsim_hows WHERE id_how = $id_how";
     $result_how = mysqli_query($conn, $sql_how);
     $data_how = mysqli_fetch_assoc($result_how);
     $tipe_how = $data_how['tipe_how'];
@@ -286,7 +287,7 @@ if (isset($_POST['nilai_how'])) {
         // HOW A: Ambil nilai dari indikator yang dipilih
         $id_indikator = intval($_POST['nilaisi']);
         
-        $sql_get = "SELECT nilai, keterangan FROM tb_indikator_hows WHERE id_indikator = $id_indikator";
+        $sql_get = "SELECT nilai, keterangan FROM tbsim_indikator_hows WHERE id_indikator = $id_indikator";
         $result_get = mysqli_query($conn, $sql_get);
         $data = mysqli_fetch_assoc($result_get);
         $nilai = $data['nilai'];
@@ -295,8 +296,8 @@ if (isset($_POST['nilai_how'])) {
         // Hitung total
         $total = number_format($nilai * $bobot / 100, 2);
         
-        // Update tb_hows
-        $sql_update = "UPDATE tb_hows 
+        // Update tbsim_hows
+        $sql_update = "UPDATE tbsim_hows 
                        SET nilai = $nilai, hasil = '$keterangan', total = $total 
                        WHERE id_how = $id_how AND id_user = '$ids'";
         
@@ -320,8 +321,8 @@ if (isset($_POST['nilai_how'])) {
         $hasil_text = "Target: " . number_format($target_omset, 2) . " | Hasil: " . number_format($hasil_omset, 2) . " | Pencapaian: " . number_format($persentase, 2) . "%";
         $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
         
-        // Update tb_hows
-        $sql_update = "UPDATE tb_hows 
+        // Update tbsim_hows
+        $sql_update = "UPDATE tbsim_hows 
                        SET target_omset = $target_omset, 
                            nilai = $nilai, 
                            hasil = '$hasil_text', 
@@ -345,13 +346,13 @@ if (isset($_POST['how_edit'])) {
     $bobot = floatval($_POST['boboth']);
     
     // Ambil tipe how
-    $sql_check = "SELECT tipe_how FROM tb_hows WHERE id_how = $idh";
+    $sql_check = "SELECT tipe_how FROM tbsim_hows WHERE id_how = $idh";
     $result_check = mysqli_query($conn, $sql_check);
     $data_check = mysqli_fetch_assoc($result_check);
     $tipe_how = $data_check['tipe_how'];
     
-    // Update tb_hows
-    $sql = "UPDATE tb_hows SET p_how='$tujuan', bobot=$bobot WHERE id_how=$idh AND id_user='$ids'";
+    // Update tbsim_hows
+    $sql = "UPDATE tbsim_hows SET p_how='$tujuan', bobot=$bobot WHERE id_how=$idh AND id_user='$ids'";
     
     if (mysqli_query($conn, $sql)) {
         // Jika How A, kelola indikator
@@ -360,7 +361,7 @@ if (isset($_POST['how_edit'])) {
             if (isset($_POST['indikator_hapus']) && is_array($_POST['indikator_hapus'])) {
                 foreach ($_POST['indikator_hapus'] as $id_hapus) {
                     $id_hapus = intval($id_hapus);
-                    mysqli_query($conn, "DELETE FROM tb_indikator_hows WHERE id_indikator = $id_hapus");
+                    mysqli_query($conn, "DELETE FROM tbsim_indikator_hows WHERE id_indikator = $id_hapus");
                 }
             }
             
@@ -379,13 +380,13 @@ if (isset($_POST['how_edit'])) {
                         
                         if ($id_indi > 0) {
                             // Update indikator yang sudah ada
-                            $sql_update = "UPDATE tb_indikator_hows 
+                            $sql_update = "UPDATE tbsim_indikator_hows 
                                            SET keterangan='$ket', nilai=$nil, urutan=$urutan 
                                            WHERE id_indikator=$id_indi";
                             mysqli_query($conn, $sql_update);
                         } else {
                             // Insert indikator baru
-                            $sql_insert = "INSERT INTO tb_indikator_hows (id_how, keterangan, nilai, urutan) 
+                            $sql_insert = "INSERT INTO tbsim_indikator_hows (id_how, keterangan, nilai, urutan) 
                                            VALUES ($idh, '$ket', $nil, $urutan)";
                             mysqli_query($conn, $sql_insert);
                         }
@@ -404,7 +405,7 @@ if (isset($_POST['how_hapus'])) {
     $ids = $_SESSION['id_user'];
     $idkpi = $_POST['idkhd'];
 
-    $sql = "delete from tb_hows where id_how=$idkpi and id_user=$ids";
+    $sql = "delete from tbsim_hows where id_how=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
         header('Location: detailkpi-sl');
@@ -417,7 +418,7 @@ if (isset($_POST['what_hapus'])) {
     $ids = $_SESSION['id_user'];
     $idkpi = $_POST['idkwd'];
 
-    $sql = "delete from tb_whats where id_what=$idkpi and id_user=$ids";
+    $sql = "delete from tbsim_whats where id_what=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
         header('Location: detailkpi-sl');
@@ -432,7 +433,7 @@ if (isset($_POST['update'])) {
     $poinn = $_POST['poin'];
     $bobott = $_POST['bobot'];
 
-    $sql = "UPDATE `tb_kpi` set poin = '$poinn', bobot = $bobott where id=$idkpi and id_user=$ids";
+    $sql = "UPDATE `tbsim_kpi` set poin = '$poinn', bobot = $bobott where id=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
         header('Location: detailkpi-sl');
@@ -447,13 +448,40 @@ if (isset($_POST['update2'])) {
     $poinn = $_POST['poin2'];
     $bobott = $_POST['bobot2'];
 
-    $sql = "UPDATE `tb_kpi` set poin2 = '$poinn', bobot2 = $bobott where id=$idkpi and id_user=$ids";
+    $sql = "UPDATE `tbsim_kpi` set poin2 = '$poinn', bobot2 = $bobott where id=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
         header('Location: detailkpi-sl');
         echo "<script>alert('Berhasil, Edit Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Edit Poin')</script>";
+    }
+}
+if (isset($_POST['kpi_hapus'])) {
+    $ids = $_SESSION['id_user'];
+    $idkpi = intval($_POST['idkpi_hapus']);
+
+    mysqli_query($conn, "DELETE iw FROM tbsim_indikator_whats iw 
+                         INNER JOIN tbsim_whats w ON iw.id_what = w.id_what 
+                         WHERE w.id_kpi = $idkpi AND w.id_user = '$ids'");
+    
+    mysqli_query($conn, "DELETE FROM tbsim_whats WHERE id_kpi = $idkpi AND id_user = '$ids'");
+    
+    mysqli_query($conn, "DELETE ih FROM tbsim_indikator_hows ih 
+                         INNER JOIN tbsim_hows h ON ih.id_how = h.id_how 
+                         WHERE h.id_kpi = $idkpi AND h.id_user = '$ids'");
+    
+    mysqli_query($conn, "DELETE FROM tbsim_hows WHERE id_kpi = $idkpi AND id_user = '$ids'");
+    
+    $sql = "DELETE FROM tbsim_kpi WHERE id = $idkpi AND id_user = '$ids'";
+    $result = mysqli_query($conn, $sql);
+    
+    if ($result) {
+        header('Location: home-kpi');
+        echo "<script>alert('Berhasil menghapus KPI')</script>";
+        exit();
+    } else {
+        echo "<script>alert('Gagal menghapus KPI')</script>";
     }
 }
 }
@@ -488,7 +516,7 @@ if (isset($_POST['update2'])) {
                         $poin2 = $hasil['poin2'];
                         $bobot2 = $hasil['bobot2'];
                     ?>
-                    <?php include("pages/kpi/k_main.php");
+                    <?php include("pages/kpi/k_main_sim.php");
                     } ?>
                 </div>
                 <!--end::Container-->

@@ -5,7 +5,7 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 }
 
-require 'helper/configarchive.php';
+require 'helper/config.php';
 require 'helper/getUser.php';
 
 // Pastikan $id_user sudah terdefinisi dari getUser.php
@@ -36,7 +36,7 @@ $sql_users = "SELECT id, username, nama_lngkp, nik, bagian, departement, jabatan
               WHERE id != '$id_user'
               ORDER BY nama_lngkp ASC";
 
-$result_users = mysqli_query($conn, $sql_users); // Pakai $conn, bukan $connarc
+$result_users = mysqli_query($conn, $sql_users); // Pakai $conn, bukan $conn
 
 // Tambahkan error checking
 if (!$result_users) {
@@ -56,7 +56,7 @@ while ($user = mysqli_fetch_assoc($result_users)) {
                   FROM tbar_archive 
                   WHERE id_user = " . $user['id'];
     
-    $result_count = mysqli_query($connarc, $sql_count);
+    $result_count = mysqli_query($conn, $sql_count);
     $count_data = mysqli_fetch_assoc($result_count);
     
     // Hanya tambahkan user yang memiliki archive

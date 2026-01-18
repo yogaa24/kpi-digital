@@ -5,14 +5,14 @@ if (!isset($_SESSION['id_user'])) {
     header("Location: index");
     exit();
 } else {
-    require 'helper/simulasi-db/config.php';
+    require 'helper/config.php';
     require 'helper/getUser.php';
-    require 'helper/simulasi-db/getKPI.php';
-    require 'helper/simulasi-db/getHow.php';
+    require 'helper/getKPI_sim.php';
+    require 'helper/getHow_sim.php';
 
     $zboth = 0;
     $zbotw = 0;
-    
+
     $blan = '';
 
     $totalws = 0;
@@ -21,7 +21,7 @@ if (!isset($_SESSION['id_user'])) {
     while ($hasils = mysqli_fetch_assoc($resultsaf)) {
         $poin = $hasils['poin'];
 
-        $sql3s = "SELECT SUM(total) as total FROM tb_whats WHERE id_user=$id_user AND id_kpi=" . $hasils['id'];
+        $sql3s = "SELECT SUM(total) as total FROM tbsim_whats WHERE id_user=$id_user AND id_kpi=" . $hasils['id'];
         $result3s = mysqli_query($conn, $sql3s);
         $row3sd = mysqli_fetch_assoc($result3s);
         $totalnilaisd = $row3sd['total'];
@@ -29,7 +29,7 @@ if (!isset($_SESSION['id_user'])) {
         $totalws += $nilaiws;
     }
     $bobotkpid = 0;
-    $sql5a = "SELECT bobotwhat as bw FROM tb_bobotkpi WHERE id_user=$id_user";
+    $sql5a = "SELECT bobotwhat as bw FROM tbsim_bobotkpi WHERE id_user=$id_user";
     $result5a = mysqli_query($conn, $sql5a);
     while ($row5a = mysqli_fetch_assoc($result5a)) {
         $bobotkpid = $row5a['bw'];
@@ -43,7 +43,7 @@ if (!isset($_SESSION['id_user'])) {
     while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
         $poin2fg = $hasilfg['poin2'];
 
-        $sql7fg = "SELECT SUM(total) as totalh FROM tb_hows WHERE id_user=$id_user AND id_kpi=" . $hasilfg['id'];
+        $sql7fg = "SELECT SUM(total) as totalh FROM tbsim_hows WHERE id_user=$id_user AND id_kpi=" . $hasilfg['id'];
         $result7fg = mysqli_query($conn, $sql7fg);
         $row7fg = mysqli_fetch_assoc($result7fg);
         $totalnilaihfg = $row7fg['totalh'];
@@ -52,7 +52,7 @@ if (!isset($_SESSION['id_user'])) {
         $totalhfg += $nilaihfg;
     }
     $bobotkpias = 0;
-    $sql8a = "SELECT bobothow as bh FROM tb_bobotkpi WHERE id_user=$id_user";
+    $sql8a = "SELECT bobothow as bh FROM tbsim_bobotkpi WHERE id_user=$id_user";
     $result8a = mysqli_query($conn, $sql8a);
     while ($row8a = mysqli_fetch_assoc($result8a)) {
         $bobotkpias = $row8a['bh'];
@@ -62,7 +62,7 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['updateWhatB'])) {
         $bwasfg = $_POST['bobot'];
         $idfj = $_POST['idU'];
-        $sql = "UPDATE `tb_bobotkpi` SET bobotwhat =" . $bwasfg . " where id_user =" . $idfj;
+        $sql = "UPDATE `tbsim_bobotkpi` SET bobotwhat =" . $bwasfg . " where id_user =" . $idfj;
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
@@ -74,7 +74,7 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['updateHowB'])) {
         $bwasfg = $_POST['bobot'];
         $idfj = $_POST['idU'];
-        $sql = "UPDATE `tb_bobotkpi` SET bobothow =" . $bwasfg . " where id_user =" . $idfj;
+        $sql = "UPDATE `tbsim_bobotkpi` SET bobothow =" . $bwasfg . " where id_user =" . $idfj;
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
@@ -85,7 +85,8 @@ if (!isset($_SESSION['id_user'])) {
     }
     $blan = date('m/Y');
     $busd = explode('/', $blan);
-    function tmapil($bl,$th){
+    function tmapil($bl, $th)
+    {
 
         if ($bl == '01') {
             $bulannnn = 'Januari ' . $th;
@@ -150,7 +151,7 @@ if (!isset($_SESSION['id_user'])) {
         </main>
 
         <?php include("pages/part/p_footer.php"); ?>
-        
+
 </body>
 
 </html>

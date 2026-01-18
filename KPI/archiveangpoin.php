@@ -6,7 +6,7 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 } else {
 
-    require 'helper/configarchive.php';
+    require 'helper/config.php';
     require 'helper/config.php';
 
     // Ambil level user yang sedang login
@@ -51,7 +51,7 @@ if (!isset($_SESSION['id_user'])) {
     $idar = $_GET['idar'];
 
     $sql= "SELECT tbar_kpi.* FROM tbar_kpi INNER JOIN tbar_archive ON tbar_archive.id_archive = tbar_kpi.id_arcv WHERE tbar_archive.bulan = '$idar' AND tbar_archive.id_user = $id_user";
-    $result = mysqli_query($connarc, $sql);
+    $result = mysqli_query($conn, $sql);
     $idKPI;
     $idUSER;
     $poin;
@@ -60,7 +60,7 @@ if (!isset($_SESSION['id_user'])) {
     $bobot2;
 
     $sql2 = "SELECT sum(bobot) FROM tbar_kpi WHERE id_user=$id_user AND bulan = '$idar'";
-    $result2 = mysqli_query($connarc, $sql2);
+    $result2 = mysqli_query($conn, $sql2);
 
     $zboth = 0;
     $zbotw = 0;
@@ -68,13 +68,13 @@ if (!isset($_SESSION['id_user'])) {
     $blan = '';
 
     $totalws = 0;
-    $result = mysqli_query($connarc, $sql);
-    $resultsaf = mysqli_query($connarc, $sql);
+    $result = mysqli_query($conn, $sql);
+    $resultsaf = mysqli_query($conn, $sql);
     while ($hasils = mysqli_fetch_assoc($resultsaf)) {
         $poin = $hasils['poin'];
 
         $sql3s = "SELECT SUM(total) as total FROM tbar_whats WHERE id_user=$id_user AND id_kpi=" . $hasils['id'];
-        $result3s = mysqli_query($connarc, $sql3s);
+        $result3s = mysqli_query($conn, $sql3s);
         $row3sd = mysqli_fetch_assoc($result3s);
         $totalnilaisd = $row3sd['total'];
         $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
@@ -82,7 +82,7 @@ if (!isset($_SESSION['id_user'])) {
     }
     $bobotkpid = 0;
     $sql5a = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_user";
-    $result5a = mysqli_query($connarc, $sql5a);
+    $result5a = mysqli_query($conn, $sql5a);
     while ($row5a = mysqli_fetch_assoc($result5a)) {
         $bobotkpid = $row5a['bw'];
     }
@@ -90,13 +90,13 @@ if (!isset($_SESSION['id_user'])) {
     // ====================================================================================
     $totalhfg = 0;
     $totalbobothfg = 0;
-    $resultfg = mysqli_query($connarc, $sql);
+    $resultfg = mysqli_query($conn, $sql);
 
     while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
         $poin2fg = $hasilfg['poin2'];
 
         $sql7fg = "SELECT SUM(total) as totalh FROM tbar_hows WHERE id_user=$id_user AND id_kpi=" . $hasilfg['id'];
-        $result7fg = mysqli_query($connarc, $sql7fg);
+        $result7fg = mysqli_query($conn, $sql7fg);
         $row7fg = mysqli_fetch_assoc($result7fg);
         $totalnilaihfg = $row7fg['totalh'];
 
@@ -105,7 +105,7 @@ if (!isset($_SESSION['id_user'])) {
     }
     $bobotkpias = 0;
     $sql8a = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_user";
-    $result8a = mysqli_query($connarc, $sql8a);
+    $result8a = mysqli_query($conn, $sql8a);
     while ($row8a = mysqli_fetch_assoc($result8a)) {
         $bobotkpias = $row8a['bh'];
     }
@@ -113,7 +113,7 @@ if (!isset($_SESSION['id_user'])) {
     // ==================================================================================
 
     $archivec = "SELECT * FROM tbar_kpi where id_user = $id_user group by bulan";
-    $getArch = mysqli_query($connarc, $archivec);
+    $getArch = mysqli_query($conn, $archivec);
     
     $blan = $_GET['idar'];
 

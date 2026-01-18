@@ -5,21 +5,21 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 }
 
-require 'helper/configarchive.php';
+require 'helper/config.php';
 require 'helper/getUser.php';
 require 'helper/status_functions.php';
 
 $id_userdd = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 // FUNGSI-FUNGSI HELPER (LETAKKAN DI SINI DULU)
-function getnilaiaa($connarc,$idar,$id_userdd){
+function getnilaiaa($conn,$idar,$id_userdd){
     $sql= "SELECT tbar_kpi.* FROM tbar_kpi INNER JOIN tbar_archive ON tbar_archive.id_archive = tbar_kpi.id_arcv WHERE tbar_archive.bulan = '$idar' AND tbar_archive.id_user = $id_userdd";
 
     $totalws = 0;
-    $resultsaf = mysqli_query($connarc, $sql);
+    $resultsaf = mysqli_query($conn, $sql);
     while ($hasils = mysqli_fetch_assoc($resultsaf)) {
         $sql3s = "SELECT SUM(total) as total FROM tbar_whats WHERE id_user=$id_userdd AND id_kpi=" . $hasils['id'];
-        $result3s = mysqli_query($connarc, $sql3s);
+        $result3s = mysqli_query($conn, $sql3s);
         $row3sd = mysqli_fetch_assoc($result3s);
         $totalnilaisd = $row3sd['total'];
         $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
@@ -27,17 +27,17 @@ function getnilaiaa($connarc,$idar,$id_userdd){
     }
     $bobotkpid = 0;
     $sql5a = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_userdd";
-    $result5a = mysqli_query($connarc, $sql5a);
+    $result5a = mysqli_query($conn, $sql5a);
     while ($row5a = mysqli_fetch_assoc($result5a)) {
         $bobotkpid = $row5a['bw'];
     }
     $zbotw = ($totalws * $bobotkpid) / 100;
     
     $totalhfg = 0;
-    $resultfg = mysqli_query($connarc, $sql);
+    $resultfg = mysqli_query($conn, $sql);
     while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
         $sql7fg = "SELECT SUM(total) as totalh FROM tbar_hows WHERE id_user=$id_userdd AND id_kpi=" . $hasilfg['id'];
-        $result7fg = mysqli_query($connarc, $sql7fg);
+        $result7fg = mysqli_query($conn, $sql7fg);
         $row7fg = mysqli_fetch_assoc($result7fg);
         $totalnilaihfg = $row7fg['totalh'];
         $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
@@ -45,7 +45,7 @@ function getnilaiaa($connarc,$idar,$id_userdd){
     }
     $bobotkpias = 0;
     $sql8a = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_userdd";
-    $result8a = mysqli_query($connarc, $sql8a);
+    $result8a = mysqli_query($conn, $sql8a);
     while ($row8a = mysqli_fetch_assoc($result8a)) {
         $bobotkpias = $row8a['bh'];
     }
@@ -104,7 +104,7 @@ function tmaadfl($blan){
 // HANDLER UNTUK MARK AS REVIEWED (PINDAHKAN KE SINI - SEBELUM HTML)
 if (isset($_POST['mark_reviewed'])) {
     $id_archive = intval($_POST['id_archive']);
-    $bulan = mysqli_real_escape_string($connarc, $_POST['bulan']);
+    $bulan = mysqli_real_escape_string($conn, $_POST['bulan']);
     $reviewer_id = $_SESSION['id_user'];
     
     $sql_update = "UPDATE tbar_archive 
@@ -113,19 +113,19 @@ if (isset($_POST['mark_reviewed'])) {
                        reviewed_at = NOW() 
                    WHERE id_archive = $id_archive";
     
-    if (mysqli_query($connarc, $sql_update)) {
+    if (mysqli_query($conn, $sql_update)) {
         $_SESSION['success_message'] = "Archive bulan " . tmaadfl($bulan) . " berhasil ditandai sebagai REVIEWED";
         header("Location: archiveanggota.php?id=$id_userdd");
         exit();
     } else {
-        $_SESSION['error_message'] = "Gagal update status: " . mysqli_error($connarc);
+        $_SESSION['error_message'] = "Gagal update status: " . mysqli_error($conn);
     }
 }
 
 // HANDLER UNTUK APPROVE (PINDAHKAN KE SINI - SEBELUM HTML)
 if (isset($_POST['approve_archive'])) {
     $id_archive = intval($_POST['id_archive']);
-    $bulan = mysqli_real_escape_string($connarc, $_POST['bulan']);
+    $bulan = mysqli_real_escape_string($conn, $_POST['bulan']);
     $approver_id = $_SESSION['id_user'];
     
     $sql_update = "UPDATE tbar_archive 
@@ -134,12 +134,12 @@ if (isset($_POST['approve_archive'])) {
                        approved_at = NOW() 
                    WHERE id_archive = $id_archive";
     
-    if (mysqli_query($connarc, $sql_update)) {
+    if (mysqli_query($conn, $sql_update)) {
         $_SESSION['success_message'] = "Archive bulan " . tmaadfl($bulan) . " berhasil DISETUJUI";
         header("Location: archiveanggota.php?id=$id_userdd");
         exit();
     } else {
-        $_SESSION['error_message'] = "Gagal approve archive: " . mysqli_error($connarc);
+        $_SESSION['error_message'] = "Gagal approve archive: " . mysqli_error($conn);
     }
 }
 
@@ -148,7 +148,7 @@ $archivec = "SELECT DISTINCT ta.id_archive, ta.bulan, ta.status, ta.reviewed_by,
             FROM tbar_archive ta
             WHERE ta.id_user = $id_userdd  
             ORDER BY ta.bulan DESC";
-$getArch = mysqli_query($connarc, $archivec);
+$getArch = mysqli_query($conn, $archivec);
 
 ?>
 <!DOCTYPE html>
@@ -221,13 +221,13 @@ echo '
                                                 <th><center>Bulan</center></th>
                                                 <th width="12%"><center>Nilai</center></th>
                                                 <th width="12%"><center>KPI</center></th>
-                                                <th width="15%"><center>Status</center></th> <!-- TAMBAH KOLOM INI -->
+                                                <!-- <th width="15%"><center>Status</center></th>  -->
                                                 <th width="15%"><center>Action</center></th> <!-- UBAH DARI # -->
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php $no = 1; if($getArch){ while ($row = mysqli_fetch_assoc($getArch)) { 
-                                                $nilai = round(getnilaiaa($connarc,$row['bulan'],$id_userdd),2);
+                                                $nilai = round(getnilaiaa($conn,$row['bulan'],$id_userdd),2);
                                                 $status = $row['status'];
                                                 $id_archive = $row['id_archive'];
                                             ?>
@@ -238,7 +238,8 @@ echo '
                                                 <td style="color:<?= getsfo($nilai) ?>">
                                                     <center><?= getstatad($nilai) ?></center>
                                                 </td>
-                                                <td> <!-- KOLOM STATUS BARU -->
+                                                <!-- KOLOM STATUS BARU -->
+                                                <!-- <td> 
                                                     <center>
                                                         <?= getStatusBadge($status) ?>
                                                         
@@ -254,7 +255,7 @@ echo '
                                                             </small>
                                                         <?php } ?>
                                                     </center>
-                                                </td>
+                                                </td> -->
                                                 <td> <!-- KOLOM ACTION DENGAN TOMBOL STATUS -->
                                                     <center>
                                                         <!-- Tombol Lihat Detail -->
@@ -263,8 +264,7 @@ echo '
                                                             <i class="bi bi-eye"></i> Detail
                                                         </a>
                                                         
-                                                        <?php if ($status == 1) { ?>
-                                                            <!-- Tombol Mark as Reviewed -->
+                                                        <!-- <?php if ($status == 1) { ?>
                                                             <button type="button" class="btn btn-info btn-sm mb-1" 
                                                                     data-bs-toggle="modal" 
                                                                     data-bs-target="#markReviewedModal<?= $id_archive ?>"
@@ -272,7 +272,6 @@ echo '
                                                                 <i class="bi bi-check"></i> Review
                                                             </button>
                                                         <?php } elseif ($status == 2) { ?>
-                                                            <!-- Tombol Approve -->
                                                             <button type="button" class="btn btn-success btn-sm mb-1" 
                                                                     data-bs-toggle="modal" 
                                                                     data-bs-target="#approveModal<?= $id_archive ?>"
@@ -280,11 +279,10 @@ echo '
                                                                 <i class="bi bi-check-all"></i> Approve
                                                             </button>
                                                         <?php } else { ?>
-                                                            <!-- Sudah Approved -->
                                                             <span class="badge bg-success">
                                                                 <i class="bi bi-shield-check"></i> Completed
                                                             </span>
-                                                        <?php } ?>
+                                                        <?php } ?> -->
                                                     </center>
                                                 </td>
                                             </tr>

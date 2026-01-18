@@ -80,8 +80,18 @@
                         </a>
                     <?php } ?>
                 </div>
+                <!-- ===== TOMBOL SIMULASI BARU ===== -->
+                <button type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#simulateModal"
+                    class="btn btn-tool"
+                    title="Salin ke Simulasi"
+                    style="color: white; margin-top: -10px; margin-right: 5px;">
+                    <i class="bi bi-lightning-charge-fill fs-5"></i>
+                </button>
             </div>
         </div>
+        
         <!-- ---------------------------------------------------------------------->
         <div class="card-body">
             <?php
@@ -199,6 +209,62 @@
             </div>
         </div>
     <?php } ?>
+
+    <!-- ===== MODAL SIMULASI ===== -->
+    <div class="modal fade" id="simulateModal" tabindex="-1" aria-labelledby="simulateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="simulateModalLabel">
+                        <i class="bi bi-lightning-charge-fill"></i> Simulasikan KPI
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="">
+                    <div class="modal-body">
+                        <div class="text-center">
+                            <div class="mb-4">
+                                <i class="bi bi-lightning-charge-fill text-primary" style="font-size: 4rem;"></i>
+                            </div>
+                            <h4 class="fw-bold text-primary mb-3">
+                                Salin Data KPI Real ke Simulasi?
+                            </h4>
+                            <p class="text-muted">
+                                Semua data KPI Real Anda akan disalin ke halaman KPI Simulasi untuk keperluan perencanaan dan proyeksi
+                            </p>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <strong><i class="bi bi-info-circle"></i> Yang Akan Disalin:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Semua Poin KPI (WHAT & HOW)</li>
+                                <li>Semua Indikator (A & B)</li>
+                                <li>Bobot KPI</li>
+                                <li>Nilai dan Target saat ini</li>
+                            </ul>
+                        </div>
+
+                        <div class="alert alert-warning mt-3">
+                            <strong><i class="bi bi-exclamation-triangle"></i> Perhatian:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>Data simulasi lama akan dihapus</strong> dan diganti dengan data real yang baru</li>
+                                <li>Anda dapat mengubah data di halaman simulasi setelah proses ini</li>
+                                <li>Data KPI Real tidak akan berubah</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Batal
+                        </button>
+                        <button type="submit" name="simulateKPI" class="btn btn-primary">
+                            <i class="bi bi-lightning-charge-fill"></i> Ya, Simulasikan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
         <div class="modal-dialog">

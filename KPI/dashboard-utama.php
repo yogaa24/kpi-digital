@@ -7,9 +7,7 @@ if (!isset($_SESSION['id_user'])) {
 }
 
 require 'helper/config.php';
-require 'helper/simulasi-db/config.php';
 require 'helper/getUser.php';
-$conn_sim = mysqli_connect("localhost", "root", "", "db_simulasi");
 
 $id_user = $_SESSION['id_user'];
 
@@ -49,12 +47,13 @@ $sql_departments = "SELECT DISTINCT departement FROM tb_users WHERE departement 
 $result_departments = mysqli_query($conn, $sql_departments);
 
 // ==================== KPI CALCULATION FUNCTION ====================
-function calculateKPI($conn, $conn_sim, $user_id, $is_simulation = false) {
-    $db_conn = $is_simulation ? $conn_sim : $conn;
+function calculateKPI($conn, $user_id, $is_simulation = false) {
+    // Tentukan prefix tabel berdasarkan mode
+    $prefix = $is_simulation ? 'tbsim_' : 'tb_';
     
     // Ambil semua KPI
-    $sql_kpi = "SELECT * FROM tb_kpi WHERE id_user='$user_id'";
-    $result_kpi = mysqli_query($db_conn, $sql_kpi);
+    $sql_kpi = "SELECT * FROM {$prefix}kpi WHERE id_user='$user_id'";
+    $result_kpi = mysqli_query($conn, $sql_kpi);
     
     $total_what = 0;
     $total_how = 0;
@@ -62,16 +61,16 @@ function calculateKPI($conn, $conn_sim, $user_id, $is_simulation = false) {
     
     while ($kpi = mysqli_fetch_assoc($result_kpi)) {
         // Hitung WHAT
-        $sql_what = "SELECT SUM(total) as total FROM tb_whats WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'";
-        $result_what = mysqli_query($db_conn, $sql_what);
+        $sql_what = "SELECT SUM(total) as total FROM {$prefix}whats WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'";
+        $result_what = mysqli_query($conn, $sql_what);
         $row_what = mysqli_fetch_assoc($result_what);
         $total_nilai_what = $row_what['total'] ?? 0;
         $nilai_what = ($total_nilai_what * $kpi['bobot']) / 100;
         $total_what += $nilai_what;
         
         // Hitung HOW
-        $sql_how = "SELECT SUM(total) as total FROM tb_hows WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'";
-        $result_how = mysqli_query($db_conn, $sql_how);
+        $sql_how = "SELECT SUM(total) as total FROM {$prefix}hows WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'";
+        $result_how = mysqli_query($conn, $sql_how);
         $row_how = mysqli_fetch_assoc($result_how);
         $total_nilai_how = $row_how['total'] ?? 0;
         $nilai_how = ($total_nilai_how * $kpi['bobot2']) / 100;
@@ -91,8 +90,8 @@ function calculateKPI($conn, $conn_sim, $user_id, $is_simulation = false) {
     }
     
     // Ambil bobot WHAT dan HOW
-    $sql_bobot = "SELECT bobotwhat, bobothow FROM tb_bobotkpi WHERE id_user='$user_id' LIMIT 1";
-    $result_bobot = mysqli_query($db_conn, $sql_bobot);
+    $sql_bobot = "SELECT bobotwhat, bobothow FROM {$prefix}bobotkpi WHERE id_user='$user_id' LIMIT 1";
+    $result_bobot = mysqli_query($conn, $sql_bobot);
     $bobot = mysqli_fetch_assoc($result_bobot);
     $bobot_what = $bobot['bobotwhat'] ?? 0;
     $bobot_how = $bobot['bobothow'] ?? 0;
@@ -257,8 +256,8 @@ if ($user_level == 1) {
     $filter_user = $id_user; // Paksa filter_user = diri sendiri
 }
 
-$kpi_real = calculateKPI($conn, $conn_sim, $filter_user, false);
-$kpi_sim = calculateKPI($conn, $conn_sim, $filter_user, true);
+$kpi_real = calculateKPI($conn, $filter_user, false);
+$kpi_sim = calculateKPI($conn, $filter_user, true);
 
 // ✅ HANYA SIMPAN HISTORY JIKA USER MELIHAT DATA DIRINYA SENDIRI
 if ($filter_user == $id_user) {
@@ -389,7 +388,7 @@ if ($user_level >= 2) {
 
     if ($result_dept_users && mysqli_num_rows($result_dept_users) > 0) {
         while ($dept_user = mysqli_fetch_assoc($result_dept_users)) {
-            $dept_kpi = calculateKPI($conn, $conn_sim, $dept_user['id'], false);
+            $dept_kpi = calculateKPI($conn, $dept_user['id'], false);
 
             if ($dept_kpi['total_kpi'] < 110) {
 
