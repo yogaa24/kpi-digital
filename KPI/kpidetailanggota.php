@@ -663,7 +663,6 @@ if (isset($_POST['update2'])) {
 
 .old-val {
     color: #dc3545;
-    text-decoration: line-through;
     font-weight: normal;
 }
 

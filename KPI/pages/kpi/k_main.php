@@ -465,6 +465,19 @@
                             <div class="modal fade" id="NilaiHowModal<?=$res['id_how']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
                                 <div class="modal-dialog modal-lg">
                                     <div class="modal-content"> 
+                                        <style>
+                                        #NilaiHowModal<?=$res['id_how']?> select option {
+                                            white-space: normal;
+                                            word-wrap: break-word;
+                                            overflow-wrap: break-word;
+                                            max-width: 100%;
+                                        }
+
+                                        #NilaiHowModal<?=$res['id_how']?> select {
+                                            max-width: 100%;
+                                        }
+                                        </style>
+
                                         <div class="modal-header"> 
                                             <h5 class="modal-title fw-bold" id="exampleModalLabel">
                                                 Penilaian How <?=$tipe_how?>
@@ -482,10 +495,10 @@
                                                 
                                                 <?php if ($tipe_how == 'A') { ?>
                                                     <!-- HOW A: Pilih dari indikator -->
-                                                    <div class="input-group mb-3">
-                                                        <span style="color: #343A40;" class="input-group-text fw-bold">Nilai :</span>
-                                                        <select required class="form-control" name="nilaisi" id="nilaisi">
-                                                            <option selected disabled>Pilih Nilai</option>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-bold">Pilih Nilai Penilaian:</label>
+                                                        <select required class="form-select" name="nilaisi" id="nilaisi<?=$res['id_how']?>">
+                                                            <option selected disabled>-- Pilih Nilai --</option>
                                                             <?php 
                                                             $id_how = $res['id_how'];
                                                             $sql_indikator = "SELECT * FROM tb_indikator_hows 
@@ -495,7 +508,7 @@
                                                             
                                                             while ($indikator = mysqli_fetch_assoc($result_indikator)) {
                                                                 echo '<option value="'.$indikator['id_indikator'].'">';
-                                                                echo ''.$indikator['keterangan'].' = '.$indikator['nilai'];
+                                                                echo htmlspecialchars($indikator['keterangan']) . ' = ' . $indikator['nilai'];
                                                                 echo '</option>';
                                                             }
                                                             ?>

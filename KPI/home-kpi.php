@@ -640,7 +640,7 @@ if (isset($_POST['kpi_hapus'])) {
 
 .old-val {
     color: #dc3545;
-    text-decoration: line-through;
+    /* text-decoration: line-through; */
     font-weight: normal;
 }
 

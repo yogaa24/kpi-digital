@@ -1090,7 +1090,7 @@ if ($user_level >= 2) {
                         <div class="col-lg-4 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
-                                    <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Real vs Target</h5>
+                                    <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Real vs Simulasi</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
@@ -1120,7 +1120,7 @@ if ($user_level >= 2) {
                         <div class="col-lg-6 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
-                                    <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>KPI Breakdown - Target</h5>
+                                    <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>KPI Breakdown - Simulasi</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
@@ -1338,9 +1338,9 @@ if ($user_level >= 2) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <?php if ($growth > 3) { ?>
+                                                                <?php if ($growth > 0) { ?>
                                                                     <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
-                                                                <?php } elseif ($growth < -3) { ?>
+                                                                <?php } elseif ($growth < -0    ) { ?>
                                                                     <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
                                                                 <?php } else { ?>
                                                                     <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
@@ -1464,9 +1464,9 @@ if ($user_level >= 2) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <?php if ($growth > 5) { ?>
+                                                                <?php if ($growth > 0) { ?>
                                                                     <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
-                                                                <?php } elseif ($growth < -5) { ?>
+                                                                <?php } elseif ($growth < -0) { ?>
                                                                     <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
                                                                 <?php } else { ?>
                                                                     <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
@@ -1532,7 +1532,7 @@ if ($user_level >= 2) {
                         tension: 0.4,
                         fill: true
                     }, {
-                        label: 'Target',
+                        label: 'Simulasi',
                         data: trendTargetData,
                         borderColor: '#198754',
                         backgroundColor: 'rgba(25, 135, 84, 0.1)',
@@ -1674,16 +1674,21 @@ if ($user_level >= 2) {
         // Department/Team Comparison Chart
         const deptCompCtx = document.getElementById('deptComparisonChart').getContext('2d');
 
-        // Generate colors dynamically
-        const deptColors = <?= json_encode(array_map(function($member, $index) use ($id_user) {
-            // Warna khusus untuk user yang login
-            if (isset($member['id']) && $member['id'] == $id_user) {
-                return '#dc3545'; // Merah untuk diri sendiri
+        // Generate colors dynamically based on score status
+        const deptColors = <?= json_encode(array_map(function($member) {
+            $score = $member['score'];
+            
+            // Tentukan warna berdasarkan nilai
+            if ($score < 90) {
+                return '#dc3545'; // Merah untuk POOR
+            } elseif ($score <= 100) {
+                return '#ffc107'; // Kuning untuk GOOD
+            } elseif ($score <= 110) {
+                return '#0d6efd'; // Biru untuk VERY GOOD
+            } else {
+                return '#6c757d'; // Abu-abu untuk nilai di luar range
             }
-            // Gradient untuk lainnya
-            $hue = ($index * 30) % 360;
-            return "hsl($hue, 70%, 60%)";
-        }, $dept_comparison, array_keys($dept_comparison))) ?>;
+        }, $dept_comparison)) ?>;
 
         const deptCompChart = new Chart(deptCompCtx, {
             type: 'bar',
@@ -1707,7 +1712,19 @@ if ($user_level >= 2) {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return 'Score: ' + context.parsed.x.toFixed(2);
+                                const score = context.parsed.x;
+                                let status = '';
+                                
+                                // Tampilkan status di tooltip
+                                if (score < 90) {
+                                    status = 'POOR';
+                                } else if (score <= 100) {
+                                    status = 'GOOD';
+                                } else if (score <= 110) {
+                                    status = 'VERY GOOD';
+                                }
+                                
+                                return 'Score: ' + score.toFixed(2) + ' (' + status + ')';
                             }
                         }
                     }
