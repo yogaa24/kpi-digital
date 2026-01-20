@@ -390,9 +390,7 @@ if ($user_level >= 2) {
         while ($dept_user = mysqli_fetch_assoc($result_dept_users)) {
             $dept_kpi = calculateKPI($conn, $dept_user['id'], false);
 
-            if ($dept_kpi['total_kpi'] < 110) {
-
-                $name_display = $dept_user['nama_lngkp'];
+            $name_display = $dept_user['nama_lngkp'];
                 if ($dept_user['id'] == $id_user) {
                     $name_display .= ' (You)';
                 } elseif ($dept_user['id'] == $filter_user) {
@@ -404,7 +402,6 @@ if ($user_level >= 2) {
                     'name'  => $name_display,
                     'score' => $dept_kpi['total_kpi']
                 ];
-            }
         }
 
         usort($dept_comparison, function ($a, $b) {
@@ -1104,27 +1101,29 @@ if ($user_level >= 2) {
 
                     <!-- ==================== KPI BREAKDOWN ==================== -->
                     <div class="row mb-4">
+                        <!-- WHAT Comparison: Real vs Simulasi -->
                         <div class="col-lg-6 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
-                                    <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>KPI Breakdown - Real</h5>
+                                    <h5 class="mb-0"><i class="bi bi-bullseye me-2"></i>WHAT Breakdown - Real vs Simulasi</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
-                                        <canvas id="kpiBreakdownReal"></canvas>
+                                        <canvas id="kpiBreakdownWhat"></canvas>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- HOW Comparison: Real vs Simulasi -->
                         <div class="col-lg-6 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
-                                    <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>KPI Breakdown - Simulasi</h5>
+                                    <h5 class="mb-0"><i class="bi bi-gear-fill me-2"></i>HOW Breakdown - Real vs Simulasi</h5>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
-                                        <canvas id="kpiBreakdownSim"></canvas>
+                                        <canvas id="kpiBreakdownHow"></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -1605,26 +1604,56 @@ if ($user_level >= 2) {
             }
         });
 
-        // KPI Breakdown Real
-        const breakdownRealCtx = document.getElementById('kpiBreakdownReal').getContext('2d');
-        const breakdownRealChart = new Chart(breakdownRealCtx, {
+        // KPI Breakdown WHAT - Real vs Simulasi
+        const breakdownWhatCtx = document.getElementById('kpiBreakdownWhat').getContext('2d');
+        const breakdownWhatChart = new Chart(breakdownWhatCtx, {
             type: 'bar',
             data: {
-                labels: <?= json_encode(array_column($kpi_real['kpi_details'], 'poin_what')) ?>,
+                labels: <?= json_encode(array_map(function($detail) {
+                    return substr($detail['poin_what'], 0, 20) . (strlen($detail['poin_what']) > 20 ? '...' : '');
+                }, $kpi_real['kpi_details'])) ?>,
                 datasets: [{
-                    label: 'Score',
+                    label: 'Real WHAT',
                     data: <?= json_encode(array_column($kpi_real['kpi_details'], 'nilai_what')) ?>,
                     backgroundColor: '#0d6efd',
-                    borderRadius: 5
+                    borderRadius: 5,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }, {
+                    label: 'Simulasi WHAT',
+                    data: <?= json_encode(array_column($kpi_sim['kpi_details'], 'nilai_what')) ?>,
+                    backgroundColor: '#198754',
+                    borderRadius: 5,
+                    borderWidth: 2,
+                    borderColor: '#fff'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { 
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(2);
+                            }
+                        }
+                    }
+                },
                 scales: { 
                     x: { 
-                        display: false // HILANGKAN LABEL X-AXIS
+                        display: true,
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: {
+                                size: 10
+                            }
+                        }
                     },
                     y: { 
                         beginAtZero: true,
@@ -1635,29 +1664,58 @@ if ($user_level >= 2) {
                     }
                 }
             }
-            
         });
 
-        // KPI Breakdown Simulation
-        const breakdownSimCtx = document.getElementById('kpiBreakdownSim').getContext('2d');
-        const breakdownSimChart = new Chart(breakdownSimCtx, {
+        // KPI Breakdown HOW - Real vs Simulasi
+        const breakdownHowCtx = document.getElementById('kpiBreakdownHow').getContext('2d');
+        const breakdownHowChart = new Chart(breakdownHowCtx, {
             type: 'bar',
             data: {
-                labels: <?= json_encode(array_column($kpi_sim['kpi_details'], 'poin_what')) ?>,
+                labels: <?= json_encode(array_map(function($detail) {
+                    return substr($detail['poin_how'], 0, 20) . (strlen($detail['poin_how']) > 20 ? '...' : '');
+                }, $kpi_real['kpi_details'])) ?>,
                 datasets: [{
-                    label: 'Target Score',
-                    data: <?= json_encode(array_column($kpi_sim['kpi_details'], 'nilai_what')) ?>,
-                    backgroundColor: '#198754',
-                    borderRadius: 5
+                    label: 'Real HOW',
+                    data: <?= json_encode(array_column($kpi_real['kpi_details'], 'nilai_how')) ?>,
+                    backgroundColor: '#dc3545',
+                    borderRadius: 5,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }, {
+                    label: 'Simulasi HOW',
+                    data: <?= json_encode(array_column($kpi_sim['kpi_details'], 'nilai_how')) ?>,
+                    backgroundColor: '#ffc107',
+                    borderRadius: 5,
+                    borderWidth: 2,
+                    borderColor: '#fff'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { 
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(2);
+                            }
+                        }
+                    }
+                },
                 scales: { 
                     x: { 
-                        display: false // HILANGKAN LABEL X-AXIS
+                        display: true,
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: {
+                                size: 10
+                            }
+                        }
                     },
                     y: { 
                         beginAtZero: true,
@@ -1686,7 +1744,7 @@ if ($user_level >= 2) {
             } elseif ($score <= 110) {
                 return '#0d6efd'; // Biru untuk VERY GOOD
             } else {
-                return '#6c757d'; // Abu-abu untuk nilai di luar range
+                return '#198754'; // Abu-abu untuk nilai di luar range
             }
         }, $dept_comparison)) ?>;
 

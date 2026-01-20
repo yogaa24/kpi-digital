@@ -89,6 +89,15 @@
                     style="color: white; margin-top: -10px; margin-right: 5px;">
                     <i class="bi bi-lightning-charge-fill fs-5"></i>
                 </button>
+                <button type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#feedbackModal"
+                    class="btn btn-tool"
+                    title="Feedback KPI"
+                    style="color: white; margin-top: -10px; margin-right: 5px;">
+                    <i class="bi bi-chat-left-text-fill fs-5"></i>
+                </button>
+
             </div>
         </div>
         
@@ -180,12 +189,101 @@
             </table>
             <?php if ($sp_data) { ?>
                 <div class="alert alert-info mb-0 mt-3">
-                    <small>
-                        <i class="bi bi-calendar-check"></i> 
-                            SP ini akan berakhir pada <strong><?=formatTanggalIndo($sp_data['masa_berlaku_selesai'])?></strong>
-                    </small>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small>
+                                <i class="bi bi-calendar-check"></i> 
+                                SP ini akan berakhir pada <strong><?=formatTanggalIndo($sp_data['masa_berlaku_selesai'])?></strong>
+                            </small>
+                        </div>
+                        <?php if ($sp_data['file_sp']) { ?>
+                        <button type="button" 
+                                class="btn btn-sm btn-danger" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#modalLihatSP">
+                            <i class="bi bi-file-earmark-text"></i> Lihat
+                        </button>
+                        <?php } ?>
+                    </div>
                 </div>
-            <?php } ?>
+
+                <!-- Modal Lihat Surat SP untuk Karyawan -->
+                <div class="modal fade" id="modalLihatSP" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title fw-bold">
+                                    <i class="bi bi-file-earmark-text-fill"></i> 
+                                    Surat Peringatan - <?=$sp_data['jenis_sp']?>
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Info SP -->
+                                <div class="alert alert-<?=getSPBadgeClass($sp_data['jenis_sp'])?> mb-3">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong><i class="bi bi-file-text"></i> Nomor SP:</strong> <?=$sp_data['nomor_sp']?><br>
+                                            <strong><i class="bi bi-calendar-event"></i> Tanggal:</strong> <?=formatTanggalIndo($sp_data['tanggal_sp'])?><br>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong><i class="bi bi-calendar-range"></i> Masa Berlaku:</strong><br>
+                                            <?=formatTanggalIndo($sp_data['masa_berlaku_mulai'])?> s/d <?=formatTanggalIndo($sp_data['masa_berlaku_selesai'])?>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Alasan -->
+                                <div class="mb-3">
+                                    <strong><i class="bi bi-chat-left-text"></i> Alasan/Pelanggaran:</strong>
+                                    <div class="alert alert-light mt-2">
+                                        <?=nl2br(htmlspecialchars($sp_data['alasan']))?>
+                                    </div>
+                                </div>
+
+                                <?php if ($sp_data['keterangan']) { ?>
+                                <div class="mb-3">
+                                    <strong><i class="bi bi-chat-dots"></i> Keterangan:</strong>
+                                    <div class="alert alert-light mt-2">
+                                        <?=nl2br(htmlspecialchars($sp_data['keterangan']))?>
+                                    </div>
+                                </div>
+                                <?php } ?>
+
+                                <!-- Preview File -->
+                                <div class="text-center">
+                                    <?php 
+                                    $file_path = 'uploads/surat_peringatan/' . $sp_data['file_sp'];
+                                    $file_ext = strtolower(pathinfo($sp_data['file_sp'], PATHINFO_EXTENSION));
+                                    
+                                    if ($file_ext == 'pdf') { ?>
+                                        <iframe src="<?=$file_path?>" 
+                                                width="100%" 
+                                                height="600px" 
+                                                style="border: 1px solid #ddd; border-radius: 5px;">
+                                        </iframe>
+                                    <?php } else { ?>
+                                        <img src="<?=$file_path?>" 
+                                            class="img-fluid" 
+                                            style="max-height: 600px; border: 1px solid #ddd; border-radius: 5px;"
+                                            alt="Surat Peringatan">
+                                    <?php } ?>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <a href="<?=$file_path?>" 
+                                class="btn btn-primary" 
+                                download="<?=$sp_data['nomor_sp']?>.<?=$file_ext?>">
+                                    <i class="bi bi-download"></i> Download Surat SP
+                                </a>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="bi bi-x-circle"></i> Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
         </div>
     </div>
     
@@ -324,4 +422,146 @@
         </div>
     </div>
 
+    <?php 
+    $bulan_sekarang = date('m/Y');
+    $feedback_data = getFeedback($conn, $id_user, $bulan_sekarang);
+
+    // Cek apakah user yang login adalah atasan dari user ini
+    $is_atasan = false;
+    $user_info = mysqli_query($conn, "SELECT atasan FROM tb_users WHERE id = $id_user");
+    $user_row = mysqli_fetch_assoc($user_info);
+    if ($user_row['atasan'] == $nama_lngkp) {
+        $is_atasan = true;
+    }
+    ?>
+
+    <!-- Modal Feedback -->
+    <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title fw-bold" id="feedbackModalLabel">
+                        <i class="bi bi-chat-left-text-fill"></i> Feedback KPI - <?= tmapil($busd[0], $busd[1]); ?>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs" id="feedbackTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="view-tab" data-bs-toggle="tab" data-bs-target="#view-feedback" type="button" role="tab">
+                                <i class="bi bi-eye"></i> Lihat Feedback
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="write-tab" data-bs-toggle="tab" data-bs-target="#write-feedback" type="button" role="tab">
+                                <i class="bi bi-pencil"></i> Tulis Feedback
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content mt-3" id="feedbackTabContent">
+                        <!-- Tab Lihat Feedback -->
+                        <div class="tab-pane fade show active" id="view-feedback" role="tabpanel">
+                            <!-- Feedback dari Diri Sendiri -->
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-person-fill"></i> Feedback dari Diri Sendiri
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <?php if ($feedback_data['self']) { ?>
+                                        <div class="feedback-content">
+                                            <p><?= nl2br(htmlspecialchars($feedback_data['self']['feedback'])) ?></p>
+                                            <small class="text-muted">
+                                                <i class="bi bi-clock"></i> 
+                                                Terakhir diupdate: <?= date('d/m/Y H:i', strtotime($feedback_data['self']['tanggal_update'] ?? $feedback_data['self']['tanggal_buat'])) ?>
+                                            </small>
+                                        </div>
+                                    <?php } else { ?>
+                                        <p class="text-muted mb-0">
+                                            <i class="bi bi-info-circle"></i> Belum ada feedback dari diri sendiri
+                                        </p>
+                                    <?php } ?>
+                                </div>
+                            </div>
+
+                            <!-- Feedback dari Atasan -->
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-person-badge"></i> Feedback dari Atasan
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <?php if ($feedback_data['atasan']) { ?>
+                                        <div class="feedback-content">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <strong><?= $feedback_data['atasan']['nama_pemberi'] ?></strong>
+                                            </div>
+                                            <p><?= nl2br(htmlspecialchars($feedback_data['atasan']['feedback'])) ?></p>
+                                            <small class="text-muted">
+                                                <i class="bi bi-clock"></i> 
+                                                Terakhir diupdate: <?= date('d/m/Y H:i', strtotime($feedback_data['atasan']['tanggal_update'] ?? $feedback_data['atasan']['tanggal_buat'])) ?>
+                                            </small>
+                                        </div>
+                                    <?php } else { ?>
+                                        <p class="text-muted mb-0">
+                                            <i class="bi bi-info-circle"></i> Belum ada feedback dari atasan
+                                        </p>
+                                    <?php } ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab Tulis Feedback -->
+                        <div class="tab-pane fade" id="write-feedback" role="tabpanel">
+                            <form method="POST" action="">
+                                <input type="hidden" name="user_target" value="<?= $id_user ?>">
+                                
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> 
+                                    <strong>Panduan:</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li>Tuliskan refleksi diri atau masukan untuk peningkatan performa</li>
+                                        <li>Feedback dapat diperbarui sebelum bulan berganti</li>
+                                        <li>Bersikaplah objektif dan konstruktif</li>
+                                    </ul>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">
+                                        <?php if ($is_atasan) { ?>
+                                            <i class="bi bi-person-badge"></i> Feedback untuk <?= $nama_lngkp ?>
+                                        <?php } else { ?>
+                                            <i class="bi bi-person-fill"></i> Feedback untuk Diri Sendiri
+                                        <?php } ?>
+                                    </label>
+                                    <textarea class="form-control" name="feedback_text" rows="8" 
+                                        placeholder="Tuliskan feedback Anda di sini..." required><?php 
+                                        if ($is_atasan && $feedback_data['atasan']) {
+                                            echo htmlspecialchars($feedback_data['atasan']['feedback']);
+                                        } elseif (!$is_atasan && $feedback_data['self']) {
+                                            echo htmlspecialchars($feedback_data['self']['feedback']);
+                                        }
+                                    ?></textarea>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i> Periode: <?= tmapil($busd[0], $busd[1]); ?>
+                                    </small>
+                                    <button type="submit" name="saveFeedback" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> Simpan Feedback
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

@@ -10,7 +10,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             
-            <form method="POST" action="">
+            <form method="POST" action="" enctype="multipart/form-data"> <!-- TAMBAHKAN enctype -->
                 <div class="modal-body">
                     <input type="hidden" name="id_user" value="<?=$hasilsfa['id']?>">
                     
@@ -40,10 +40,10 @@
                             <i class="bi bi-file-text"></i> Nomor Surat Peringatan <span class="text-danger">*</span>
                         </label>
                         <input type="text" class="form-control" name="nomor_sp" required 
-                               placeholder="Contoh: SP/HRD/001/2024">
+                            placeholder="Contoh: SP/HRD/001/2024">
                     </div>
                     
-                   <!-- Tanggal SP -->
+                    <!-- Tanggal SP -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">
                             <i class="bi bi-calendar-event"></i> Tanggal Surat Peringatan <span class="text-danger">*</span>
@@ -51,7 +51,7 @@
                         <input type="date" class="form-control" name="tanggal_sp" id="tanggalSP<?=$hasilsfa['id']?>" required value="<?=date('Y-m-d')?>" onchange="updateMasaBerlaku<?=$hasilsfa['id']?>()">
                     </div>
 
-                    <!-- Masa Berlaku (Auto-calculated, read-only) -->
+                    <!-- Masa Berlaku -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">
                             <i class="bi bi-calendar-range"></i> Masa Berlaku SP (Otomatis 6 Bulan)
@@ -60,14 +60,25 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <strong>Mulai:</strong> <span id="displayMulai<?=$hasilsfa['id']?>"><?=date('d/m/Y')?></span>
-                                    <input type="hidden" name="masa_berlaku_mulai" id="masaMulai<?=$hasilsfa['id']?>" value="<?=date('Y-m-d')?>">
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Selesai:</strong> <span id="displaySelesai<?=$hasilsfa['id']?>"><?=date('d/m/Y', strtotime('+6 months'))?></span>
-                                    <input type="hidden" name="masa_berlaku_selesai" id="masaSelesai<?=$hasilsfa['id']?>" value="<?=date('Y-m-d', strtotime('+6 months'))?>">
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- TAMBAHAN BARU: Upload File SP -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-file-earmark-arrow-up"></i> Upload Surat Peringatan <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" class="form-control" name="file_sp" id="fileSP<?=$hasilsfa['id']?>" 
+                            accept=".pdf,.jpg,.jpeg,.png" required onchange="previewFileName<?=$hasilsfa['id']?>()">
+                        <small class="form-text text-muted">
+                            <i class="bi bi-info-circle"></i> Format: PDF, JPG, JPEG, PNG | Maksimal: 5MB
+                        </small>
+                        <div id="filePreview<?=$hasilsfa['id']?>" class="mt-2"></div>
                     </div>
                     
                     <!-- Alasan -->
@@ -76,7 +87,7 @@
                             <i class="bi bi-chat-left-text"></i> Alasan/Pelanggaran <span class="text-danger">*</span>
                         </label>
                         <textarea class="form-control" name="alasan" rows="3" required 
-                                  placeholder="Jelaskan alasan pemberian surat peringatan..."></textarea>
+                                placeholder="Jelaskan alasan pemberian surat peringatan..."></textarea>
                     </div>
                     
                     <!-- Keterangan -->
@@ -85,7 +96,7 @@
                             <i class="bi bi-chat-dots"></i> Keterangan Tambahan
                         </label>
                         <textarea class="form-control" name="keterangan" rows="2" 
-                                  placeholder="Keterangan tambahan (opsional)"></textarea>
+                                placeholder="Keterangan tambahan (opsional)"></textarea>
                     </div>
                 </div>
                 
@@ -103,6 +114,30 @@
 </div>
 
 <script>
+function previewFileName<?=$hasilsfa['id']?>() {
+    const fileInput = document.getElementById('fileSP<?=$hasilsfa['id']?>');
+    const previewDiv = document.getElementById('filePreview<?=$hasilsfa['id']?>');
+    
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const fileSize = (file.size / 1024 / 1024).toFixed(2); // Convert to MB
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        
+        let icon = 'file-earmark';
+        if (fileExt === 'pdf') icon = 'file-earmark-pdf';
+        else if (['jpg', 'jpeg', 'png'].includes(fileExt)) icon = 'file-earmark-image';
+        
+        previewDiv.innerHTML = `
+            <div class="alert alert-success mb-0">
+                <i class="bi bi-${icon}-fill"></i> 
+                <strong>${file.name}</strong> (${fileSize} MB)
+            </div>
+        `;
+    } else {
+        previewDiv.innerHTML = '';
+    }
+}
+
 function updatePenaltyInfo<?=$hasilsfa['id']?>() {
     const jenisSP = document.getElementById('jenisSP<?=$hasilsfa['id']?>').value;
     const infoDiv = document.getElementById('penaltyInfo<?=$hasilsfa['id']?>');
@@ -134,26 +169,11 @@ function updateMasaBerlaku<?=$hasilsfa['id']?>() {
         const endDate = new Date(tanggalSP);
         endDate.setMonth(endDate.getMonth() + 6);
         
-        // Format tanggal untuk input hidden (Y-m-d)
-        const startDateStr = tanggalSP;
-        const endDateStr = endDate.toISOString().split('T')[0];
-        
-        // Format tanggal untuk display (d/m/Y)
         const startDisplay = startDate.toLocaleDateString('id-ID');
         const endDisplay = endDate.toLocaleDateString('id-ID');
         
-        // Update hidden inputs
-        document.getElementById('masaMulai<?=$hasilsfa['id']?>').value = startDateStr;
-        document.getElementById('masaSelesai<?=$hasilsfa['id']?>').value = endDateStr;
-        
-        // Update display
         document.getElementById('displayMulai<?=$hasilsfa['id']?>').textContent = startDisplay;
         document.getElementById('displaySelesai<?=$hasilsfa['id']?>').textContent = endDisplay;
     }
 }
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    updateMasaBerlaku<?=$hasilsfa['id']?>();
-});
 </script>

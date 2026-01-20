@@ -16,7 +16,7 @@ if (!isset($_SESSION['id_user'])) {
     // Update SP yang sudah expired
     updateExpiredSP($conn);
     
-    // Handler untuk tambah SP
+    // Handler untuk tambah SP dengan upload file
     if (isset($_POST['tambah_sp'])) {
         $id_user_sp = intval($_POST['id_user']);
         $jenis_sp = mysqli_real_escape_string($conn, $_POST['jenis_sp']);
@@ -30,18 +30,61 @@ if (!isset($_SESSION['id_user'])) {
         $masa_berlaku_mulai = $tanggal_sp;
         $masa_berlaku_selesai = date('Y-m-d', strtotime($tanggal_sp . ' +6 months'));
         
+        // Handle upload file
+        $file_sp = null;
+        if (isset($_FILES['file_sp']) && $_FILES['file_sp']['error'] == 0) {
+            $allowed_ext = ['pdf', 'jpg', 'jpeg', 'png'];
+            $file_name = $_FILES['file_sp']['name'];
+            $file_size = $_FILES['file_sp']['size'];
+            $file_tmp = $_FILES['file_sp']['tmp_name'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+            
+            // Validasi ekstensi
+            if (!in_array($file_ext, $allowed_ext)) {
+                echo "<script>alert('Format file tidak valid! Hanya PDF, JPG, JPEG, PNG yang diperbolehkan.'); window.history.back();</script>";
+                exit();
+            }
+            
+            // Validasi ukuran (max 5MB)
+            if ($file_size > 5242880) {
+                echo "<script>alert('Ukuran file terlalu besar! Maksimal 5MB.'); window.history.back();</script>";
+                exit();
+            }
+            
+            // Generate nama file unik
+            $new_file_name = 'SP_' . $id_user_sp . '_' . time() . '.' . $file_ext;
+            $upload_path = 'uploads/surat_peringatan/';
+            
+            // Buat folder jika belum ada
+            if (!file_exists($upload_path)) {
+                mkdir($upload_path, 0777, true);
+            }
+            
+            // Upload file
+            if (move_uploaded_file($file_tmp, $upload_path . $new_file_name)) {
+                $file_sp = $new_file_name;
+            } else {
+                echo "<script>alert('Gagal upload file!'); window.history.back();</script>";
+                exit();
+            }
+        }
+        
         $sql = "INSERT INTO tb_surat_peringatan 
-                (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, keterangan, status, created_by) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
+                (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, keterangan, file_sp, status, created_by) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
         
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "isssssssi", $id_user_sp, $jenis_sp, $nomor_sp, $tanggal_sp, 
-                            $masa_berlaku_mulai, $masa_berlaku_selesai, $alasan, $keterangan, $created_by);
+        mysqli_stmt_bind_param($stmt, "issssssssi", $id_user_sp, $jenis_sp, $nomor_sp, $tanggal_sp, 
+                            $masa_berlaku_mulai, $masa_berlaku_selesai, $alasan, $keterangan, $file_sp, $created_by);
         
         if (mysqli_stmt_execute($stmt)) {
-            echo "<script>alert('Surat Peringatan berhasil ditambahkan dengan masa berlaku 6 bulan!'); window.location.href='datakpi-adminhrd';</script>";
+            echo "<script>alert('✅ Surat Peringatan berhasil ditambahkan!'); window.location.href='datakpi-adminhrd';</script>";
         } else {
-            echo "<script>alert('Gagal menambahkan Surat Peringatan: " . mysqli_error($conn) . "');</script>";
+            // Hapus file jika insert gagal
+            if ($file_sp && file_exists($upload_path . $file_sp)) {
+                unlink($upload_path . $file_sp);
+            }
+            echo "<script>alert('❌ Gagal menambahkan Surat Peringatan: " . mysqli_error($conn) . "');</script>";
         }
     }
     

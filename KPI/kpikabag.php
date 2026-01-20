@@ -156,6 +156,8 @@ function getkpi($nilair)
             <div class="app-content">
                 <div class="container-fluid">
                     <div class="mt-4">
+
+                        
                         
                         <div class="table-responsive">
                             <table id="datatablenya" class="table align-midle table-hover table-bordered">
@@ -264,12 +266,136 @@ ORDER BY
                                 </tbody>
                             </table>
                         </div>
+                        <?php
+                        // Hitung statistik KPI untuk diagram pie
+                        $count_poor = 0;
+                        $count_good = 0;
+                        $count_very_good = 0;
+                        $count_excellent = 0;
+                        $total_team = 0;
+
+                        $sqlhd_stats = "SELECT *
+                        FROM tb_users
+                        WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
+                        ORDER BY 
+                            CASE 
+                                WHEN jabatan = 'Kadep' THEN 1
+                                WHEN jabatan = 'Manager' THEN 2
+                                WHEN jabatan = 'Karyawan' THEN 3
+                                ELSE 4
+                            END,
+                            nama_lngkp";
+
+                        $sgdah_stats = mysqli_query($conn, $sqlhd_stats);
+                        while ($hasil_stats = mysqli_fetch_assoc($sgdah_stats)) {
+                            $nilai = getnilai($conn, $hasil_stats['id']);
+                            $kpi_category = getkpi($nilai);
+                            
+                            if ($kpi_category == "POOR") {
+                                $count_poor++;
+                            } elseif ($kpi_category == "GOOD") {
+                                $count_good++;
+                            } elseif ($kpi_category == "Very Good") {
+                                $count_very_good++;
+                            } elseif ($kpi_category == "Excellent") {
+                                $count_excellent++;
+                            }
+                            $total_team++;
+                        }
+
+                        // Hitung persentase
+                        $percent_poor = $total_team > 0 ? round(($count_poor / $total_team) * 100, 1) : 0;
+                        $percent_good = $total_team > 0 ? round(($count_good / $total_team) * 100, 1) : 0;
+                        $percent_very_good = $total_team > 0 ? round(($count_very_good / $total_team) * 100, 1) : 0;
+                        $percent_excellent = $total_team > 0 ? round(($count_excellent / $total_team) * 100, 1) : 0;
+                        ?>
+
+                        <!-- Card untuk Diagram Pie -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">Analisa KPI Team</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="kpiPieChart"></div>
+                                        <div class="mt-3">
+                                            <small class="text-muted">Total Anggota: <?= $total_team ?> orang</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header bg-secondary text-white">
+                                        <h5 class="mb-0">Detail Persentase</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td><span class="badge" style="background-color: #dc3545;">POOR</span></td>
+                                                <td><?= $count_poor ?> orang</td>
+                                                <td><strong><?= $percent_poor ?>%</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge" style="background-color: #fd7e14;">GOOD</span></td>
+                                                <td><?= $count_good ?> orang</td>
+                                                <td><strong><?= $percent_good ?>%</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge" style="background-color: #28a745;">Very Good</span></td>
+                                                <td><?= $count_very_good ?> orang</td>
+                                                <td><strong><?= $percent_very_good ?>%</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge" style="background-color: #007bff;">Excellent</span></td>
+                                                <td><?= $count_excellent ?> orang</td>
+                                                <td><strong><?= $percent_excellent ?>%</strong></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
         <?php include("pages/part/p_footer.php"); ?>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var options = {
+        series: [<?= $count_poor ?>, <?= $count_good ?>, <?= $count_very_good ?>, <?= $count_excellent ?>],
+        chart: {
+            type: 'pie',
+            height: 350
+        },
+        labels: ['POOR', 'GOOD', 'Very Good', 'Excellent'],
+        colors: ['#dc3545', '#fd7e14', '#28a745', '#007bff'],
+        legend: {
+            position: 'bottom'
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: function(val, opts) {
+                return opts.w.config.series[opts.seriesIndex] + " (" + val.toFixed(1) + "%)";
+            }
+        },
+        tooltip: {
+            y: {
+                formatter: function(val) {
+                    return val + " orang"
+                }
+            }
+        }
+    };
+
+    var chart = new ApexCharts(document.querySelector("#kpiPieChart"), options);
+    chart.render();
+});
+</script>
 </body>
 
 </html>

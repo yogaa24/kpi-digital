@@ -175,6 +175,123 @@ if (!isset($_SESSION['id_user'])) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
         }
     }
+    if (isset($_POST['saveFeedback'])) {
+        $feedback_text = mysqli_real_escape_string($conn, $_POST['feedback_text']);
+        $bulan_feedback = date('m/Y');
+        $pemberi_feedback = $id_user; // Yang login saat ini
+        $penerima_feedback = $_POST['user_target']; // Target user
+        
+        // Cek apakah sudah ada feedback untuk bulan ini
+        $cek_feedback = mysqli_query($conn, "SELECT id_feedback FROM tb_feedback WHERE 
+            id_user_pemberi = $pemberi_feedback 
+            AND id_user_penerima = $penerima_feedback 
+            AND bulan = '$bulan_feedback'");
+        
+        if (mysqli_num_rows($cek_feedback) > 0) {
+            // Update feedback yang sudah ada
+            $update_feedback = mysqli_query($conn, "UPDATE tb_feedback SET 
+                feedback = '$feedback_text',
+                tanggal_update = NOW()
+                WHERE id_user_pemberi = $pemberi_feedback 
+                AND id_user_penerima = $penerima_feedback 
+                AND bulan = '$bulan_feedback'");
+            
+            if ($update_feedback) {
+                echo "<script>
+                    alert('✅ Feedback berhasil diperbarui!');
+                    window.location.href = 'kpianggota?id=" . $penerima_feedback . "'; // PERBAIKI: redirect ke halaman yang sama
+                </script>";
+            }
+        } else {
+            // Insert feedback baru
+            $insert_feedback = mysqli_query($conn, "INSERT INTO tb_feedback 
+                (id_user_pemberi, id_user_penerima, feedback, bulan, tanggal_buat) 
+                VALUES ($pemberi_feedback, $penerima_feedback, '$feedback_text', '$bulan_feedback', NOW())");
+            
+            if ($insert_feedback) {
+                echo "<script>
+                    alert('✅ Feedback berhasil disimpan!');
+                    window.location.href = 'kpianggota?id=" . $penerima_feedback . "'; // PERBAIKI: redirect ke halaman yang sama
+                </script>";
+            }   
+        }
+    }
+
+    // Fungsi untuk mendapatkan feedback
+    function getFeedback($conn, $id_user_target, $bulan) {
+        $feedback_data = [
+            'self' => null,
+            'atasan' => null
+        ];
+        
+        // Feedback dari diri sendiri
+        $self_feedback = mysqli_query($conn, "SELECT * FROM tb_feedback WHERE 
+            id_user_pemberi = $id_user_target 
+            AND id_user_penerima = $id_user_target 
+            AND bulan = '$bulan'");
+        
+        if ($self_row = mysqli_fetch_assoc($self_feedback)) {
+            $feedback_data['self'] = $self_row;
+        }
+        
+        // Feedback dari atasan
+        $atasan_feedback = mysqli_query($conn, "SELECT f.*, u.nama_lngkp as nama_pemberi 
+            FROM tb_feedback f
+            JOIN tb_users u ON f.id_user_pemberi = u.id
+            WHERE f.id_user_penerima = $id_user_target 
+            AND f.id_user_pemberi != $id_user_target 
+            AND f.bulan = '$bulan'
+            ORDER BY f.tanggal_buat DESC");
+        
+        if ($atasan_row = mysqli_fetch_assoc($atasan_feedback)) {
+            $feedback_data['atasan'] = $atasan_row;
+        }
+        
+        return $feedback_data;
+    }
+    $blan = date('m/Y');
+$busd = explode('/', $blan);
+
+function tmapil($bl, $th){
+    $bulannnn = '';
+    if ($bl == '01') {
+        $bulannnn = 'Januari ' . $th;
+    }
+    if ($bl == '02') {
+        $bulannnn = 'Februari ' . $th;
+    }
+    if ($bl == '03') {
+        $bulannnn = 'Maret ' . $th;
+    }
+    if ($bl == '04') {
+        $bulannnn = 'April ' . $th;
+    }
+    if ($bl == '05') {
+        $bulannnn = 'Mei ' . $th;
+    }
+    if ($bl == '06') {
+        $bulannnn = 'Juni ' . $th;
+    }
+    if ($bl == '07') {
+        $bulannnn = 'Juli ' . $th;
+    }
+    if ($bl == '08') {
+        $bulannnn = 'Agustus ' . $th;
+    }
+    if ($bl == '09') {
+        $bulannnn = 'September ' . $th;
+    }
+    if ($bl == '10') {
+        $bulannnn = 'Oktober ' . $th;
+    }
+    if ($bl == '11') {
+        $bulannnn = 'November ' . $th;
+    }
+    if ($bl == '12') {
+        $bulannnn = 'Desember ' . $th;
+    }
+    return $bulannnn;
+}
 } ?>
 <html lang="en">
 
@@ -326,6 +443,14 @@ if (!isset($_SESSION['id_user'])) {
                                         <button style="color: black; margin-top: -20px; margin-right: 5px;" type="button"
                                             data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
                                             <i class="bi bi-shield-check fs-6"></i>
+                                        </button>
+                                        <button type="button"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#feedbackModal"
+                                            class="btn btn-tool"
+                                            title="Feedback KPI"
+                                            style="color: black; margin-top: -20px; margin-right: 5px;"> <!-- PERBAIKI: ubah color jadi black -->
+                                            <i class="bi bi-chat-left-text-fill fs-5"></i>
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end" role="menu">
                                             <?php if ($verified_status) { ?>
@@ -766,6 +891,148 @@ if (!isset($_SESSION['id_user'])) {
                                     </div>
                                 </div>
                             </div>
+                            <?php 
+                            $bulan_sekarang = date('m/Y');
+                            $feedback_data = getFeedback($conn, $id_sf, $bulan_sekarang); // PERBAIKI: gunakan $id_sf bukan $id_user
+
+                            // Cek apakah user yang login adalah atasan dari user yang dilihat
+                            $is_atasan = false;
+                            $user_info = mysqli_query($conn, "SELECT atasan FROM tb_users WHERE id = $id_sf"); // PERBAIKI: gunakan $id_sf
+                            $user_row = mysqli_fetch_assoc($user_info);
+                            if ($user_row['atasan'] == $nama_lngkp) { // Jika atasan user yang dilihat = user yang login
+                                $is_atasan = true;
+                            }
+                            ?>
+
+                            <!-- Modal Feedback -->
+                            <div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-info text-white">
+                                            <h5 class="modal-title fw-bold" id="feedbackModalLabel">
+                                                <i class="bi bi-chat-left-text-fill"></i> Feedback KPI - <?= tmapil($busd[0], $busd[1]); ?>
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <!-- Tab Navigation -->
+                                            <ul class="nav nav-tabs" id="feedbackTab" role="tablist">
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link active" id="view-tab" data-bs-toggle="tab" data-bs-target="#view-feedback" type="button" role="tab">
+                                                        <i class="bi bi-eye"></i> Lihat Feedback
+                                                    </button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                    <button class="nav-link" id="write-tab" data-bs-toggle="tab" data-bs-target="#write-feedback" type="button" role="tab">
+                                                        <i class="bi bi-pencil"></i> Tulis Feedback
+                                                    </button>
+                                                </li>
+                                            </ul>
+
+                                            <!-- Tab Content -->
+                                            <div class="tab-content mt-3" id="feedbackTabContent">
+                                                <!-- Tab Lihat Feedback -->
+                                                <div class="tab-pane fade show active" id="view-feedback" role="tabpanel">
+                                                    <!-- Feedback dari Diri Sendiri -->
+                                                    <div class="card mb-3">
+                                                        <div class="card-header bg-primary text-white">
+                                                            <h6 class="mb-0">
+                                                                <i class="bi bi-person-fill"></i> Feedback dari Diri Sendiri
+                                                            </h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <?php if ($feedback_data['self']) { ?>
+                                                                <div class="feedback-content">
+                                                                    <p><?= nl2br(htmlspecialchars($feedback_data['self']['feedback'])) ?></p>
+                                                                    <small class="text-muted">
+                                                                        <i class="bi bi-clock"></i> 
+                                                                        Terakhir diupdate: <?= date('d/m/Y H:i', strtotime($feedback_data['self']['tanggal_update'] ?? $feedback_data['self']['tanggal_buat'])) ?>
+                                                                    </small>
+                                                                </div>
+                                                            <?php } else { ?>
+                                                                <p class="text-muted mb-0">
+                                                                    <i class="bi bi-info-circle"></i> Belum ada feedback dari diri sendiri
+                                                                </p>
+                                                            <?php } ?>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Feedback dari Atasan -->
+                                                    <div class="card">
+                                                        <div class="card-header bg-success text-white">
+                                                            <h6 class="mb-0">
+                                                                <i class="bi bi-person-badge"></i> Feedback dari Atasan
+                                                            </h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <?php if ($feedback_data['atasan']) { ?>
+                                                                <div class="feedback-content">
+                                                                    <div class="d-flex align-items-center mb-2">
+                                                                        <strong><?= $feedback_data['atasan']['nama_pemberi'] ?></strong>
+                                                                    </div>
+                                                                    <p><?= nl2br(htmlspecialchars($feedback_data['atasan']['feedback'])) ?></p>
+                                                                    <small class="text-muted">
+                                                                        <i class="bi bi-clock"></i> 
+                                                                        Terakhir diupdate: <?= date('d/m/Y H:i', strtotime($feedback_data['atasan']['tanggal_update'] ?? $feedback_data['atasan']['tanggal_buat'])) ?>
+                                                                    </small>
+                                                                </div>
+                                                            <?php } else { ?>
+                                                                <p class="text-muted mb-0">
+                                                                    <i class="bi bi-info-circle"></i> Belum ada feedback dari atasan
+                                                                </p>
+                                                            <?php } ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Tab Tulis Feedback -->
+                                                <div class="tab-pane fade" id="write-feedback" role="tabpanel">
+                                                    <form method="POST" action="">
+                                                        <input type="hidden" name="user_target" value="<?= $id_sf ?>"> <!-- PERBAIKI: gunakan $id_sf -->
+                                                        
+                                                        <div class="alert alert-info">
+                                                            <i class="bi bi-info-circle"></i> 
+                                                            <strong>Panduan:</strong>
+                                                            <ul class="mb-0 mt-2">
+                                                                <li>Tuliskan refleksi diri atau masukan untuk peningkatan performa</li>
+                                                                <li>Feedback dapat diperbarui sebelum bulan berganti</li>
+                                                                <li>Bersikaplah objektif dan konstruktif</li>
+                                                            </ul>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-bold">
+                                                                <?php if ($is_atasan) { ?>
+                                                                    <i class="bi bi-person-badge"></i> Feedback untuk <?= $nama_lngkpan ?> <!-- PERBAIKI: gunakan $nama_lngkpan -->
+                                                                <?php } else { ?>
+                                                                    <i class="bi bi-person-fill"></i> Feedback untuk Diri Sendiri
+                                                                <?php } ?>
+                                                            </label>
+                                                            <textarea class="form-control" name="feedback_text" rows="8" 
+                                                                placeholder="Tuliskan feedback Anda di sini..." required><?php 
+                                                                if ($is_atasan && $feedback_data['atasan']) {
+                                                                    echo htmlspecialchars($feedback_data['atasan']['feedback']);
+                                                                } elseif (!$is_atasan && $feedback_data['self']) {
+                                                                    echo htmlspecialchars($feedback_data['self']['feedback']);
+                                                                }
+                                                            ?></textarea>
+                                                        </div>
+
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <small class="text-muted">
+                                                                <i class="bi bi-calendar"></i> Periode: <?= tmapil($busd[0], $busd[1]); ?>
+                                                            </small>
+                                                            <button type="submit" name="saveFeedback" class="btn btn-primary">
+                                                                <i class="bi bi-save"></i> Simpan Feedback
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <!-- Modal Verify KPI -->
                             <div class="modal fade" id="verifyModal" tabindex="-1" aria-labelledby="verifyModalLabel" aria-hidden="true">
                                 <div class="modal-dialog">
@@ -826,6 +1093,7 @@ if (!isset($_SESSION['id_user'])) {
                                     </div>
                                 </div>
                             </div>
+                            
                         </div>
                     </div>
                 </div> <!--end::Container-->

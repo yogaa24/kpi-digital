@@ -434,6 +434,80 @@ if (!isset($_SESSION['id_user'])) {
             </script>";
         }
     }
+    if (isset($_POST['saveFeedback'])) {
+        $feedback_text = mysqli_real_escape_string($conn, $_POST['feedback_text']);
+        $bulan_feedback = date('m/Y');
+        $pemberi_feedback = $id_user; // Yang login saat ini
+        $penerima_feedback = $_POST['user_target']; // Target user
+        
+        // Cek apakah sudah ada feedback untuk bulan ini
+        $cek_feedback = mysqli_query($conn, "SELECT id_feedback FROM tb_feedback WHERE 
+            id_user_pemberi = $pemberi_feedback 
+            AND id_user_penerima = $penerima_feedback 
+            AND bulan = '$bulan_feedback'");
+        
+        if (mysqli_num_rows($cek_feedback) > 0) {
+            // Update feedback yang sudah ada
+            $update_feedback = mysqli_query($conn, "UPDATE tb_feedback SET 
+                feedback = '$feedback_text',
+                tanggal_update = NOW()
+                WHERE id_user_pemberi = $pemberi_feedback 
+                AND id_user_penerima = $penerima_feedback 
+                AND bulan = '$bulan_feedback'");
+            
+            if ($update_feedback) {
+                echo "<script>
+                    alert('✅ Feedback berhasil diperbarui!');
+                    window.location.href = '" . $_SERVER['PHP_SELF'] . "';
+                </script>";
+            }
+        } else {
+            // Insert feedback baru
+            $insert_feedback = mysqli_query($conn, "INSERT INTO tb_feedback 
+                (id_user_pemberi, id_user_penerima, feedback, bulan, tanggal_buat) 
+                VALUES ($pemberi_feedback, $penerima_feedback, '$feedback_text', '$bulan_feedback', NOW())");
+            
+            if ($insert_feedback) {
+                echo "<script>
+                    alert('✅ Feedback berhasil disimpan!');
+                    window.location.href = '" . $_SERVER['PHP_SELF'] . "';
+                </script>";
+            }
+        }
+    }
+
+    // Fungsi untuk mendapatkan feedback
+    function getFeedback($conn, $id_user_target, $bulan) {
+        $feedback_data = [
+            'self' => null,
+            'atasan' => null
+        ];
+        
+        // Feedback dari diri sendiri
+        $self_feedback = mysqli_query($conn, "SELECT * FROM tb_feedback WHERE 
+            id_user_pemberi = $id_user_target 
+            AND id_user_penerima = $id_user_target 
+            AND bulan = '$bulan'");
+        
+        if ($self_row = mysqli_fetch_assoc($self_feedback)) {
+            $feedback_data['self'] = $self_row;
+        }
+        
+        // Feedback dari atasan
+        $atasan_feedback = mysqli_query($conn, "SELECT f.*, u.nama_lngkp as nama_pemberi 
+            FROM tb_feedback f
+            JOIN tb_users u ON f.id_user_pemberi = u.id
+            WHERE f.id_user_penerima = $id_user_target 
+            AND f.id_user_pemberi != $id_user_target 
+            AND f.bulan = '$bulan'
+            ORDER BY f.tanggal_buat DESC");
+        
+        if ($atasan_row = mysqli_fetch_assoc($atasan_feedback)) {
+            $feedback_data['atasan'] = $atasan_row;
+        }
+        
+        return $feedback_data;
+    }
 }
 
 ?>
