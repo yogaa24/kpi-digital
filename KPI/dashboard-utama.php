@@ -137,29 +137,50 @@ function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
         return false;
     }
     
-    // ========== 1. SIMPAN/UPDATE SUMMARY ROW ==========
+    // ========== 1. SIMPAN/UPDATE SUMMARY ROW (DENGAN FINAL_WHAT DAN FINAL_HOW) ==========
     $check_summary = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
                                           WHERE id_user='$user_id' 
                                           AND bulan='$bulan' 
                                           AND is_summary=1");
     
+    // TAMBAHKAN NILAI FINAL WHAT DAN FINAL HOW
+    $final_what = mysqli_real_escape_string($conn, $kpi_real['final_what']);
+    $final_how = mysqli_real_escape_string($conn, $kpi_real['final_how']);
+    $total_what = mysqli_real_escape_string($conn, $kpi_real['total_what']);
+    $total_how = mysqli_real_escape_string($conn, $kpi_real['total_how']);
+    $total_kpi_real = mysqli_real_escape_string($conn, $kpi_real['total_kpi']);
+    $total_kpi_target = mysqli_real_escape_string($conn, $kpi_sim['total_kpi']);
+    $bobot_what = mysqli_real_escape_string($conn, $kpi_real['bobot_what']);
+    $bobot_how = mysqli_real_escape_string($conn, $kpi_real['bobot_how']);
+    
     if (mysqli_num_rows($check_summary) > 0) {
-        // Update summary
+        // Update summary - TAMBAHKAN bobot_what, bobot_how, nilai_what, nilai_how
         $sql_summary = "UPDATE tb_kpi_history SET 
-                       total_kpi_real = '{$kpi_real['total_kpi']}',
-                       total_kpi_target = '{$kpi_sim['total_kpi']}',
-                       total_what = '{$kpi_real['total_what']}',
-                       total_how = '{$kpi_real['total_how']}'
+                       total_kpi_real = '$total_kpi_real',
+                       total_kpi_target = '$total_kpi_target',
+                       total_what = '$total_what',
+                       total_how = '$total_how',
+                       bobot_what = '$bobot_what',
+                       bobot_how = '$bobot_how',
+                       nilai_what = '$final_what',
+                       nilai_how = '$final_how'
                        WHERE id_user='$user_id' 
                        AND bulan='$bulan' 
                        AND is_summary=1";
     } else {
-        // Insert summary
+        // Insert summary - TAMBAHKAN bobot_what, bobot_how, nilai_what, nilai_how
         $sql_summary = "INSERT INTO tb_kpi_history 
-                       (id_user, id_kpi, bulan, is_summary, total_kpi_real, total_kpi_target, total_what, total_how) 
+                       (id_user, id_kpi, bulan, is_summary, 
+                        total_kpi_real, total_kpi_target, 
+                        total_what, total_how,
+                        bobot_what, bobot_how,
+                        nilai_what, nilai_how) 
                        VALUES 
-                       ('$user_id', NULL, '$bulan', 1, '{$kpi_real['total_kpi']}', '{$kpi_sim['total_kpi']}', 
-                        '{$kpi_real['total_what']}', '{$kpi_real['total_how']}')";
+                       ('$user_id', NULL, '$bulan', 1, 
+                        '$total_kpi_real', '$total_kpi_target', 
+                        '$total_what', '$total_how',
+                        '$bobot_what', '$bobot_how',
+                        '$final_what', '$final_how')";
     }
     
     if (!mysqli_query($conn, $sql_summary)) {

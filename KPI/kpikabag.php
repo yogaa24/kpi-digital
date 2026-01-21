@@ -109,6 +109,62 @@ function getHoww($conn, $id)
     return number_format($zboth, 2);
 }
 
+// Fungsi untuk mendapatkan bulan dan tahun sebelumnya
+function getPreviousMonth() {
+    $currentMonth = date('n');
+    $currentYear = date('Y');
+    
+    if ($currentMonth == 1) {
+        return ['month' => 12, 'year' => $currentYear - 1];
+    } else {
+        return ['month' => $currentMonth - 1, 'year' => $currentYear];
+    }
+}
+
+// Fungsi untuk mendapatkan nama bulan
+function getNamaBulan($bulan) {
+    $namaBulan = [
+        1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+        5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu',
+        9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
+    ];
+    return $namaBulan[$bulan];
+}
+
+// Fungsi untuk mendapatkan nilai KPI dari tb_kpi_history berdasarkan bulan
+function getKPIFromHistory($conn, $id_user, $bulan, $tahun) {
+    // Format bulan: YYYY-MM
+    $bulanFormat = sprintf("%04d-%02d", $tahun, $bulan);
+    
+    // Ambil data summary dari tb_kpi_history
+    $sql = "SELECT total_kpi_real, nilai_what, nilai_how 
+            FROM tb_kpi_history 
+            WHERE id_user = $id_user 
+            AND bulan = '$bulanFormat' 
+            AND is_summary = 1
+            LIMIT 1";
+    
+    $result = mysqli_query($conn, $sql);
+    
+    if ($result && mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+        return [
+            'total_kpi' => number_format($row['total_kpi_real'], 2),
+            'nilai_what' => number_format($row['nilai_what'], 2),
+            'nilai_how' => number_format($row['nilai_how'], 2),
+            'exists' => true
+        ];
+    }
+    
+    // Jika tidak ada data
+    return [
+        'total_kpi' => '0.00',
+        'nilai_what' => '0.00',
+        'nilai_how' => '0.00',
+        'exists' => false
+    ];
+}
+
 function getkpi($nilair)
 {
     if ($nilair < 90) {
@@ -156,97 +212,158 @@ function getkpi($nilair)
             <div class="app-content">
                 <div class="container-fluid">
                     <div class="mt-4">
-
-                        
                         
                         <div class="table-responsive">
                             <table id="datatablenya" class="table align-midle table-hover table-bordered">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th width="3%">
-                                            <center>No</center>
-                                        </th>
-                                        <th>
-                                            <center>Nama Anggota</center>
-                                        </th>
-                                        <th width="15%">
-                                            <center>Jabatan</center>
-                                        </th>
-                                        <th width="15%">
-                                            <center>Bagian</center>
-                                        </th>
-                                        <th width="10%">
-                                            <center>What</center>
-                                        </th>
-                                        <th width="10%">
-                                            <center>How</center>
-                                        </th>
-                                        <th width="10%">
-                                            <center>Nilai</center>
-                                        </th>
-                                        <th width="10%">
-                                            <center>KPI</center>
-                                        </th>
-                                        <th width="10%">
-                                            <center>#</center>
-                                        </th>
+                                        <th width="3%" rowspan="2"><center>No</center></th>
+                                        <th rowspan="2"><center>Nama Anggota</center></th>
+                                        <th width="15%" rowspan="2"><center>Jabatan</center></th>
+                                        <th width="15%" rowspan="2"><center>Bagian</center></th>
+                                        <th colspan="3"><center>Bulan Ini</center></th>
+                                        <th colspan="3"><center>Bulan Lalu</center></th>
+                                        <th width="8%" rowspan="2"><center>Trend</center></th>
+                                        <th width="10%" rowspan="2"><center>#</center></th>
+                                    </tr>
+                                    <tr>
+                                        <!-- Bulan Ini -->
+                                        <th width="8%"><center>What</center></th>
+                                        <th width="8%"><center>How</center></th>
+                                        <th width="8%"><center>Total</center></th>
+                                        <!-- Bulan Lalu -->
+                                        <th width="8%"><center>What</center></th>
+                                        <th width="8%"><center>How</center></th>
+                                        <th width="8%"><center>Total</center></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php 
                                     $no = 1;
+                                    // Dapatkan bulan dan tahun sebelumnya
+                                    $prevMonth = getPreviousMonth();
+                                    $bulanSebelumnya = $prevMonth['month'];
+                                    $tahunSebelumnya = $prevMonth['year'];
+                                    $namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
+                                    $bulanIni = date('n');
+                                    $tahunIni = date('Y');
+                                    $namaBulanIni = getNamaBulan($bulanIni);
+                                    
                                     $sqlhd = "SELECT *
-FROM tb_users
-WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
-ORDER BY 
-    CASE 
-        WHEN jabatan = 'Kadep' THEN 1
-        WHEN jabatan = 'Manager' THEN 2
-        WHEN jabatan = 'koordinator' THEN 3
-        WHEN jabatan = 'Karyawan' THEN 4
-        ELSE 5
-    END,
-    nama_lngkp";
+                                        FROM tb_users
+                                        WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
+                                        ORDER BY 
+                                            CASE 
+                                                WHEN jabatan = 'Kadep' THEN 1
+                                                WHEN jabatan = 'Manager' THEN 2
+                                                WHEN jabatan = 'koordinator' THEN 3
+                                                WHEN jabatan = 'Karyawan' THEN 4
+                                                ELSE 5
+                                            END,
+                                            nama_lngkp";
                                     $sgdah = mysqli_query($conn, $sqlhd);
-                                    while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { ?>
+                                    while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { 
+                                        // Nilai bulan ini (dari fungsi existing)
+                                        $nilair = getnilai($conn, $hasilsfa['id']);
+                                        $whatIni = getWhatt($conn, $hasilsfa['id']);
+                                        $howIni = getHoww($conn, $hasilsfa['id']);
+                                        
+                                        // Nilai bulan lalu (dari tb_kpi_history)
+                                        $dataHistoryBulanLalu = getKPIFromHistory($conn, $hasilsfa['id'], $bulanSebelumnya, $tahunSebelumnya);
+                                        $nilaiBulanLalu = $dataHistoryBulanLalu['total_kpi'];
+                                        $whatBulanLalu = $dataHistoryBulanLalu['nilai_what'];
+                                        $howBulanLalu = $dataHistoryBulanLalu['nilai_how'];
+                                        $adaDataBulanLalu = $dataHistoryBulanLalu['exists'];
+                                        
+                                        // Hitung selisih dan trend
+                                        $selisih = floatval($nilair) - floatval($nilaiBulanLalu);
+                                        $trendIcon = '';
+                                        $trendColor = '';
+                                        $trendBg = '';
+                                        
+                                        if (!$adaDataBulanLalu) {
+                                            $trendIcon = '<i class="bi bi-dash-circle"></i>';
+                                            $trendColor = 'gray';
+                                            $trendBg = '#f8f9fa';
+                                            $trendText = 'N/A';
+                                        } elseif ($selisih > 0) {
+                                            $trendIcon = '<i class="bi bi-arrow-up-circle-fill"></i>';
+                                            $trendColor = 'green';
+                                            $trendBg = '#d4edda';
+                                            $trendText = '+' . number_format($selisih, 2);
+                                        } elseif ($selisih < 0) {
+                                            $trendIcon = '<i class="bi bi-arrow-down-circle-fill"></i>';
+                                            $trendColor = 'red';
+                                            $trendBg = '#f8d7da';
+                                            $trendText = number_format($selisih, 2);
+                                        } else {
+                                            $trendIcon = '<i class="bi bi-dash-circle-fill"></i>';
+                                            $trendColor = '#6c757d';
+                                            $trendBg = '#e9ecef';
+                                            $trendText = '0.00';
+                                        }
+                                        
+                                        // Warna untuk nilai KPI bulan ini
+                                        if ($nilair < 90) {
+                                            $wrabs = "red";
+                                        } elseif ($nilair <= 100) {
+                                            $wrabs = "orange";
+                                        } elseif ($nilair <= 110) {
+                                            $wrabs = "green";
+                                        } else {
+                                            $wrabs = "blue";
+                                        }
+                                        
+                                        // Warna untuk nilai KPI bulan lalu
+                                        if ($nilaiBulanLalu < 90) {
+                                            $wrabsLalu = "red";
+                                        } elseif ($nilaiBulanLalu <= 100) {
+                                            $wrabsLalu = "orange";
+                                        } elseif ($nilaiBulanLalu <= 110) {
+                                            $wrabsLalu = "green";
+                                        } else {
+                                            $wrabsLalu = "blue";
+                                        }
+                                    ?>
                                         <tr>
-                                            <td>
-                                                <center><?= $no; ?></center>
-                                            </td>
-                                            <td style="padding-left: 20px;">
-                                                <?= $hasilsfa['nama_lngkp']; ?>
-                                            </td>
-                                            <td>
-                                                <center><?= $hasilsfa['jabatan']; ?></center>
-                                            </td>
-                                            <td>
-                                                <center><?= $hasilsfa['bagian']; ?></center>
-                                            </td>
-                                            <td>
-                                                <center><?= getWhatt($conn, $hasilsfa['id']); ?></center>
-                                            </td>
-                                            <td>
-                                                <center><?= getHoww($conn, $hasilsfa['id']); ?></center>
-                                            </td>
-                                            <?php
-                                            $nilair = getnilai($conn, $hasilsfa['id']);
-                                            if ($nilair < 90) {
-                                                $wrabs = "red";
-                                            } elseif ($nilair <= 100) {
-                                                $wrabs = "orange";
-                                            } elseif ($nilair <= 110) {
-                                                $wrabs = "green";
-                                            } else {
-                                                $wrabs = "blue";
-                                            } ?>
+                                            <td><center><?= $no; ?></center></td>
+                                            <td style="padding-left: 20px;"><?= $hasilsfa['nama_lngkp']; ?></td>
+                                            <td><center><?= $hasilsfa['jabatan']; ?></center></td>
+                                            <td><center><?= $hasilsfa['bagian']; ?></center></td>
+                                            
+                                            <!-- Nilai Bulan Ini -->
+                                            <td><center><?= $whatIni ?></center></td>
+                                            <td><center><?= $howIni ?></center></td>
                                             <td style="color:<?= $wrabs ?>">
-                                                <center><?php echo getnilai($conn, $hasilsfa['id']); ?></center>
+                                                <center>
+                                                    <strong><?= $nilair ?></strong><br>
+                                                    <small class="text-muted"><?= getkpi($nilair) ?></small>
+                                                </center>
                                             </td>
-                                            <td style="color:<?= $wrabs ?>">
-                                                <center><?= getkpi(getnilai($conn, $hasilsfa['id'])); ?></center>
+                                            
+                                            <!-- Nilai Bulan Lalu -->
+                                            <td><center><?= $adaDataBulanLalu ? $whatBulanLalu : '-' ?></center></td>
+                                            <td><center><?= $adaDataBulanLalu ? $howBulanLalu : '-' ?></center></td>
+                                            <td style="color:<?= $adaDataBulanLalu ? $wrabsLalu : '#6c757d' ?>">
+                                                <center>
+                                                    <?php if ($adaDataBulanLalu): ?>
+                                                        <strong><?= $nilaiBulanLalu ?></strong><br>
+                                                        <small class="text-muted"><?= getkpi($nilaiBulanLalu) ?></small>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">-</span>
+                                                    <?php endif; ?>
+                                                </center>
                                             </td>
+                                            
+                                            <!-- Kolom Trend -->
+                                            <td style="background-color:<?= $trendBg ?>; color:<?= $trendColor ?>">
+                                                <center>
+                                                    <?= $trendIcon ?><br>
+                                                    <small><strong><?= $trendText ?></strong></small>
+                                                </center>
+                                            </td>
+                                            
                                             <td>
-                                                
                                                 <?php 
                                                     if (
                                                         $hasilsfa['jabatan'] != 'Manager' &&

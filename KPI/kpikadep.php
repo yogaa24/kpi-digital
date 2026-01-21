@@ -1,3 +1,4 @@
+<!-- kpikadep.php -->
 <!DOCTYPE html>
 <?php
 session_start();
@@ -69,6 +70,112 @@ function getkpi($nilair)
         return "Excellent";
     }
 }
+// Fungsi untuk mendapatkan bulan dan tahun sebelumnya
+function getPreviousMonth() {
+    $currentMonth = date('n');
+    $currentYear = date('Y');
+    
+    if ($currentMonth == 1) {
+        return ['month' => 12, 'year' => $currentYear - 1];
+    } else {
+        return ['month' => $currentMonth - 1, 'year' => $currentYear];
+    }
+}
+
+// Fungsi untuk mendapatkan nama bulan
+function getNamaBulan($bulan) {
+    $namaBulan = [
+        1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+        5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu',
+        9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
+    ];
+    return $namaBulan[$bulan];
+}
+
+// Fungsi untuk mendapatkan nilai KPI dari tb_kpi_history berdasarkan bulan
+function getKPIFromHistory($conn, $id_user, $bulan, $tahun) {
+    // Format bulan: YYYY-MM
+    $bulanFormat = sprintf("%04d-%02d", $tahun, $bulan);
+    
+    // Ambil data summary dari tb_kpi_history
+    $sql = "SELECT total_kpi_real, nilai_what, nilai_how 
+            FROM tb_kpi_history 
+            WHERE id_user = $id_user 
+            AND bulan = '$bulanFormat' 
+            AND is_summary = 1
+            LIMIT 1";
+    
+    $result = mysqli_query($conn, $sql);
+    
+    if ($result && mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_assoc($result);
+        return [
+            'total_kpi' => number_format($row['total_kpi_real'], 2),
+            'nilai_what' => number_format($row['nilai_what'], 2),
+            'nilai_how' => number_format($row['nilai_how'], 2),
+            'exists' => true
+        ];
+    }
+    
+    // Jika tidak ada data
+    return [
+        'total_kpi' => '0.00',
+        'nilai_what' => '0.00',
+        'nilai_how' => '0.00',
+        'exists' => false
+    ];
+}
+
+function getWhatt($conn, $id)
+{
+    $sql = "SELECT * FROM tb_kpi WHERE id_user='$id'";
+    $zbotw = 0;
+
+    $totalws = 0;
+    $resultsaf = mysqli_query($conn, $sql);
+    while ($hasils = mysqli_fetch_assoc($resultsaf)) {
+        $sql3s = "SELECT SUM(total) as total FROM tb_whats WHERE id_user=$id AND id_kpi=" . $hasils['id'];
+        $result3s = mysqli_query($conn, $sql3s);
+        $row3sd = mysqli_fetch_assoc($result3s);
+        $totalnilaisd = $row3sd['total'];
+        $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
+        $totalws += $nilaiws;
+    }
+    $bobotkpid = 0;
+    $sql5a = "SELECT bobotwhat as bw FROM tb_bobotkpi WHERE id_user=$id";
+    $result5a = mysqli_query($conn, $sql5a);
+    while ($row5a = mysqli_fetch_assoc($result5a)) {
+        $bobotkpid = $row5a['bw'];
+    }
+    $zbotw = ($totalws * $bobotkpid) / 100;
+    return number_format($zbotw, 2);
+}
+
+function getHoww($conn, $id)
+{
+    $sql = "SELECT * FROM tb_kpi WHERE id_user='$id'";
+    $zboth = 0;
+    $totalhfg = 0;
+    $resultfg = mysqli_query($conn, $sql);
+
+    while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
+        $sql7fg = "SELECT SUM(total) as totalh FROM tb_hows WHERE id_user=$id AND id_kpi=" . $hasilfg['id'];
+        $result7fg = mysqli_query($conn, $sql7fg);
+        $row7fg = mysqli_fetch_assoc($result7fg);
+        $totalnilaihfg = $row7fg['totalh'];
+
+        $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
+        $totalhfg += $nilaihfg;
+    }
+    $bobotkpias = 0;
+    $sql8a = "SELECT bobothow as bh FROM tb_bobotkpi WHERE id_user=$id";
+    $result8a = mysqli_query($conn, $sql8a);
+    while ($row8a = mysqli_fetch_assoc($result8a)) {
+        $bobotkpias = $row8a['bh'];
+    }
+    $zboth = ($totalhfg * $bobotkpias) / 100;
+    return number_format($zboth, 2);
+}
 ?>
 
 <html lang="en">
@@ -117,33 +224,39 @@ function getkpi($nilair)
                             <table id="datatablenya" class="table align-midle table-hover table-bordered">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th width="3%">
-                                            <center>No</center>
-                                        </th>
-                                        <th>
-                                            <center>Nama Anggota</center>
-                                        </th>
-                                        <th width="15%">
-                                            <center>Jabatan</center>
-                                        </th>
-                                        <th width="15%">
-                                            <center>Bagian</center>
-                                        </th>
-                                        <th width="15%">
-                                            <center>Nilai</center>
-                                        </th>
-                                        <th width="15%">
-                                            <center>KPI</center>
-                                        </th>
-                                        <th width="5%">
-                                            <center>#</center>
-                                        </th>
+                                        <th width="3%" rowspan="2"><center>No</center></th>
+                                        <th rowspan="2"><center>Nama Anggota</center></th>
+                                        <th width="15%" rowspan="2"><center>Jabatan</center></th>
+                                        <th width="15%" rowspan="2"><center>Bagian</center></th>
+                                        <th colspan="3"><center>Bulan Ini</center></th>
+                                        <th colspan="3"><center>Bulan Lalu</center></th>
+                                        <th width="8%" rowspan="2"><center>Trend</center></th>
+                                        <th width="5%" rowspan="2"><center>#</center></th>
+                                    </tr>
+                                    <tr>
+                                        <!-- Bulan Ini -->
+                                        <th width="8%"><center>What</center></th>
+                                        <th width="8%"><center>How</center></th>
+                                        <th width="8%"><center>Total</center></th>
+                                        <!-- Bulan Lalu -->
+                                        <th width="8%"><center>What</center></th>
+                                        <th width="8%"><center>How</center></th>
+                                        <th width="8%"><center>Total</center></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                 <?php
                                 $no = 1;
                                 $nama_kadep = mysqli_real_escape_string($conn, $nama_lngkp);
+
+                                // Dapatkan bulan dan tahun sebelumnya
+                                $prevMonth = getPreviousMonth();
+                                $bulanSebelumnya = $prevMonth['month'];
+                                $tahunSebelumnya = $prevMonth['year'];
+                                $namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
+                                $bulanIni = date('n');
+                                $tahunIni = date('Y');
+                                $namaBulanIni = getNamaBulan($bulanIni);
 
                                 $sqlhd = "
                                     SELECT *
@@ -161,9 +274,47 @@ function getkpi($nilair)
                                 $sgdah = mysqli_query($conn, $sqlhd);
 
                                 while ($hasilsfa = mysqli_fetch_assoc($sgdah)) {
-
+                                    // Nilai bulan ini (dari fungsi existing)
                                     $nilair = getnilai($conn, $hasilsfa['id']);
-
+                                    $whatIni = getWhatt($conn, $hasilsfa['id']);
+                                    $howIni = getHoww($conn, $hasilsfa['id']);
+                                    
+                                    // Nilai bulan lalu (dari tb_kpi_history)
+                                    $dataHistoryBulanLalu = getKPIFromHistory($conn, $hasilsfa['id'], $bulanSebelumnya, $tahunSebelumnya);
+                                    $nilaiBulanLalu = $dataHistoryBulanLalu['total_kpi'];
+                                    $whatBulanLalu = $dataHistoryBulanLalu['nilai_what'];
+                                    $howBulanLalu = $dataHistoryBulanLalu['nilai_how'];
+                                    $adaDataBulanLalu = $dataHistoryBulanLalu['exists'];
+                                    
+                                    // Hitung selisih dan trend
+                                    $selisih = floatval($nilair) - floatval($nilaiBulanLalu);
+                                    $trendIcon = '';
+                                    $trendColor = '';
+                                    $trendBg = '';
+                                    
+                                    if (!$adaDataBulanLalu) {
+                                        $trendIcon = '<i class="bi bi-dash-circle"></i>';
+                                        $trendColor = 'gray';
+                                        $trendBg = '#f8f9fa';
+                                        $trendText = 'N/A';
+                                    } elseif ($selisih > 0) {
+                                        $trendIcon = '<i class="bi bi-arrow-up-circle-fill"></i>';
+                                        $trendColor = 'green';
+                                        $trendBg = '#d4edda';
+                                        $trendText = '+' . number_format($selisih, 2);
+                                    } elseif ($selisih < 0) {
+                                        $trendIcon = '<i class="bi bi-arrow-down-circle-fill"></i>';
+                                        $trendColor = 'red';
+                                        $trendBg = '#f8d7da';
+                                        $trendText = number_format($selisih, 2);
+                                    } else {
+                                        $trendIcon = '<i class="bi bi-dash-circle-fill"></i>';
+                                        $trendColor = '#6c757d';
+                                        $trendBg = '#e9ecef';
+                                        $trendText = '0.00';
+                                    }
+                                    
+                                    // Warna untuk nilai KPI bulan ini
                                     if ($nilair < 90) {
                                         $wrabs = "red";
                                     } elseif ($nilair <= 100) {
@@ -173,47 +324,82 @@ function getkpi($nilair)
                                     } else {
                                         $wrabs = "blue";
                                     }
+                                    
+                                    // Warna untuk nilai KPI bulan lalu
+                                    if ($nilaiBulanLalu < 90) {
+                                        $wrabsLalu = "red";
+                                    } elseif ($nilaiBulanLalu <= 100) {
+                                        $wrabsLalu = "orange";
+                                    } elseif ($nilaiBulanLalu <= 110) {
+                                        $wrabsLalu = "green";
+                                    } else {
+                                        $wrabsLalu = "blue";
+                                    }
                                 ?>
-                                <tr>
-                                    <td><center><?= $no; ?></center></td>
-
-                                    <td style="padding-left:20px;">
-                                        <?= $hasilsfa['nama_lngkp']; ?>
-                                        <?php if ($hasilsfa['nama_lngkp'] == $nama_lngkp) { ?>
-                                            <span class="badge bg-primary">Saya</span>
-                                        <?php } ?>
-                                    </td>
-
-                                    <td><center><?= $hasilsfa['jabatan']; ?></center></td>
-                                    <td><center><?= $hasilsfa['bagian']; ?></center></td>
-
-                                    <td style="color:<?= $wrabs ?>">
-                                        <center><?= $nilair ?></center>
-                                    </td>
-
-                                    <td style="color:<?= $wrabs ?>">
-                                        <center><?= getkpi($nilair); ?></center>
-                                    </td>
-
-                                    <td>
-                                        <?php
-                                        // tombol lihat hanya untuk anggota, bukan diri sendiri & bukan direktur
-                                        if (
-                                            $hasilsfa['id'] != $_SESSION['id_user'] &&
-                                            $hasilsfa['jabatan'] != 'Direktur'
-                                        ) {
-                                        ?>
-                                        <center>
-                                            <a href="kpianggota?id=<?= $hasilsfa['id']; ?>"
-                                            class="btn btn-success btn-sm">
-                                                <i class="bi bi-eye fs-8"></i>
-                                            </a>
-                                        </center>
-                                        <?php } ?>
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td><center><?= $no; ?></center></td>
+                                        
+                                        <td style="padding-left:20px;">
+                                            <?= $hasilsfa['nama_lngkp']; ?>
+                                            <?php if ($hasilsfa['nama_lngkp'] == $nama_lngkp) { ?>
+                                                <span class="badge bg-primary">Saya</span>
+                                            <?php } ?>
+                                        </td>
+                                        
+                                        <td><center><?= $hasilsfa['jabatan']; ?></center></td>
+                                        <td><center><?= $hasilsfa['bagian']; ?></center></td>
+                                        
+                                        <!-- Nilai Bulan Ini -->
+                                        <td><center><?= $whatIni ?></center></td>
+                                        <td><center><?= $howIni ?></center></td>
+                                        <td style="color:<?= $wrabs ?>">
+                                            <center>
+                                                <strong><?= $nilair ?></strong><br>
+                                                <small class="text-muted"><?= getkpi($nilair) ?></small>
+                                            </center>
+                                        </td>
+                                        
+                                        <!-- Nilai Bulan Lalu -->
+                                        <td><center><?= $adaDataBulanLalu ? $whatBulanLalu : '-' ?></center></td>
+                                        <td><center><?= $adaDataBulanLalu ? $howBulanLalu : '-' ?></center></td>
+                                        <td style="color:<?= $adaDataBulanLalu ? $wrabsLalu : '#6c757d' ?>">
+                                            <center>
+                                                <?php if ($adaDataBulanLalu): ?>
+                                                    <strong><?= $nilaiBulanLalu ?></strong><br>
+                                                    <small class="text-muted"><?= getkpi($nilaiBulanLalu) ?></small>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
+                                                <?php endif; ?>
+                                            </center>
+                                        </td>
+                                        
+                                        <!-- Kolom Trend -->
+                                        <td style="background-color:<?= $trendBg ?>; color:<?= $trendColor ?>">
+                                            <center>
+                                                <?= $trendIcon ?><br>
+                                                <small><strong><?= $trendText ?></strong></small>
+                                            </center>
+                                        </td>
+                                        
+                                        <td>
+                                            <?php
+                                            // tombol lihat hanya untuk anggota, bukan diri sendiri & bukan direktur
+                                            if (
+                                                $hasilsfa['id'] != $_SESSION['id_user'] &&
+                                                $hasilsfa['jabatan'] != 'Direktur'
+                                            ) {
+                                            ?>
+                                            <center>
+                                                <a href="kpianggota?id=<?= $hasilsfa['id']; ?>"
+                                                class="btn btn-success btn-sm">
+                                                    <i class="bi bi-eye fs-8"></i>
+                                                </a>
+                                            </center>
+                                            <?php } ?>
+                                        </td>
+                                    </tr>
                                 <?php
-                                $no++;
+                                    $no++;
                                 }
                                 ?>
                                 </tbody>

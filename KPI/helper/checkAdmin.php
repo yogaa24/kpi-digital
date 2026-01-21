@@ -48,8 +48,10 @@ function requireAdminHRD() {
  */
 function getUserLevelName($level) {
     switch($level) {
-        case 5:
+        case 6:
             return "Admin HRD";
+        case 5:
+            return "Direktur";
         case 4:
             return "Kadep";
         case 3:

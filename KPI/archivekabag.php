@@ -95,8 +95,13 @@ echo '
                                                 </td>
                                                 <td>
                                                     <center>
-                                                        <?php if($row['jabatan']!='Kabag' && $row['jabatan'] !='Kadep'){ ?>
-                                                        <a type="button" class="btn btn-sm btn-success" href="archiveanggota?id=<?= $row['id']; ?>"><i class="bi bi-eye"></i></a>
+                                                        <?php 
+                                                        // Jangan tampilkan tombol untuk diri sendiri saja
+                                                        if($row['id'] != $_SESSION['id_user']){ 
+                                                        ?>
+                                                            <a type="button" class="btn btn-sm btn-success" href="archiveanggota?id=<?= $row['id']; ?>">
+                                                                <i class="bi bi-eye"></i>
+                                                            </a>
                                                         <?php } ?>
                                                     </center>
                                                 </td>
