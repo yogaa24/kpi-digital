@@ -5,27 +5,31 @@
  * Cek apakah user adalah Admin HRD (level 5)
  */
 function isAdminHRD() {
-    return isset($_SESSION['level']) && $_SESSION['level'] == 5;
+    return isset($_SESSION['level']) && $_SESSION['level'] == 6;
 }
 
 /**
  * Cek apakah user adalah Kadep (level 4)
  */
 function isKadepOrHigher() {
-    return isset($_SESSION['level']) && $_SESSION['level'] == 4;
+    return isset($_SESSION['level']) && $_SESSION['level'] == 5;
 }
 
 /**
  * Cek apakah user adalah Kadep MT atau lebih tinggi (level >= 3)
  */
 function isKadepMTOrHigher() {
-    return isset($_SESSION['level']) && $_SESSION['level'] >= 3;
+    return isset($_SESSION['level']) && $_SESSION['level'] >= 4;
 }
 
 /**
  * Cek apakah user adalah Kabag atau lebih tinggi (level >= 2)
  */
 function isKabagOrHigher() {
+    return isset($_SESSION['level']) && $_SESSION['level'] >= 3;
+}
+
+function isKoorOrHigher() {
     return isset($_SESSION['level']) && $_SESSION['level'] >= 2;
 }
 
@@ -44,12 +48,14 @@ function requireAdminHRD() {
  */
 function getUserLevelName($level) {
     switch($level) {
-        case 4:
+        case 5:
             return "Admin HRD";
-        case 3:
+        case 4:
             return "Kadep";
-        case 2:
+        case 3:
             return "Manager";
+        case 2:
+            return "Koordinator";
         case 1:
             return "Karyawan";
         default:

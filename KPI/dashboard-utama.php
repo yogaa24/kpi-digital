@@ -25,18 +25,19 @@ if ($user_level >= 2) {
     $sql_users = "SELECT id, nama_lngkp, departement, jabatan FROM tb_users WHERE 1=1";
     $sql_users .= " AND username NOT IN ('itboy', 'adminhrd')";
     
-    if ($user_level == 2) {         // Kabag - hanya team sendiri
+    if ($user_level == 2) {         // KOORDINATOR - team sendiri
+        $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
+    
+    } elseif ($user_level == 3) {   // MANAGER - team yang di-supervisi
         $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
         
-    } elseif ($user_level == 3) {         // Kadep - seluruh departemen
+    } elseif ($user_level == 4) {   // KADEP - seluruh departemen
         $sql_users .= " AND departement = (SELECT departement FROM tb_users WHERE id='$id_user')";
         
-    } elseif ($user_level >= 4) {         // Direktur/Level 4+ - filter berdasarkan departemen yang dipilih
+    } elseif ($user_level >= 5) {   // DIREKTUR - semua atau filter departemen
         if (!empty($filter_departemen)) {
-            // Jika ada departemen dipilih, hanya tampilkan user dari departemen tersebut
             $sql_users .= " AND departement = '" . mysqli_real_escape_string($conn, $filter_departemen) . "'";
         }
-        // Jika tidak ada departemen dipilih, tampilkan semua user
     }
     
     $sql_users .= " ORDER BY departement, nama_lngkp";
@@ -366,8 +367,16 @@ if ($user_level >= 2) {
                           AND username NOT IN ('itboy', 'adminhrd')
                           ORDER BY nama_lngkp";
         $comparison_title = "My Team Members Performance";
-
+    
     } elseif ($user_level == 3) {
+        $kabag_name = $user_info['nama_lngkp'];
+        $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
+                          WHERE atasan='$kabag_name' 
+                          AND username NOT IN ('itboy', 'adminhrd')
+                          ORDER BY nama_lngkp";
+        $comparison_title = "My Team Members Performance";
+
+    } elseif ($user_level == 4) {
         $target_dept = $user_info['departement'];
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE departement='$target_dept' 
@@ -375,7 +384,7 @@ if ($user_level >= 2) {
                           ORDER BY nama_lngkp";
         $comparison_title = "Department Team - " . $target_dept;
 
-    } elseif ($user_level >= 4) {
+    } elseif ($user_level >= 5) {
         $target_dept = !empty($filter_departemen) ? $filter_departemen : $user_info['departement'];
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE departement='$target_dept' 
@@ -510,17 +519,18 @@ if ($user_level >= 2) {
                                         </div>
                                         <?php } ?>
                                         
-                                        <?php if ($user_level >= 2) { 
-                                            // Tentukan URL berdasarkan level
-                                            $kpi_anggota_url = 'kpikabag'; // Default level 2
+                                        <?php 
+                                        if ($user_level >= 2) {
+
+                                            $kpi_anggota_url = 'kpikabag'; // default level 2 (Koordinator)
                                             $kpi_label = 'KPI Anggota';
-                                            
+
                                             if ($user_level == 3) {
-                                                $kpi_anggota_url = 'kpikadep';
-                                                $kpi_label = 'KPI Anggota';
-                                            } elseif ($user_level >= 4) {
-                                                $kpi_anggota_url = 'kpidirektur';
-                                                $kpi_label = 'KPI Anggota';
+                                                $kpi_anggota_url = 'kpikabag';   // Kabag
+                                            } elseif ($user_level == 4) {
+                                                $kpi_anggota_url = 'kpikadep';   // Kadep
+                                            } elseif ($user_level >= 5) {
+                                                $kpi_anggota_url = 'kpidirektur'; // Direktur
                                             }
                                         ?>
                                         <div class="col-md-3">
@@ -555,7 +565,7 @@ if ($user_level >= 2) {
                     </div>
 
                     <!-- ==================== FILTER SECTION ==================== -->
-                    <?php if ($user_level >= 2) { ?>
+                    <?php if ($user_level >= 2) { ?>  <!-- UBAH INI -->
                     <div class="row mb-4 no-print">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
@@ -566,8 +576,8 @@ if ($user_level >= 2) {
                                     <form method="GET" action="" id="filterForm">
                                         <div class="row g-3">
                                             
-                                            <?php if ($user_level >= 4) { ?>
-                                            <!-- Department Filter - Tampil duluan untuk level 4+ -->
+                                            <?php if ($user_level >= 5) { ?>  <!-- DIREKTUR: Dropdown Department -->
+                                            <!-- Department Filter - Tampil duluan untuk level 5 -->
                                             <div class="col-md-3">
                                                 <label class="form-label fw-bold">
                                                     Department 
@@ -597,24 +607,24 @@ if ($user_level >= 2) {
                                             <?php } ?>
                                             
                                             <!-- User Filter - Tampil untuk level 2 ke atas -->
-                                            <div class="col-md-<?= $user_level >= 4 ? '3' : '4' ?>">
+                                            <div class="col-md-<?= $user_level >= 5 ? '3' : ($user_level == 4 ? '4' : '6') ?>">
                                                 <label class="form-label fw-bold">
                                                     Select Employee
-                                                    <?php if (mysqli_num_rows($result_users) > 0) { ?>
+                                                    <?php if (isset($result_users) && mysqli_num_rows($result_users) > 0) { ?>
                                                         <span class="badge bg-secondary"><?= mysqli_num_rows($result_users) ?> users</span>
                                                     <?php } ?>
                                                 </label>
                                                 <select name="filter_user" class="form-select" id="userSelect" onchange="this.form.submit()">
                                                     <option value="<?= $id_user ?>" <?= $filter_user == $id_user ? 'selected' : '' ?>>My KPI</option>
                                                     <?php 
-                                                    if (mysqli_num_rows($result_users) > 0) {
+                                                    if (isset($result_users) && mysqli_num_rows($result_users) > 0) {
                                                         // Reset pointer result_users
                                                         mysqli_data_seek($result_users, 0);
                                                         
                                                         $current_dept = '';
                                                         while ($user = mysqli_fetch_assoc($result_users)) {
-                                                            // Untuk level 4, tampilkan grouping by department
-                                                            if ($user_level >= 4 && empty($filter_departemen)) {
+                                                            // Untuk level 5, tampilkan grouping by department
+                                                            if ($user_level >= 5 && empty($filter_departemen)) {
                                                                 if ($current_dept != $user['departement']) {
                                                                     if ($current_dept != '') echo '</optgroup>';
                                                                     echo '<optgroup label="' . htmlspecialchars($user['departement']) . '">';
@@ -628,7 +638,7 @@ if ($user_level >= 2) {
                                                     <?php 
                                                         }
                                                         // Close last optgroup if exists
-                                                        if ($user_level >= 4 && empty($filter_departemen) && $current_dept != '') {
+                                                        if ($user_level >= 5 && empty($filter_departemen) && $current_dept != '') {
                                                             echo '</optgroup>';
                                                         }
                                                     } else {
@@ -636,14 +646,14 @@ if ($user_level >= 2) {
                                                     }
                                                     ?>
                                                 </select>
-                                                <?php if ($user_level >= 4 && empty($filter_departemen)) { ?>
+                                                <?php if ($user_level >= 5 && empty($filter_departemen)) { ?>
                                                     <small class="text-muted">Select department first to filter employees</small>
                                                 <?php } ?>
                                             </div>
 
-                                            <?php if ($user_level == 3) { ?>
+                                            <?php if ($user_level == 4) { ?>
                                             <!-- Department (Read-only for Kadep) -->
-                                            <div class="col-md-3">
+                                            <div class="col-md-4">
                                                 <label class="form-label fw-bold">Department</label>
                                                 <input type="text" class="form-control" value="<?= $user_info['departement'] ?>" readonly>
                                                 <input type="hidden" name="filter_departemen" value="<?= $user_info['departement'] ?>">
@@ -652,14 +662,12 @@ if ($user_level >= 2) {
                                             <?php } ?>
 
                                             <!-- Reset Button -->
-                                            <div class="col-md-<?= $user_level >= 4 ? '3' : '4' ?>">
+                                            <div class="col-md-<?= $user_level >= 5 ? '3' : ($user_level == 4 ? '4' : '6') ?>">
                                                 <label class="form-label fw-bold">&nbsp;</label>
                                                 <a href="dashboard-utama" class="btn btn-outline-secondary w-100">
                                                     <i class="bi bi-arrow-clockwise me-1"></i>Reset Filter
                                                 </a>
                                             </div>
-                                            
-                             
 
                                         </div>
                                     </form>
@@ -684,16 +692,37 @@ if ($user_level >= 2) {
                     <!-- AKHIR FILTER SECTION -->
 
                     <!-- ==================== DEPARTMENT/TEAM COMPARISON ==================== -->
-                    <?php if (!empty($dept_comparison) && $user_level >= 2) { ?>
+                    <?php if (!empty($dept_comparison) && $user_level >= 2) { ?>  <!-- UBAH DARI >= 3 JADI >= 2 -->
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0">
-                                            <i class="bi bi-people me-2"></i><?= $comparison_title ?>
+                                            <i class="bi bi-people me-2"></i>
+                                            <?php 
+                                            // Tentukan judul berdasarkan level
+                                            if ($user_level == 2) {
+                                                echo "My Team Performance (Koordinator)";
+                                            } elseif ($user_level == 3) {
+                                                echo "My Team Performance (Manager)";
+                                            } elseif ($user_level == 4) {
+                                                echo $user_info['departement'] . " Department (Kadep)";
+                                            } elseif ($user_level >= 5) {
+                                                echo !empty($filter_departemen) ? $filter_departemen . " Department (Direktur)" : "All Departments (Direktur)";
+                                            } else {
+                                                echo $comparison_title;
+                                            }
+                                            ?>
                                         </h5>
-                                        <span class="badge bg-primary"><?= count($dept_comparison) ?> Members</span>
+                                        <div>
+                                            <span class="badge bg-primary"><?= count($dept_comparison) ?> Members</span>
+                                            <?php if ($user_level == 4) { ?>
+                                                <span class="badge bg-info ms-1"><?= $user_info['departement'] ?></span>
+                                            <?php } elseif ($user_level >= 5 && !empty($filter_departemen)) { ?>
+                                                <span class="badge bg-info ms-1"><?= $filter_departemen ?></span>
+                                            <?php } ?>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="card-body">
@@ -1567,13 +1596,34 @@ if ($user_level >= 2) {
 
         // Real vs Target Chart
         const realVsTargetCtx = document.getElementById('realVsTargetChart').getContext('2d');
+
+        // Hitung persentase pencapaian
+        const realValue = <?= $kpi_real['total_kpi'] ?>;
+        const targetValue = <?= $kpi_sim['total_kpi'] ?>;
+        const achievementPercentage = (realValue / targetValue) * 100;
+
+        // Tentukan data dan warna berdasarkan pencapaian
+        let chartData, chartColors, chartLabels;
+
+        if (realValue >= targetValue) {
+            // Jika real sudah mencapai atau melebihi target, tampilkan biru penuh
+            chartData = [100];
+            chartColors = ['#0d6efd'];
+            chartLabels = ['Target Tercapai ✓'];
+        } else {
+            // Jika belum mencapai target, tampilkan perbandingan
+            chartData = [realValue, targetValue - realValue];
+            chartColors = ['#0d6efd', '#198754'];
+            chartLabels = ['Real Performance', 'Gap to Target'];
+        }
+
         const realVsTargetChart = new Chart(realVsTargetCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Real Performance', 'Target'],
+                labels: chartLabels,
                 datasets: [{
-                    data: [<?= $kpi_real['total_kpi'] ?>, <?= $kpi_sim['total_kpi'] ?>],
-                    backgroundColor: ['#0d6efd', '#198754'],
+                    data: chartData,
+                    backgroundColor: chartColors,
                     borderWidth: 2,
                     borderColor: '#fff'
                 }]
@@ -1592,11 +1642,17 @@ if ($user_level >= 2) {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                let label = context.label || '';
-                                let value = context.parsed || 0;
-                                let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                let percentage = ((value / total) * 100).toFixed(1);
-                                return label + ': ' + value.toFixed(2) + ' (' + percentage + '%)';
+                                if (realValue >= targetValue) {
+                                    return 'Real: ' + realValue.toFixed(2) + ' / Target: ' + targetValue.toFixed(2) + ' (100%)';
+                                } else {
+                                    let label = context.label || '';
+                                    if (label === 'Real Performance') {
+                                        return 'Real: ' + realValue.toFixed(2) + ' (' + achievementPercentage.toFixed(1) + '%)';
+                                    } else {
+                                        let gap = targetValue - realValue;
+                                        return 'Gap: ' + gap.toFixed(2) + ' (' + (100 - achievementPercentage).toFixed(1) + '%)';
+                                    }
+                                }
                             }
                         }
                     }

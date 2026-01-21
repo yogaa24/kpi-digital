@@ -65,6 +65,7 @@
                                 <option value="Direktur">Direktur</option>
                                 <option value="Kadep">Kadep</option>
                                 <option value="Manager">Manager</option>
+                                <option value="Koordinator">Koordinator</option>
                                 <option value="Karyawan">Karyawan</option>
                             </select>
                         </div>
@@ -120,8 +121,8 @@ document.getElementById('departemen_register').addEventListener('change', functi
         items = ["Pilih Atasan", "Arini Dina Yasmin"];
     } 
     else if (this.value === 'HRD') {
-        penilaiItems = ['Diana Wulandari'];
-        items = ["Pilih Atasan", "Riza Dwi Fitrianingtyas"];
+        penilaiItems = ['Diana Wulandari', "Riza Dwi Fitrianingtyas"];
+        items = ["Pilih Atasan", "Riza Dwi Fitrianingtyas","Siwi Mardlatus Syafirah"];
     }
     else if (this.value === 'Logistik') {
         penilaiItems = ['Diana Wulandari',"Kurniawan Pratama Arifin"];
@@ -149,9 +150,12 @@ document.getElementById('jabatan_register').addEventListener('change', function(
     const atasanSelect = document.getElementById('atasan_register');
     let items = [];
 
-    if (this.value === 'Manager') {
+    if (this.value === 'Koordinator') {
         items = ["Pilih Atasan", "Diana Wulandari", "Vita Ari Puspita", "Riza Dwi Fitrianingtyas","Kurniawan Pratama Arifin", "Heru Sucahyo", "Arfin Indra Cahyadi"];
-    } 
+    }
+    else if (this.value === 'Manager') {
+         items = ["Pilih Atasan", "Diana Wulandari", "Vita Ari Puspita", "Riza Dwi Fitrianingtyas","Kurniawan Pratama Arifin", "Heru Sucahyo", "Arfin Indra Cahyadi"];
+    }  
     else if (this.value === 'Kadep') {
         items = ["Pilih Atasan", "Diana Wulandari"];
     } 

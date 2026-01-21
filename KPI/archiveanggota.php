@@ -166,7 +166,7 @@ echo '
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                 class="bi bi-list"></i> </a> </li>
-                    <?php if($jabatan=="Manager" || $jabatan=="Kadep" || $jabatan=="Direktur"){?>
+                    <?php if($jabatan=="Manager" || $jabatan=="Koordinator" || $jabatan=="Kadep" || $jabatan=="Direktur"){?>
                         <li class="nav-item d-none d-md-block"> <a href="archivekabag" class="nav-link">Kembali</a> </li>
                     <?php }?>
                 </ul>

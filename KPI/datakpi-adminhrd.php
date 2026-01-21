@@ -354,8 +354,9 @@ function getkpi($nilair)
                                         <option value="">Semua Jabatan</option>
                                         <option value="Kadep">Kadep</option>
                                         <option value="Manager">Manager</option>
+                                        <option value="Koordinator">Koordinator</option>
                                         <option value="Karyawan">Karyawan</option>
-                                        <option value="Driver">Driver</option>
+                                        <!-- <option value="Driver">Driver</option> -->
                                     </select>
                                 </div>
                                 
@@ -430,9 +431,10 @@ function getkpi($nilair)
                                         ORDER BY 
                                             CASE 
                                                 WHEN u.jabatan = 'Kadep' THEN 1
-                                                WHEN u.jabatan = 'Manager' THEN 2
-                                                WHEN u.jabatan = 'Karyawan' THEN 3
-                                                ELSE 4
+                                                WHEN u.jabatan = 'Koordinator' THEN 2
+                                                WHEN u.jabatan = 'Manager' THEN 3
+                                                WHEN u.jabatan = 'Karyawan' THEN 4
+                                                ELSE 5
                                             END,
                                             u.nama_lngkp ASC";
                                         $sgdah = mysqli_query($conn, $sqlhd);
@@ -448,6 +450,9 @@ function getkpi($nilair)
                                             } elseif ($hasilsfa['jabatan'] == 'Manager') {
                                                 $badge_color = 'warning';
                                                 $badge_icon = 'star-fill';
+                                            } elseif ($user['jabatan'] == 'Koordinator') {
+                                                $badge_color = 'info';
+                                                $badge_icon  = 'people-fill';
                                             } elseif ($hasilsfa['jabatan'] == 'Karyawan') {
                                                 $badge_color = 'success';
                                                 $badge_icon = 'person-check-fill';

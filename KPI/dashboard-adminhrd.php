@@ -235,6 +235,7 @@ if (!isset($_SESSION['id_user'])) {
                         $sql_stats = "SELECT 
                                         COUNT(*) as total_karyawan,
                                         SUM(CASE WHEN u.jabatan = 'Kadep' THEN 1 ELSE 0 END) as total_kadep,
+                                        SUM(CASE WHEN u.jabatan = 'Koordinator' THEN 1 ELSE 0 END) as total_Koordinator,
                                         SUM(CASE WHEN u.jabatan = 'Manager' THEN 1 ELSE 0 END) as total_manager,
                                         SUM(CASE WHEN u.jabatan = 'Karyawan' THEN 1 ELSE 0 END) as total_karyawan_biasa
                                       FROM tb_users u
@@ -280,6 +281,22 @@ if (!isset($_SESSION['id_user'])) {
                                         </div>
                                         <div class="text-danger">
                                             <i class="bi bi-award-fill" style="font-size: 2.5rem;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-muted mb-1">Koordinator</h6>
+                                            <h3 class="fw-bold mb-0"><?=$stats['total_Koordinator']?></h3>
+                                        </div>
+                                        <div class="text-warning">
+                                            <i class="bi bi-star-fill" style="font-size: 2.5rem;"></i>
                                         </div>
                                     </div>
                                 </div>

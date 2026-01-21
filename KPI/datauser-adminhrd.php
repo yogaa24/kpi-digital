@@ -60,12 +60,14 @@ if (isset($_POST['edit_user'])) {
     
     // Tentukan level berdasarkan jabatan
     $level = 1; // Default Karyawan
-    if ($jabatan == 'Manager') {
+    if ($jabatan == 'Koordinator') {
         $level = 2;
-    } elseif ($jabatan == 'Kadep') {
+    } elseif ($jabatan == 'Manager') {
         $level = 3;
-    } elseif ($jabatan == 'Direktur') {
+    } elseif ($jabatan == 'Kadep') {
         $level = 4;
+    } elseif ($jabatan == 'Direktur') {
+        $level = 5;
     }
     
     // Update tb_users
@@ -136,12 +138,14 @@ if (isset($_POST['register_user'])) {
                 
                 // Tentukan level berdasarkan jabatan
                 $level = 1; // Default Karyawan
-                if ($jabatan == 'Manager') {
+                if ($jabatan == 'Koordinator') {
                     $level = 2;
-                } elseif ($jabatan == 'Kadep') {
+                 } elseif ($jabatan == 'Manager') {
                     $level = 3;
-                } elseif ($jabatan == 'Direktur') {
+                } elseif ($jabatan == 'Kadep') {
                     $level = 4;
+                } elseif ($jabatan == 'Direktur') {
+                    $level = 5;
                 }
                 
                 // Insert ke tb_auth
@@ -250,6 +254,7 @@ if (isset($_POST['register_user'])) {
                                 <option value="Direktur">Direktur</option>
                                 <option value="Kadep">Kadep</option>
                                 <option value="Manager">Manager</option>
+                                <option value="Koordinator">Koordinator</option>
                                 <option value="Karyawan">Karyawan</option>
                                 <option value="Driver">Driver</option>
                             </select>
@@ -293,10 +298,11 @@ if (isset($_POST['register_user'])) {
                                                     $level_name = '';
                                                     switch($user['level']) {
                                                         case 1: $level_name = 'Karyawan'; break;
-                                                        case 2: $level_name = 'Manager'; break;
-                                                        case 3: $level_name = 'Kadep'; break;
-                                                        case 4: $level_name = 'Direktur'; break;
-                                                        case 5: $level_name = 'Admin HRD'; break;
+                                                        case 2: $level_name = 'Koordinator'; break;
+                                                        case 3: $level_name = 'Manager'; break;
+                                                        case 4: $level_name = 'Kadep'; break;
+                                                        case 5: $level_name = 'Direktur'; break;
+                                                        case 6: $level_name = 'Admin HRD'; break;
                                                         default: $level_name = 'Unknown';
                                                     }
                                                 ?>
@@ -394,9 +400,10 @@ if (isset($_POST['register_user'])) {
                                                                                     data-user-id="<?= $user['id'] ?>" required>
                                                                                 <option value="">-- Pilih Jabatan --</option>
                                                                                 <option value="Karyawan" <?= $user['jabatan'] == 'Karyawan' ? 'selected' : '' ?>>Karyawan (Level 1)</option>
-                                                                                <option value="Manager" <?= $user['jabatan'] == 'Manager' ? 'selected' : '' ?>>Manager (Level 2)</option>
-                                                                                <option value="Kadep" <?= $user['jabatan'] == 'Kadep' ? 'selected' : '' ?>>Kadep (Level 3)</option>
-                                                                                <option value="Direktur" <?= $user['jabatan'] == 'Direktur' ? 'selected' : '' ?>>Direktur (Level 4)</option>
+                                                                                <option value="Koordinator" <?= $user['jabatan'] == 'Koordinator' ? 'selected' : '' ?>>Koordinator (Level 2)</option>
+                                                                                <option value="Manager" <?= $user['jabatan'] == 'Manager' ? 'selected' : '' ?>>Manager (Level 3)</option>
+                                                                                <option value="Kadep" <?= $user['jabatan'] == 'Kadep' ? 'selected' : '' ?>>Kadep (Level 4)</option>
+                                                                                <option value="Direktur" <?= $user['jabatan'] == 'Direktur' ? 'selected' : '' ?>>Direktur (Level 5)</option>
                                                                             </select>
                                                                             <small class="text-muted">Level akan otomatis disesuaikan dengan jabatan</small>
                                                                         </div>
@@ -506,7 +513,7 @@ if (isset($_POST['register_user'])) {
                 const jabatanSelect = document.querySelector(`.jabatan-edit[data-user-id="${userId}"]`);
                 
                 // PENTING: Cek dulu jabatannya, jika Manager/Kadep/Direktur jangan overwrite
-                if (jabatanSelect.value === 'Manager' || jabatanSelect.value === 'Kadep' || jabatanSelect.value === 'Direktur') {
+                if (jabatanSelect.value === 'Koordinator' || jabatanSelect.value === 'Manager'|| jabatanSelect.value === 'Kadep' || jabatanSelect.value === 'Direktur') {
                     return; // Skip update atasan jika jabatan sudah Manager/Kadep/Direktur
                 }
                 
@@ -522,7 +529,7 @@ if (isset($_POST['register_user'])) {
                     items = ["Pilih Atasan", "Evi Yulia", "Heru Sucahyo"];
                 } 
                 else if (this.value === 'HRD') {
-                    items = ["Pilih Atasan", "Riza Dwi Fitrianingtyas"];
+                    items = ["Pilih Atasan","Siwi Mardlatus Syafirah","Riza Dwi Fitrianingtyas"];
                 }
                 else if (this.value === 'Logistik') {
                     items = ["Pilih Atasan", "Fauzan", "Wildan Ma'ruf N. W."];
@@ -548,9 +555,13 @@ if (isset($_POST['register_user'])) {
                 const atasanSelect = document.getElementById('atasan_edit_' + userId);
                 let items = [];
 
-                if (this.value === 'Manager') {
+                if (this.value === 'Koordinator') {
                     items = ["Pilih Atasan", "Diana Wulandari", "Vita Ari Puspita", "Riza Dwi Fitrianingtyas", "Kurniawan Pratama Arifin", "Heru Sucahyo", "Arfin Indra Cahyadi"];
                     renderAtasanEdit(items, atasanSelect); // Update atasan untuk Manager
+                } 
+                else if (this.value === 'Manager') {
+                    items = ["Pilih Atasan", "Diana Wulandari", "Vita Ari Puspita", "Riza Dwi Fitrianingtyas", "Kurniawan Pratama Arifin", "Heru Sucahyo", "Arfin Indra Cahyadi"];
+                    renderAtasanEdit(items, atasanSelect); // Update atasan untuk Kadep
                 } 
                 else if (this.value === 'Kadep') {
                     items = ["Pilih Atasan", "Diana Wulandari"];

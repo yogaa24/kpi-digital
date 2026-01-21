@@ -202,8 +202,9 @@ ORDER BY
     CASE 
         WHEN jabatan = 'Kadep' THEN 1
         WHEN jabatan = 'Manager' THEN 2
-        WHEN jabatan = 'Karyawan' THEN 3
-        ELSE 4
+        WHEN jabatan = 'koordinator' THEN 3
+        WHEN jabatan = 'Karyawan' THEN 4
+        ELSE 5
     END,
     nama_lngkp";
                                     $sgdah = mysqli_query($conn, $sqlhd);
@@ -246,7 +247,13 @@ ORDER BY
                                             </td>
                                             <td>
                                                 
-                                                <?php if ($hasilsfa['jabatan'] != 'Manager' && $hasilsfa['jabatan'] != 'Kadep') { ?>
+                                                <?php 
+                                                    if (
+                                                        $hasilsfa['jabatan'] != 'Manager' &&
+                                                        $hasilsfa['jabatan'] != 'Kadep' &&
+                                                        $hasilsfa['jabatan'] != 'Koordinator'
+                                                    ) { 
+                                                    ?>
                                                     <center>
                                                         <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>"
                                                             class="btn btn-success btn-sm" title="Lihat Detail">
@@ -281,8 +288,9 @@ ORDER BY
                             CASE 
                                 WHEN jabatan = 'Kadep' THEN 1
                                 WHEN jabatan = 'Manager' THEN 2
-                                WHEN jabatan = 'Karyawan' THEN 3
-                                ELSE 4
+                                WHEN jabatan = 'Koordinator' THEN 3
+                                WHEN jabatan = 'Karyawan' THEN 4
+                                ELSE 5
                             END,
                             nama_lngkp";
 

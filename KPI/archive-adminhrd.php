@@ -236,6 +236,9 @@ sort($bagian_list);
                                                     } elseif ($user['jabatan'] == 'Manager') {
                                                         $badge_color = 'warning';
                                                         $badge_icon = 'star-fill';
+                                                    } elseif ($user['jabatan'] == 'Koordinator') {
+                                                        $badge_color = 'info';
+                                                        $badge_icon  = 'people-fill';
                                                     } elseif ($user['jabatan'] == 'Karyawan') {
                                                         $badge_color = 'success';
                                                         $badge_icon = 'person-check-fill';
