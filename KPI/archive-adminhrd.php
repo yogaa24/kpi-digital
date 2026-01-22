@@ -25,7 +25,7 @@ if (!$result_check) {
 
 $user_data = mysqli_fetch_assoc($result_check);
 
-if ($user_data['level'] != 5) {
+if ($user_data['level'] != 6) {
     header("Location: dashboard");
     exit();
 }

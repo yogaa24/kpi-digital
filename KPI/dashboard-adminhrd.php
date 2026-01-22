@@ -95,51 +95,104 @@ if (!isset($_SESSION['id_user'])) {
         .badge-admin {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
+            padding: 8px 16px;
+            border-radius: 8px;
             font-weight: bold;
+            font-size: 0.95rem;
         }
         
         .header-admin {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .hover-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
         }
         
         .menu-card {
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             border: none;
             overflow: hidden;
+            border-radius: 12px;
+            height: 100%;
+            background: white;
         }
         
         .menu-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
         }
         
         .menu-card .icon-wrapper {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto;
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 16px;
             transition: all 0.3s ease;
         }
         
         .menu-card:hover .icon-wrapper {
-            transform: scale(1.1);
+            transform: scale(1.1) rotate(5deg);
+        }
+        
+        .icon-bg-info {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+        }
+        
+        .icon-bg-success {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        }
+        
+        .icon-bg-warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+        
+        .icon-bg-danger {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        }
+        
+        .icon-bg-purple {
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+        }
+        
+        .icon-bg-primary {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        }
+        
+        .stat-card {
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border: none;
+            background: white;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
+        }
+        
+        .info-card {
+            border-radius: 12px;
+            border: 2px solid #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+        
+        .menu-card .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1e293b;
+        }
+        
+        .menu-card .card-text {
+            font-size: 0.875rem;
+            color: #64748b;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -155,14 +208,14 @@ if (!isset($_SESSION['id_user'])) {
                     
                     <!-- Header Admin HRD -->
                     <div class="header-admin mt-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3 class="mb-2">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h3 class="mb-2 fw-bold">
                                     <i class="bi bi-shield-fill-check me-2"></i>Dashboard Admin HRD
                                 </h3>
-                                <p class="mb-0 opacity-75">Monitoring KPI Seluruh Karyawan</p>
+                                <p class="mb-0 opacity-90">Monitoring dan Pengelolaan KPI Seluruh Karyawan</p>
                             </div>
-                            <div class="text-end">
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
                                 <span class="badge-admin">
                                     <i class="bi bi-person-badge-fill me-2"></i><?= $nama_lngkp ?>
                                 </span>
@@ -170,78 +223,86 @@ if (!isset($_SESSION['id_user'])) {
                         </div>
                     </div>
 
-                    <!-- Menu Cards -->
+                    <!-- Menu Cards Section -->
                     <div class="row mb-4">
                         <!-- Data User -->
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm menu-card h-100"
-                                onclick="window.location.href='datauser-adminhrd'">
+                        <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                            <div class="card shadow-sm menu-card" onclick="window.location.href='datauser-adminhrd'">
                                 <div class="card-body text-center p-4">
-                                    <div class="icon-wrapper mb-3">
-                                        <i class="bi bi-people-fill text-info" style="font-size:2.5rem;"></i>
+                                    <div class="icon-wrapper icon-bg-info">
+                                        <i class="bi bi-people-fill text-info" style="font-size:2.2rem;"></i>
                                     </div>
-                                    <h5 class="fw-bold mb-2">Data User</h5>
-                                    <p class="text-muted mb-0 small">Kelola data pengguna sistem</p>
+                                    <h5 class="card-title">Data User</h5>
+                                    <p class="card-text">Kelola data pengguna sistem</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Data KPI Karyawan -->
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm menu-card h-100"
-                                onclick="window.location.href='datakpi-adminhrd'">
+                        <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                            <div class="card shadow-sm menu-card" onclick="window.location.href='datakpi-adminhrd'">
                                 <div class="card-body text-center p-4">
-                                    <div class="icon-wrapper mb-3">
-                                        <i class="bi bi-graph-up-arrow text-success" style="font-size:2.5rem;"></i>
+                                    <div class="icon-wrapper icon-bg-success">
+                                        <i class="bi bi-graph-up-arrow text-success" style="font-size:2.2rem;"></i>
                                     </div>
-                                    <h5 class="fw-bold mb-2">Data KPI Karyawan</h5>
-                                    <p class="text-muted mb-0 small">Monitoring KPI seluruh karyawan</p>
+                                    <h5 class="card-title">Data KPI Karyawan</h5>
+                                    <p class="card-text">Monitoring KPI seluruh karyawan</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Archive -->
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm menu-card h-100"
-                                onclick="window.location.href='archive-adminhrd'">
+                        <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                            <div class="card shadow-sm menu-card" onclick="window.location.href='archive-adminhrd'">
                                 <div class="card-body text-center p-4">
-                                    <div class="icon-wrapper mb-3">
-                                        <i class="bi bi-archive-fill text-warning" style="font-size:2.5rem;"></i>
+                                    <div class="icon-wrapper icon-bg-warning">
+                                        <i class="bi bi-archive-fill text-warning" style="font-size:2.2rem;"></i>
                                     </div>
-                                    <h5 class="fw-bold mb-2">Archive</h5>
-                                    <p class="text-muted mb-0 small">Arsip dokumen & data historis</p>
+                                    <h5 class="card-title">Archive</h5>
+                                    <p class="card-text">Arsip dokumen & data historis</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Eviden -->
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm menu-card h-100"
-                                onclick="window.location.href='eviden-adminhrd'">
+                        <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                            <div class="card shadow-sm menu-card" onclick="window.location.href='eviden-adminhrd'">
                                 <div class="card-body text-center p-4">
-                                    <div class="icon-wrapper mb-3">
-                                        <i class="bi bi-folder-fill text-danger" style="font-size:2.5rem;"></i>
+                                    <div class="icon-wrapper icon-bg-danger">
+                                        <i class="bi bi-folder-fill text-danger" style="font-size:2.2rem;"></i>
                                     </div>
-                                    <h5 class="fw-bold mb-2">Eviden</h5>
-                                    <p class="text-muted mb-0 small">Dokumentasi bukti & evidensi</p>
+                                    <h5 class="card-title">Eviden</h5>
+                                    <p class="card-text">Dokumentasi bukti & evidensi</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lock KPI Settings -->
+                        <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                            <div class="card shadow-sm menu-card" onclick="window.location.href='kpi-lock-settings-adminhrd'">
+                                <div class="card-body text-center p-4">
+                                    <div class="icon-wrapper icon-bg-purple">
+                                        <i class="bi bi-lock-fill text-purple" style="font-size:2.2rem; color: #9333ea;"></i>
+                                    </div>
+                                    <h5 class="card-title">Lock KPI Settings</h5>
+                                    <p class="card-text">Atur periode & akses pengisian KPI</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Skill Standard - NEW -->
+                        <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                            <div class="card shadow-sm menu-card" onclick="window.location.href='skill-standard-adminhrd'">
+                                <div class="card-body text-center p-4">
+                                    <div class="icon-wrapper icon-bg-primary">
+                                        <i class="bi bi-award-fill text-primary" style="font-size:2.2rem;"></i>
+                                    </div>
+                                    <h5 class="card-title">Skill Standard</h5>
+                                    <p class="card-text">Kelola standar kompetensi karyawan</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                     <!-- Pengaturan Lock KPI -->
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm menu-card h-100"
-                                onclick="window.location.href='kpi-lock-settings-adminhrd'">
-                                <div class="card-body text-center p-4">
-                                    <div class="icon-wrapper mb-3">
-                                        <i class="bi bi-lock-fill text-purple" style="font-size:2.5rem;"></i>
-                                    </div>
-                                    <h5 class="fw-bold mb-2">Lock KPI Settings</h5>
-                                    <p class="text-muted mb-0 small">Atur periode & akses pengisian KPI</p>
-                                </div>
-                            </div>
-                        </div>
 
                     <!-- Statistics Summary -->
                     <div class="row mb-4">
@@ -268,11 +329,8 @@ if (!isset($_SESSION['id_user'])) {
                                          AND masa_berlaku_selesai >= '$today'";
                         $result_sp_aktif = mysqli_query($conn, $sql_sp_aktif);
                         $sp_aktif_count = mysqli_fetch_assoc($result_sp_aktif)['total_sp_aktif'];
-                        ?>
                         
-                        <?php
                         // Hitung periode lock yang aktif hari ini
-                        $today = date('Y-m-d');
                         $sql_lock_aktif = "SELECT COUNT(*) as total_lock 
                                         FROM tb_kpi_lock_settings 
                                         WHERE status = 'aktif' 
@@ -293,36 +351,39 @@ if (!isset($_SESSION['id_user'])) {
                         $periode_aktif = mysqli_fetch_assoc($result_periode);
                         ?>
 
+                        <!-- Status Lock KPI -->
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm border-0 <?= $lock_aktif > 0 ? 'border-warning' : 'border-success' ?>" style="border-width: 2px !important;">
+                            <div class="card stat-card shadow-sm <?= $lock_aktif > 0 ? 'border-warning' : 'border-success' ?>" style="border-width: 2px !important;">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">Status Lock KPI</h6>
+                                            <h6 class="text-muted mb-1 small">Status Lock KPI</h6>
                                             <h3 class="fw-bold mb-0 <?= $lock_aktif > 0 ? 'text-warning' : 'text-success' ?>">
                                                 <?= $lock_aktif > 0 ? 'TERBATAS' : 'TERBUKA' ?>
                                             </h3>
                                             <?php if($periode_aktif): ?>
-                                            <small class="text-muted"><?= $periode_aktif['nama_periode'] ?></small>
+                                            <small class="text-muted d-block mt-1"><?= $periode_aktif['nama_periode'] ?></small>
                                             <?php endif; ?>
                                         </div>
                                         <div class="<?= $lock_aktif > 0 ? 'text-warning' : 'text-success' ?>">
-                                            <i class="bi bi-<?= $lock_aktif > 0 ? 'lock-fill' : 'unlock-fill' ?>" style="font-size: 2.5rem;"></i>
+                                            <i class="bi bi-<?= $lock_aktif > 0 ? 'lock-fill' : 'unlock-fill' ?>" style="font-size: 2.5rem; opacity: 0.8;"></i>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
+                        <!-- Total Karyawan -->
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm border-0">
+                            <div class="card stat-card shadow-sm border-0">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">Total Karyawan</h6>
-                                            <h3 class="fw-bold mb-0"><?=$stats['total_karyawan']?></h3>
+                                            <h6 class="text-muted mb-1 small">Total Karyawan</h6>
+                                            <h3 class="fw-bold mb-0 text-primary"><?=$stats['total_karyawan']?></h3>
+                                            <small class="text-muted">Karyawan aktif</small>
                                         </div>
-                                        <div class="text-primary">
+                                        <div class="text-primary" style="opacity: 0.8;">
                                             <i class="bi bi-people-fill" style="font-size: 2.5rem;"></i>
                                         </div>
                                     </div>
@@ -330,15 +391,17 @@ if (!isset($_SESSION['id_user'])) {
                             </div>
                         </div>
                         
+                        <!-- Kadep -->
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm border-0">
+                            <div class="card stat-card shadow-sm border-0">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">Kadep</h6>
-                                            <h3 class="fw-bold mb-0"><?=$stats['total_kadep']?></h3>
+                                            <h6 class="text-muted mb-1 small">Kepala Departemen</h6>
+                                            <h3 class="fw-bold mb-0 text-danger"><?=$stats['total_kadep']?></h3>
+                                            <small class="text-muted">Kadep</small>
                                         </div>
-                                        <div class="text-danger">
+                                        <div class="text-danger" style="opacity: 0.8;">
                                             <i class="bi bi-award-fill" style="font-size: 2.5rem;"></i>
                                         </div>
                                     </div>
@@ -346,15 +409,17 @@ if (!isset($_SESSION['id_user'])) {
                             </div>
                         </div>
 
+                        <!-- Koordinator -->
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm border-0">
+                            <div class="card stat-card shadow-sm border-0">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">Koordinator</h6>
-                                            <h3 class="fw-bold mb-0"><?=$stats['total_Koordinator']?></h3>
+                                            <h6 class="text-muted mb-1 small">Koordinator</h6>
+                                            <h3 class="fw-bold mb-0 text-warning"><?=$stats['total_Koordinator']?></h3>
+                                            <small class="text-muted">Tim koordinator</small>
                                         </div>
-                                        <div class="text-warning">
+                                        <div class="text-warning" style="opacity: 0.8;">
                                             <i class="bi bi-star-fill" style="font-size: 2.5rem;"></i>
                                         </div>
                                     </div>
@@ -362,31 +427,35 @@ if (!isset($_SESSION['id_user'])) {
                             </div>
                         </div>
                         
+                        <!-- Manager -->
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm border-0">
+                            <div class="card stat-card shadow-sm border-0">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">Manager</h6>
-                                            <h3 class="fw-bold mb-0"><?=$stats['total_manager']?></h3>
+                                            <h6 class="text-muted mb-1 small">Manager</h6>
+                                            <h3 class="fw-bold mb-0" style="color: #6366f1;"><?=$stats['total_manager']?></h3>
+                                            <small class="text-muted">Level manager</small>
                                         </div>
-                                        <div class="text-warning">
-                                            <i class="bi bi-star-fill" style="font-size: 2.5rem;"></i>
+                                        <div style="opacity: 0.8; color: #6366f1;">
+                                            <i class="bi bi-person-badge-fill" style="font-size: 2.5rem;"></i>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
+                        <!-- SP Aktif -->
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card shadow-sm border-0 border-danger" style="border-width: 2px !important;">
+                            <div class="card stat-card shadow-sm border-danger" style="border-width: 2px !important;">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">SP Aktif</h6>
+                                            <h6 class="text-muted mb-1 small">Surat Peringatan</h6>
                                             <h3 class="fw-bold mb-0 text-danger"><?=$sp_aktif_count?></h3>
+                                            <small class="text-muted">SP Aktif</small>
                                         </div>
-                                        <div class="text-danger">
+                                        <div class="text-danger" style="opacity: 0.8;">
                                             <i class="bi bi-exclamation-triangle-fill" style="font-size: 2.5rem;"></i>
                                         </div>
                                     </div>
@@ -398,17 +467,19 @@ if (!isset($_SESSION['id_user'])) {
                     <!-- Info Card -->
                     <div class="row">
                         <div class="col-12">
-                            <div class="card shadow-sm border-primary" style="border-width: 2px;">
-                                <div class="card-body text-center py-4">
-                                    <i class="bi bi-info-circle-fill text-primary mb-2" style="font-size: 3rem;"></i>
-                                    <h5 class="fw-bold mb-2">Selamat Datang di Dashboard Admin HRD</h5>
-                                    <p class="text-muted mb-3">
-                                        Kelola data karyawan, monitoring KPI, dan administrasi HRD dengan mudah melalui menu di atas.
+                            <div class="card shadow-sm info-card">
+                                <div class="card-body text-center py-5">
+                                    <i class="bi bi-info-circle-fill text-primary mb-3" style="font-size: 3.5rem;"></i>
+                                    <h4 class="fw-bold mb-3" style="color: #1e40af;">Selamat Datang di Dashboard Admin HRD</h4>
+                                    <p class="text-muted mb-4 mx-auto" style="max-width: 700px;">
+                                        Kelola data karyawan, monitoring KPI, standar kompetensi, dan administrasi HRD dengan mudah melalui menu yang tersedia di atas.
                                     </p>
-                                    <p class="text-muted small mb-0">
-                                        <i class="bi bi-lightbulb-fill text-warning me-1"></i>
-                                        Tip: Klik <strong>"Data KPI Karyawan"</strong> untuk melihat detail KPI seluruh karyawan
-                                    </p>
+                                    <div class="d-flex justify-content-center align-items-center gap-2">
+                                        <i class="bi bi-lightbulb-fill text-warning" style="font-size: 1.2rem;"></i>
+                                        <p class="text-muted mb-0">
+                                            <strong>Tip:</strong> Klik menu <strong>"Data KPI Karyawan"</strong> untuk melihat detail KPI seluruh karyawan
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

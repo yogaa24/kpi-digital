@@ -450,7 +450,7 @@ function getkpi($nilair)
                                             } elseif ($hasilsfa['jabatan'] == 'Manager') {
                                                 $badge_color = 'warning';
                                                 $badge_icon = 'star-fill';
-                                            } elseif ($user['jabatan'] == 'Koordinator') {
+                                            } elseif ($hasilsfa['jabatan'] == 'Koordinator') {
                                                 $badge_color = 'info';
                                                 $badge_icon  = 'people-fill';
                                             } elseif ($hasilsfa['jabatan'] == 'Karyawan') {
