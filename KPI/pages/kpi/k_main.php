@@ -10,27 +10,48 @@
                         <?= $bobot ?>%
                     </h5>
                     <div class="card-tools">
-                        <!-- Tombol Edit What -->
+                        <!-- Tombol Edit Goals What -->
+                        <?php if($can_edit): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
                             data-bs-toggle="modal" data-bs-target="#EditModal<?= $idKPI ?>" class="btn btn-tool" title="Edit Goals What">
                             <i class="bi bi-pencil fs-6"></i>
                         </button>
+                        <?php else: ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            class="btn btn-tool" disabled title="Akses edit dibatasi">
+                            <i class="bi bi-lock-fill fs-6"></i>
+                        </button>
+                        <?php endif; ?>
                         
-                        <!-- Tombol Hapus KPI - STYLE SAMA DENGAN EDIT -->
+                        <!-- Tombol Hapus KPI -->
+                        <?php if($can_delete): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
                             data-bs-toggle="modal" data-bs-target="#modalHapusKPI<?= $idKPI ?>" class="btn btn-tool" title="Hapus KPI">
                             <i class="bi bi-trash fs-6"></i>
                         </button>
+                        <?php else: ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            class="btn btn-tool" disabled title="Akses hapus dibatasi">
+                            <i class="bi bi-lock-fill fs-6"></i>
+                        </button>
+                        <?php endif; ?>
 
                         <!-- Tombol Tambah What -->
+                        <?php if($can_add): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
+                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle" title="Tambah What">
                             <i class="bi bi-plus-circle fs-6"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end" role="menu">
                             <a href="#" class="dropdown-item" data-bs-toggle="modal"
                                 data-bs-target="#WhatModal<?= $idKPI ?>">Tambah What </a>
                         </div>
+                        <?php else: ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            class="btn btn-tool" disabled title="Akses tambah dibatasi">
+                            <i class="bi bi-lock-fill fs-6"></i>
+                        </button>
+                        <?php endif; ?>
                         
                         <!-- Tombol Collapse -->
                         <button style="color: white;" type="button" class="btn btn-tool"
@@ -162,14 +183,41 @@
                                         <i class="bi bi-eye fs-8"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end" role="menu">
+                                        <?php if($can_edit): ?>
                                         <a value="<?php echo $res['id_what']; ?>" name="what_edit" class="dropdown-item"
                                             data-bs-toggle="modal"
-                                            data-bs-target="#EditWhatModal<?= $res['id_what'] ?>">Edit</a>
-                                        <a class="dropdown-item" data-bs-toggle="modal"
-                                            data-bs-target="#HapusWhatModal<?= $res['id_what'] ?>">Hapus</a>
-                                        <div class="dropdown-divider"></div>
-                                        <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
-                                            data-bs-target="#NilaiWhatModal<?= $res['id_what'] ?>">Nilai</a>
+                                            data-bs-target="#EditWhatModal<?= $res['id_what'] ?>">
+                                            <i class="bi bi-pencil me-2"></i>Edit
+                                        </a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item disabled text-muted">
+                                            <i class="bi bi-lock me-2"></i>Edit (Terkunci)
+                                        </a>
+                                        <?php endif; ?>
+                                        
+                                        <?php if($can_delete): ?>
+                                        <a class="dropdown-item text-danger" data-bs-toggle="modal"
+                                            data-bs-target="#HapusWhatModal<?= $res['id_what'] ?>">
+                                            <i class="bi bi-trash me-2"></i>Hapus
+                                        </a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item disabled text-muted">
+                                            <i class="bi bi-lock me-2"></i>Hapus (Terkunci)
+                                        </a>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($can_edit): ?>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item fw-bolder"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#NilaiWhatModal<?= $res['id_what'] ?>">
+                                                <i class="bi bi-star me-2"></i>Nilai
+                                            </a>
+                                        <?php else: ?>
+                                            <a class="dropdown-item disabled text-muted fw-bolder">
+                                                <i class="bi bi-lock me-2"></i>Nilai (Terkunci)
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
                                     
                                     <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>
@@ -290,21 +338,35 @@
                         Bobot : <?= $bobot2 ?>%
                     </h5>
                     <div class="card-tools">
-                        <!-- Tombol Edit How -->
+                        <!-- Tombol Edit Goals How -->
+                        <?php if($can_edit): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
                             data-bs-toggle="modal" data-bs-target="#EditModal2<?= $idKPI ?>" class="btn btn-tool" title="Edit Goals How">
                             <i class="bi bi-pencil fs-6"></i>
                         </button>
-                        
-                        <!-- Tombol Tambah How -->
+                        <?php else: ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
+                            class="btn btn-tool" disabled title="Akses edit dibatasi">
+                            <i class="bi bi-lock-fill fs-6"></i>
+                        </button>
+                        <?php endif; ?>
+
+                        <!-- Tombol Tambah How -->
+                        <?php if($can_add): ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle" title="Tambah What">
                             <i class="bi bi-plus-circle fs-6"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end" role="menu">
                             <a href="#" class="dropdown-item" data-bs-toggle="modal"
                                 data-bs-target="#HowModal<?= $idKPI ?>">Tambah How </a>
                         </div>
+                        <?php else: ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            class="btn btn-tool" disabled title="Akses tambah dibatasi">
+                            <i class="bi bi-lock-fill fs-6"></i>
+                        </button>
+                        <?php endif; ?>
                         
                         <!-- Tombol Collapse -->
                         <button style="color: white;" type="button" class="btn btn-tool"
@@ -438,14 +500,40 @@
                                         <i class="bi bi-eye fs-8"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end" role="menu">
+                                        <?php if($can_edit): ?>
                                         <a value="<?php echo $res['id_how']; ?>" name="how_edit" class="dropdown-item"
                                             data-bs-toggle="modal"
-                                            data-bs-target="#EditHowModal<?= $res['id_how'] ?>">Edit</a>
-                                        <a class="dropdown-item" data-bs-toggle="modal"
-                                            data-bs-target="#HapusHowModal<?= $res['id_how'] ?>">Hapus</a>
-                                        <div class="dropdown-divider"></div>
-                                        <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
-                                            data-bs-target="#NilaiHowModal<?= $res['id_how'] ?>">Nilai</a>
+                                            data-bs-target="#EditHowModal<?= $res['id_how'] ?>">
+                                            <i class="bi bi-pencil me-2"></i>Edit
+                                        </a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item disabled text-muted">
+                                            <i class="bi bi-lock me-2"></i>Edit (Terkunci)
+                                        </a>
+                                        <?php endif; ?>
+                                        
+                                        <?php if($can_delete): ?>
+                                        <a class="dropdown-item text-danger" data-bs-toggle="modal"
+                                            data-bs-target="#HapusHowModal<?= $res['id_how'] ?>">
+                                            <i class="bi bi-trash me-2"></i>Hapus
+                                        </a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item disabled text-muted">
+                                            <i class="bi bi-lock me-2"></i>Hapus (Terkunci)
+                                        </a>
+                                        <?php endif; ?>
+
+                                        <?php if ($can_edit): ?>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
+                                                data-bs-target="#NilaiHowModal<?= $res['id_how'] ?>">
+                                                <i class="bi bi-star me-2"></i>Nilai
+                                            </a>
+                                        <?php else: ?>
+                                            <a class="dropdown-item disabled text-muted fw-bolder">
+                                                <i class="bi bi-lock me-2"></i>Nilai (Terkunci)
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
                                     
                                     <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>

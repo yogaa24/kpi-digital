@@ -65,6 +65,7 @@ if (!isset($_SESSION['id_user'])) {
         }
     }
 }
+
 ?>
 
 <html lang="en">
@@ -228,6 +229,20 @@ if (!isset($_SESSION['id_user'])) {
                         </div>
                     </div>
 
+                     <!-- Pengaturan Lock KPI -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card shadow-sm menu-card h-100"
+                                onclick="window.location.href='kpi-lock-settings-adminhrd'">
+                                <div class="card-body text-center p-4">
+                                    <div class="icon-wrapper mb-3">
+                                        <i class="bi bi-lock-fill text-purple" style="font-size:2.5rem;"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-2">Lock KPI Settings</h5>
+                                    <p class="text-muted mb-0 small">Atur periode & akses pengisian KPI</p>
+                                </div>
+                            </div>
+                        </div>
+
                     <!-- Statistics Summary -->
                     <div class="row mb-4">
                         <?php
@@ -254,6 +269,50 @@ if (!isset($_SESSION['id_user'])) {
                         $result_sp_aktif = mysqli_query($conn, $sql_sp_aktif);
                         $sp_aktif_count = mysqli_fetch_assoc($result_sp_aktif)['total_sp_aktif'];
                         ?>
+                        
+                        <?php
+                        // Hitung periode lock yang aktif hari ini
+                        $today = date('Y-m-d');
+                        $sql_lock_aktif = "SELECT COUNT(*) as total_lock 
+                                        FROM tb_kpi_lock_settings 
+                                        WHERE status = 'aktif' 
+                                        AND tanggal_mulai <= '$today' 
+                                        AND tanggal_selesai >= '$today'";
+                        $result_lock = mysqli_query($conn, $sql_lock_aktif);
+                        $lock_aktif = mysqli_fetch_assoc($result_lock)['total_lock'];
+
+                        // Ambil info periode aktif
+                        $sql_periode_aktif = "SELECT nama_periode, level_akses 
+                                            FROM tb_kpi_lock_settings 
+                                            WHERE status = 'aktif' 
+                                            AND tanggal_mulai <= '$today' 
+                                            AND tanggal_selesai >= '$today'
+                                            ORDER BY created_at DESC
+                                            LIMIT 1";
+                        $result_periode = mysqli_query($conn, $sql_periode_aktif);
+                        $periode_aktif = mysqli_fetch_assoc($result_periode);
+                        ?>
+
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card shadow-sm border-0 <?= $lock_aktif > 0 ? 'border-warning' : 'border-success' ?>" style="border-width: 2px !important;">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-muted mb-1">Status Lock KPI</h6>
+                                            <h3 class="fw-bold mb-0 <?= $lock_aktif > 0 ? 'text-warning' : 'text-success' ?>">
+                                                <?= $lock_aktif > 0 ? 'TERBATAS' : 'TERBUKA' ?>
+                                            </h3>
+                                            <?php if($periode_aktif): ?>
+                                            <small class="text-muted"><?= $periode_aktif['nama_periode'] ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="<?= $lock_aktif > 0 ? 'text-warning' : 'text-success' ?>">
+                                            <i class="bi bi-<?= $lock_aktif > 0 ? 'lock-fill' : 'unlock-fill' ?>" style="font-size: 2.5rem;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card shadow-sm border-0">

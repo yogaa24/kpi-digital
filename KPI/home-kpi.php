@@ -9,6 +9,18 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/config.php';
     require 'helper/getUser.php';
     require 'helper/getKPI.php';
+    require 'helper/kpi_lock_functions.php';
+
+    $user_level = getUserLevel($conn, $jabatan);
+
+    // Cek akses untuk berbagai action
+    $can_view = checkKPIAccess($conn, $user_level, null, 'view');
+    $can_add = checkKPIAccess($conn, $user_level, null, 'add');
+    $can_edit = checkKPIAccess($conn, $user_level, null, 'edit');
+    $can_delete = checkKPIAccess($conn, $user_level, null, 'delete');
+
+    // Dapatkan pesan lock jika ada
+    $lock_info = getKPILockMessage($conn, $user_level);
 
 if (isset($_POST['submit'])) {
     $ids = $_SESSION['id_user'];
@@ -61,6 +73,10 @@ if (isset($_POST['update2'])) {
 
 // Handler untuk tambah what dengan indikator (WHAT A dan WHAT B)
 if (isset($_POST['what_add'])) {
+    if (!$can_add) {
+        echo "<script>alert('Anda tidak memiliki izin untuk menambah KPI pada periode ini!'); window.location.href='kpi-karyawan';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuan']);
     $bobot = floatval($_POST['bobot']);
@@ -102,6 +118,10 @@ if (isset($_POST['what_add'])) {
 
 // Handler untuk penilaian what (WHAT A dan WHAT B)
 if (isset($_POST['nilai_what'])) {
+    if (!$can_edit) {  // atau bisa pakai izin khusus untuk penilaian
+        echo "<script>alert('Anda tidak memiliki izin untuk menilai KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $id_what = intval($_POST['idkpi']);
     
@@ -206,6 +226,10 @@ if (isset($_POST['nilai_what'])) {
 
 // Handler untuk edit what (WHAT A dan WHAT B)
 if (isset($_POST['what_edit'])) {
+    if (!$can_edit) {
+        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='kpi-karyawan';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $idw = intval($_POST['idkw']);
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanw']);
@@ -293,6 +317,10 @@ if (isset($_POST['what_edit'])) {
 }
 // Handler untuk tambah how dengan indikator
 if (isset($_POST['how_add'])) {
+     if (!$can_add) {
+        echo "<script>alert('Anda tidak memiliki izin untuk menambah KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuan']);
     $bobot = floatval($_POST['bobot']);
@@ -334,6 +362,10 @@ if (isset($_POST['how_add'])) {
 
 // Handler untuk penilaian how (HOW A dan HOW B)
 if (isset($_POST['nilai_how'])) {
+    if (!$can_edit) {  // atau bisa pakai izin khusus untuk penilaian
+        echo "<script>alert('Anda tidak memiliki izin untuk menilai KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $id_how = intval($_POST['idkpi']);
     
@@ -439,6 +471,10 @@ if (isset($_POST['nilai_how'])) {
 
 // Handler untuk edit how (HOW A dan HOW B)
 if (isset($_POST['how_edit'])) {
+    if (!$can_edit) {
+        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $idh = intval($_POST['idkh']);
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanh']);
@@ -524,6 +560,10 @@ if (isset($_POST['how_edit'])) {
 }
 
 if (isset($_POST['how_hapus'])) {
+    if (!$can_delete) {
+        echo "<script>alert('Anda tidak memiliki izin untuk menghapus KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $idkpi = $_POST['idkhd'];
 
@@ -537,6 +577,10 @@ if (isset($_POST['how_hapus'])) {
     }
 }
 if (isset($_POST['what_hapus'])) {
+     if (!$can_delete) {
+        echo "<script>alert('Anda tidak memiliki izin untuk menghapus KPI pada periode ini!'); window.location.href='kpi-karyawan';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $idkpi = $_POST['idkwd'];
 
@@ -550,6 +594,10 @@ if (isset($_POST['what_hapus'])) {
     }
 }
 if (isset($_POST['update'])) {
+    if (!$can_edit) {
+        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $idkpi = $_POST['idk'];
     $poinn = $_POST['poin'];
@@ -565,6 +613,10 @@ if (isset($_POST['update'])) {
     }
 }
 if (isset($_POST['update2'])) {
+    if (!$can_edit) {
+        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $idkpi = $_POST['idk'];
     $poinn = $_POST['poin2'];
@@ -580,6 +632,10 @@ if (isset($_POST['update2'])) {
     }
 }
 if (isset($_POST['kpi_hapus'])) {
+    if (!$can_delete) {
+        echo "<script>alert('Anda tidak memiliki izin untuk menghapus KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        exit();
+    }
     $ids = $_SESSION['id_user'];
     $idkpi = intval($_POST['idkpi_hapus']);
 
@@ -673,6 +729,57 @@ if (isset($_POST['kpi_hapus'])) {
             <div class="app-content">
                 <!--begin::Container-->
                 <div class="container-fluid" style="font-size:13px;">
+                    <!-- TAMBAHKAN KODE INI SETELAH <div class="container-fluid"> -->
+                    <?php if($lock_info['locked']): ?>
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 2rem;"></i>
+                            <div>
+                                <h5 class="alert-heading mb-1">
+                                    <i class="bi bi-lock-fill me-2"></i>Akses Terbatas
+                                </h5>
+                                <p class="mb-1"><?= $lock_info['message'] ?></p>
+                                <?php if(!empty($lock_info['keterangan'])): ?>
+                                <small class="text-muted"><?= $lock_info['keterangan'] ?></small>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Info Status Akses -->
+                    <div class="card mb-3 border-info">
+                        <div class="card-body py-2">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="mb-1">
+                                        <i class="bi bi-info-circle-fill text-info me-2"></i>Status Akses Anda
+                                    </h6>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <span class="badge <?= $can_view ? 'bg-success' : 'bg-secondary' ?>">
+                                            <i class="bi bi-eye-fill me-1"></i>Lihat: <?= $can_view ? 'Ya' : 'Tidak' ?>
+                                        </span>
+                                        <span class="badge <?= $can_add ? 'bg-success' : 'bg-secondary' ?>">
+                                            <i class="bi bi-plus-circle-fill me-1"></i>Tambah: <?= $can_add ? 'Ya' : 'Tidak' ?>
+                                        </span>
+                                        <span class="badge <?= $can_edit ? 'bg-success' : 'bg-secondary' ?>">
+                                            <i class="bi bi-pencil-fill me-1"></i>Edit: <?= $can_edit ? 'Ya' : 'Tidak' ?>
+                                        </span>
+                                        <span class="badge <?= $can_delete ? 'bg-success' : 'bg-secondary' ?>">
+                                            <i class="bi bi-trash-fill me-1"></i>Hapus: <?= $can_delete ? 'Ya' : 'Tidak' ?>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <small class="text-muted">
+                                        <i class="bi bi-person-badge me-1"></i>
+                                        Jabatan: <strong><?= $jabatan ?></strong> (Level <?= $user_level ?>)
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!--begin::Row-->
                     <?php while ($hasil = mysqli_fetch_assoc($result)) {
                         $idKPI = $hasil['id'];
