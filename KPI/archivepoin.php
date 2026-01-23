@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <?php
 session_start();
 if (!isset($_SESSION['id_user'])) {
@@ -8,13 +7,33 @@ if (!isset($_SESSION['id_user'])) {
 
     require 'helper/config.php';
     require 'helper/getUser.php';
+    require 'helper/sp_functions.php'; // Tambahkan ini
+    
+    // ===== PERBAIKAN: Ambil id_archive dari parameter URL =====
+    $blan = isset($_GET['idarc']) ? $_GET['idarc'] : '';
+    
+    if (empty($blan)) {
+        echo "<script>alert('Data archive tidak ditemukan!'); window.location.href='archive';</script>";
+        exit();
+    }
+    
+    // Ambil id_archive berdasarkan bulan dan id_user
+    $query_archive = mysqli_query($conn, "SELECT id_archive FROM tbar_archive WHERE bulan = '$blan' AND id_user = $id_user");
+    
+    if (mysqli_num_rows($query_archive) == 0) {
+        echo "<script>alert('Data archive tidak ditemukan!'); window.location.href='archive';</script>";
+        exit();
+    }
+    
+    $row_archive = mysqli_fetch_assoc($query_archive);
+    $idar = $row_archive['id_archive'];
+    // ===== AKHIR PERBAIKAN =====
+    
     require 'helper/getKPIArch.php';
     require 'helper/getHow.php';
 
     $zboth = 0;
     $zbotw = 0;
-    
-    $blan = '';
 
     $totalws = 0;
     $result = mysqli_query($conn, $sql);
@@ -29,13 +48,16 @@ if (!isset($_SESSION['id_user'])) {
         $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
         $totalws += $nilaiws;
     }
+    
     $bobotkpid = 0;
-    $sql5a = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_user";
+    // ===== PERBAIKAN: Tambahkan kondisi id_arcv =====
+    $sql5a = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_user AND id_arcv=$idar";
     $result5a = mysqli_query($conn, $sql5a);
     while ($row5a = mysqli_fetch_assoc($result5a)) {
         $bobotkpid = $row5a['bw'];
     }
     $zbotw = ($totalws * $bobotkpid) / 100;
+    
     // ====================================================================================
     $totalhfg = 0;
     $totalbobothfg = 0;
@@ -52,8 +74,10 @@ if (!isset($_SESSION['id_user'])) {
         $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
         $totalhfg += $nilaihfg;
     }
+    
     $bobotkpias = 0;
-    $sql8a = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_user";
+    // ===== PERBAIKAN: Tambahkan kondisi id_arcv =====
+    $sql8a = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_user AND id_arcv=$idar";
     $result8a = mysqli_query($conn, $sql8a);
     while ($row8a = mysqli_fetch_assoc($result8a)) {
         $bobotkpias = $row8a['bh'];
@@ -61,11 +85,25 @@ if (!isset($_SESSION['id_user'])) {
     $zboth = ($totalhfg * $bobotkpias) / 100;
     // ==================================================================================
 
-    $archivec = "SELECT * FROM tbar_kpi where id_user = $id_user group by bulan";
+    // ===== TAMBAHAN: Cek apakah ada SP untuk archive ini =====
+    $nilai_asli = $zboth + $zbotw;
+    $nilai_akhir = $nilai_asli;
+    $sp_archive_data = null;
+    $pengurangan = 0;
+
+    $cek_sp_archive = mysqli_query($conn, "SELECT * FROM tbar_sp_archive WHERE id_archive = $idar AND id_user = $id_user");
+    if ($sp_row = mysqli_fetch_assoc($cek_sp_archive)) {
+        $sp_archive_data = $sp_row;
+        $nilai_akhir = $sp_row['nilai_akhir'];
+        $pengurangan = $sp_row['pengurangan'];
+    }
+    // ===== AKHIR TAMBAHAN =====
+    
+    // Tetap ambil data archive untuk dropdown (jika ada)
+    $archivec = "SELECT * FROM tbar_archive WHERE id_user = $id_user ORDER BY bulan DESC";
     $getArch = mysqli_query($conn, $archivec);
     
-    $blan = $_GET['idarc'];
-
+    // Format nama bulan
     $bulannnn = '';
     if ($blan != '') {
         $busd = explode('/', $blan);

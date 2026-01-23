@@ -406,12 +406,24 @@ if ($user_level >= 2) {
         $comparison_title = "Department Team - " . $target_dept;
 
     } elseif ($user_level >= 5) {
-        $target_dept = !empty($filter_departemen) ? $filter_departemen : $user_info['departement'];
-        $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
-                          WHERE departement='$target_dept' 
-                          AND username NOT IN ('itboy', 'adminhrd')
-                          ORDER BY nama_lngkp";
-        $comparison_title = "Department Team - " . $target_dept;
+        // DIREKTUR - Cek apakah filter departemen kosong (All Departments)
+        if (!empty($filter_departemen)) {
+            // Filter berdasarkan departemen tertentu
+            $target_dept = $filter_departemen;
+            $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
+                              WHERE departement='$target_dept' 
+                              AND username NOT IN ('itboy', 'adminhrd')
+                              ORDER BY nama_lngkp";
+            $comparison_title = "Department Team - " . $target_dept;
+        } else {
+            // TAMPILKAN SEMUA EMPLOYEE dari semua departemen
+            $sql_dept_users = "SELECT id, nama_lngkp, departement FROM tb_users 
+                              WHERE username NOT IN ('itboy', 'adminhrd')
+                              AND departement IS NOT NULL 
+                              AND departement != ''
+                              ORDER BY departement, nama_lngkp";
+            $comparison_title = "All Employees - All Departments";
+        }
     }
 
     $result_dept_users = mysqli_query($conn, $sql_dept_users);
@@ -421,19 +433,26 @@ if ($user_level >= 2) {
             $dept_kpi = calculateKPI($conn, $dept_user['id'], false);
 
             $name_display = $dept_user['nama_lngkp'];
-                if ($dept_user['id'] == $id_user) {
-                    $name_display .= ' (You)';
-                } elseif ($dept_user['id'] == $filter_user) {
-                    $name_display .= ' (Selected)';
-                }
+            
+            // Tambahkan nama departemen jika All Departments (untuk direktur)
+            if ($user_level >= 5 && empty($filter_departemen)) {
+                $name_display .= ' (' . $dept_user['departement'] . ')';
+            }
+            
+            if ($dept_user['id'] == $id_user) {
+                $name_display .= ' (You)';
+            } elseif ($dept_user['id'] == $filter_user) {
+                $name_display .= ' (Selected)';
+            }
 
-                $dept_comparison[] = [
-                    'id'    => $dept_user['id'],
-                    'name'  => $name_display,
-                    'score' => $dept_kpi['total_kpi']
-                ];
+            $dept_comparison[] = [
+                'id'    => $dept_user['id'],
+                'name'  => $name_display,
+                'score' => $dept_kpi['total_kpi']
+            ];
         }
 
+        // Sort berdasarkan skor tertinggi
         usort($dept_comparison, function ($a, $b) {
             return $b['score'] <=> $a['score'];
         });
@@ -778,7 +797,7 @@ if ($user_level >= 5) {
                     <!-- AKHIR FILTER SECTION -->
 
                     <!-- ==================== DEPARTMENT/TEAM COMPARISON ==================== -->
-                    <?php if (!empty($dept_comparison) && $user_level >= 2) { ?>  <!-- UBAH DARI >= 3 JADI >= 2 -->
+                    <?php if (!empty($dept_comparison) && $user_level >= 2) { ?>
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
@@ -812,8 +831,11 @@ if ($user_level >= 5) {
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="deptComparisonChart"></canvas>
+                                    <!-- Container dengan scroll -->
+                                    <div style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
+                                        <div class="chart-container" style="height: <?= max(300, count($dept_comparison) * 30) ?>px;">
+                                            <canvas id="deptComparisonChart"></canvas>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1952,14 +1974,14 @@ if ($user_level >= 5) {
                 datasets: [{
                     label: 'Real HOW',
                     data: <?= json_encode(array_column($kpi_real['kpi_details'], 'nilai_how')) ?>,
-                    backgroundColor: '#dc3545',
+                    backgroundColor: '#0d6efd',
                     borderRadius: 5,
                     borderWidth: 2,
                     borderColor: '#fff'
                 }, {
                     label: 'Simulasi HOW',
                     data: <?= json_encode(array_column($kpi_sim['kpi_details'], 'nilai_how')) ?>,
-                    backgroundColor: '#ffc107',
+                    backgroundColor: '#198754',
                     borderRadius: 5,
                     borderWidth: 2,
                     borderColor: '#fff'
@@ -2019,7 +2041,7 @@ if ($user_level >= 5) {
             } elseif ($score <= 110) {
                 return '#0d6efd'; // Biru untuk VERY GOOD
             } else {
-                return '#198754'; // Abu-abu untuk nilai di luar range
+                return '#198754'; // Hijau untuk EXCELLENT
             }
         }, $dept_comparison)) ?>;
 
@@ -2055,6 +2077,8 @@ if ($user_level >= 5) {
                                     status = 'GOOD';
                                 } else if (score <= 110) {
                                     status = 'VERY GOOD';
+                                } else {
+                                    status = 'EXCELLENT';
                                 }
                                 
                                 return 'Score: ' + score.toFixed(2) + ' (' + status + ')';
@@ -2069,11 +2093,15 @@ if ($user_level >= 5) {
                             display: true,
                             text: 'KPI Score'
                         }
+                    },
+                    y: {
+                        ticks: {
+                            autoSkip: false
+                        }
                     }
                 }
             }
         });
-        // grafikanggota
         <?php } ?>
 
         <?php if ($user_level >= 5 && !empty($dept_performance_analysis)) { ?>

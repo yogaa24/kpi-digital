@@ -240,7 +240,7 @@ if (!isset($_SESSION['id_user'])) {
             </script>";
             exit();
         }
-        // Cek ulang apakah sudah pernah archive
+        
         $odkgh = $busd[0]-1;
         
         if ($odkgh == 0) {
@@ -252,7 +252,6 @@ if (!isset($_SESSION['id_user'])) {
         
         $tgslk = str_pad($odkgh, 2, '0', STR_PAD_LEFT) . '/' . $tahunArchive;
         
-        // Validasi: cek apakah sudah ada archive untuk periode ini
         $cek_existing = mysqli_query($conn, "SELECT id_archive FROM tbar_archive WHERE bulan = '$tgslk' AND id_user = $id_user");
         
         if (mysqli_num_rows($cek_existing) > 0) {
@@ -262,6 +261,14 @@ if (!isset($_SESSION['id_user'])) {
             </script>";
             exit();
         }
+        
+        // ===== TAMBAHAN BARU: Hitung nilai KPI dengan SP sebelum archive =====
+        $kpi_result = getnilaiWithSPDisplay($conn, $id_user);
+        $nilai_asli = $kpi_result['nilai_asli'];
+        $nilai_akhir = $kpi_result['nilai_akhir'];
+        $sp_data = $kpi_result['sp_data'];
+        $pengurangan = $kpi_result['pengurangan'];
+        // ===== AKHIR TAMBAHAN =====
         
         $sqlksf = "INSERT INTO tbar_archive (bulan, id_user) VALUES ('$tgslk',$id_user)";
         $resuarc = mysqli_query($conn, $sqlksf);
@@ -280,7 +287,6 @@ if (!isset($_SESSION['id_user'])) {
             while($howPoin = mysqli_fetch_assoc($panggilHow)){
                 $addHow = mysqli_query($conn,"INSERT INTO tbar_hows (id_user,id_kpi,tipe_how,p_how,bobot,target_omset,hasil,nilai,total) VALUES ($id_user,$last_poin,'".$howPoin['tipe_how']."','".$howPoin['p_how']."','".$howPoin['bobot']."','".$howPoin['target_omset']."','".$howPoin['hasil']."','".$howPoin['nilai']."','".$howPoin['total']."')");
                 
-                // TAMBAHKAN KODE INI - Archive indikator hows
                 $last_how_id = mysqli_insert_id($conn);
                 $panggilIndikatorHow = mysqli_query($conn,"SELECT * FROM tb_indikator_hows WHERE id_how = ".$howPoin['id_how']." ORDER BY urutan");
                 while($indHow = mysqli_fetch_assoc($panggilIndikatorHow)){
@@ -292,7 +298,6 @@ if (!isset($_SESSION['id_user'])) {
             while($whatPoin = mysqli_fetch_assoc($panggilWhat)){
                 $addWhat = mysqli_query($conn,"INSERT INTO tbar_whats (id_user,id_kpi,tipe_what,p_what,bobot,target_omset,hasil,nilai,total) VALUES ($id_user,$last_poin,'".$whatPoin['tipe_what']."','".$whatPoin['p_what']."','".$whatPoin['bobot']."','".$whatPoin['target_omset']."','".$whatPoin['hasil']."','".$whatPoin['nilai']."','".$whatPoin['total']."')");
                 
-                // TAMBAHKAN KODE INI - Archive indikator whats
                 $last_what_id = mysqli_insert_id($conn);
                 $panggilIndikatorWhat = mysqli_query($conn,"SELECT * FROM tb_indikator_whats WHERE id_what = ".$whatPoin['id_what']." ORDER BY urutan");
                 while($indWhat = mysqli_fetch_assoc($panggilIndikatorWhat)){
@@ -305,6 +310,26 @@ if (!isset($_SESSION['id_user'])) {
         while($bobotPoin = mysqli_fetch_assoc($panggilbobot)){
             $addbobot = mysqli_query($conn,"INSERT INTO tbar_bobotkpi (id_user, id_arcv, bobotwhat, bobothow) values ($id_user,$idarcv, ".$bobotPoin['bobotwhat'].",".$bobotPoin['bobothow'].")");
         }
+        
+        // ===== TAMBAHAN BARU: Simpan data SP jika ada =====
+        if ($sp_data) {
+            $jenis_sp = mysqli_real_escape_string($conn, $sp_data['jenis_sp']);
+            $nomor_sp = mysqli_real_escape_string($conn, $sp_data['nomor_sp']);
+            $tanggal_sp = mysqli_real_escape_string($conn, $sp_data['tanggal_sp']);
+            $alasan = mysqli_real_escape_string($conn, $sp_data['alasan']);
+            $keterangan = mysqli_real_escape_string($conn, $sp_data['keterangan']);
+            $masa_berlaku_mulai = mysqli_real_escape_string($conn, $sp_data['masa_berlaku_mulai']);
+            $masa_berlaku_selesai = mysqli_real_escape_string($conn, $sp_data['masa_berlaku_selesai']);
+            $file_sp = mysqli_real_escape_string($conn, $sp_data['file_sp']);
+            
+            $insertSP = mysqli_query($conn, "INSERT INTO tbar_sp_archive 
+                (id_archive, id_user, jenis_sp, nomor_sp, tanggal_sp, alasan, keterangan, 
+                masa_berlaku_mulai, masa_berlaku_selesai, file_sp, nilai_asli, nilai_akhir, pengurangan) 
+                VALUES 
+                ($idarcv, $id_user, '$jenis_sp', '$nomor_sp', '$tanggal_sp', '$alasan', '$keterangan',
+                '$masa_berlaku_mulai', '$masa_berlaku_selesai', '$file_sp', $nilai_asli, $nilai_akhir, $pengurangan)");
+        }
+        // ===== AKHIR TAMBAHAN =====
     }
 
     // Handler untuk simulasi KPI
