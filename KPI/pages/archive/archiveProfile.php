@@ -1,3 +1,4 @@
+<!-- archiveprofile.php -->
 <div class="col-lg-4 connectedSortable">
     <div class="card mb-4">
         <div style="height: 50px; margin-top: -3px;" class="card-header bg-danger">
@@ -50,12 +51,8 @@
             <table class="table table-bordered table-sm mb-2">
                 <thead>
                     <tr>
-                        <th>
-                            <center>KPI BULAN : </center>
-                        </th>
-                        <th>
-                            <center><?= $bulannnn; ?></center>
-                        </th>
+                        <th><center>KPI BULAN : </center></th>
+                        <th><center><?= $bulannnn; ?></center></th>
                     </tr>
                 </thead>
             </table>
@@ -68,47 +65,59 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <th>
-                            <center>NILAI KPI</center>
-                        </th>
-                        <th>
-                            <center><?= round($zboth + $zbotw,2) ?></center>
-                        </th>
+                    <?php if ($sp_archive_data) { ?>
+                        <tr>
+                            <th><center>NILAI ASLI (Sebelum SP)</center></th>
+                            <td><center><del><?= number_format($nilai_asli, 2); ?></del></center></td>
+                        </tr>
+                        <tr class="table-warning">
+                            <th><center>PENGURANGAN SP (<?= $sp_archive_data['jenis_sp']; ?>)</center></th>
+                            <td class="text-danger">
+                                <center><strong>- <?= $pengurangan; ?></strong></center>
+                            </td>
+                        </tr>
+                    <?php } ?>
+                    <tr class="table-primary">
+                        <th><center>NILAI KPI AKHIR</center></th>
+                        <th><center><?= number_format($nilai_akhir, 2) ?></center></th>
                     </tr>
                     <tr>
                         <?php
-                        $nilair = $zboth + $zbotw;
-                        $wrabs;
-                        if ($nilair < 90) {
+                        $wrabs = 'red';
+                        $rating = 'POOR';
+                        if ($nilai_akhir < 90) {
                             $wrabs = "red";
-                        } elseif ($nilair <= 100) {
+                            $rating = "POOR";
+                        } elseif ($nilai_akhir <= 100) {
                             $wrabs = "orange";
-                        } elseif ($nilair <= 110) {
+                            $rating = "GOOD";
+                        } elseif ($nilai_akhir <= 110) {
                             $wrabs = "green";
-                        } else { // $nilai > 110
+                            $rating = "VERY GOOD";
+                        } else {
                             $wrabs = "blue";
-                        } ?>
+                            $rating = "EXCELLENT";
+                        }
+                        ?>
                         <td colspan="2" style="font-size: 25pt; color:<?= $wrabs ?>" class="fw-bolder">
-                            <?php
-                            function getRating($nilair)
-                            {
-                                if ($nilair < 90) {
-                                    return "POOR";
-                                } elseif ($nilair <= 100) {
-                                    return "GOOD";
-                                } elseif ($nilair <= 110) {
-                                    return "VERY GOOD";
-                                } else { // $nilai > 110
-                                    return "EXCELLENT";
-                                }
-                            }
-                            ?>
-                            <center><?php echo getRating($nilair); ?></center>
+                            <center><?= $rating; ?></center>
                         </td>
                     </tr>
                 </tbody>
             </table>
+            
+            <?php if ($sp_archive_data) { ?>
+                <div class="alert alert-info mb-0 mt-3">
+                    <small>
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Catatan SP Archive:</strong><br>
+                        Nomor SP: <?= $sp_archive_data['nomor_sp'] ?><br>
+                        Tanggal: <?= formatTanggalIndo($sp_archive_data['tanggal_sp']) ?><br>
+                        Masa Berlaku: <?= formatTanggalIndo($sp_archive_data['masa_berlaku_mulai']) ?> s/d 
+                        <?= formatTanggalIndo($sp_archive_data['masa_berlaku_selesai']) ?>
+                    </small>
+                </div>
+            <?php } ?>
         </div>
     </div>
 </div>
