@@ -1,254 +1,90 @@
-<!DOCTYPE html>
 <?php
 session_start();
 if (!isset($_SESSION['id_user'])) {
     header("Location: index");
     exit();
-} else {
-    require 'helper/config.php';
-    require 'helper/getUser.php';
-    require 'helper/checkAdmin.php';
+}
 
-    // Hanya Admin HRD yang bisa akses
-    requireAdminHRD();
+require 'helper/config.php';
+require 'helper/getUser.php';
+
+// Cek level Admin HRD
+$sql_check = "SELECT level FROM tb_auth WHERE id_user = '$id_user'";
+$result_check = mysqli_query($conn, $sql_check);
+$user_data = mysqli_fetch_assoc($result_check);
+
+if ($user_data['level'] != 6) {
+    header("Location: dashboard");
+    exit();
+}
+
+// Fungsi untuk menghitung nilai rata-rata skill standard
+function getss($conn, $id)
+{
+    $row3sd = 0;
+    $totil = 0;
+    $sqler = "SELECT * FROM tb_ss WHERE id_user=$id";
+    $tewg = mysqli_query($conn, $sqler);
     
-    // ========== HANDLER UNTUK SKILL STANDARD ==========
-    
-    // MENJADI (BENAR):
-    if (isset($_POST['tambah_skill'])) {
-        $id_user_skill = intval($_POST['id_user']);
-        $nama_skill = mysqli_real_escape_string($conn, $_POST['nama_skill']);
-        $kategori = mysqli_real_escape_string($conn, $_POST['kategori']);
-        $created_by = $_SESSION['id_user'];
-        
-        // 1. Cek apakah kategori sudah ada untuk user ini
-        $check_kategori = "SELECT id_poinss FROM tb_ss WHERE id_user = ? AND poin_ss = ?";
-        $stmt_check = mysqli_prepare($conn, $check_kategori);
-        mysqli_stmt_bind_param($stmt_check, "is", $id_user_skill, $kategori);
-        mysqli_stmt_execute($stmt_check);
-        $result_check = mysqli_stmt_get_result($stmt_check);
-        
-        if (mysqli_num_rows($result_check) > 0) {
-            // Kategori sudah ada, ambil id-nya
-            $row = mysqli_fetch_assoc($result_check);
-            $id_ss = $row['id_poinss'];
-        } else {
-            // Kategori belum ada, buat baru
-            $insert_kategori = "INSERT INTO tb_ss (id_user, poin_ss) VALUES (?, ?)";
-            $stmt_kategori = mysqli_prepare($conn, $insert_kategori);
-            mysqli_stmt_bind_param($stmt_kategori, "is", $id_user_skill, $kategori);
-            mysqli_stmt_execute($stmt_kategori);
-            $id_ss = mysqli_insert_id($conn);
-        }
-        
-        // 2. Insert skill ke tb_sspoin
-        $nilai1 = mysqli_real_escape_string($conn, $_POST['indikator_1'] ?? '');
-        $nilai2 = mysqli_real_escape_string($conn, $_POST['indikator_2'] ?? '');
-        $nilai3 = mysqli_real_escape_string($conn, $_POST['indikator_3'] ?? '');
-        $nilai4 = mysqli_real_escape_string($conn, $_POST['indikator_4'] ?? '');
-        $deskripsi = mysqli_real_escape_string($conn, $_POST['deskripsi'] ?? '');
-        $nilai = floatval($_POST['level'] ?? 0); // Ubah dari text level ke numeric
-        
-        $sql = "INSERT INTO tb_sspoin (id_user, id_ss, poinss, nilai1, nilai2, nilai3, nilai4, nilaiss, deskripsi) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
-        $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "iisssssds", 
-            $id_user_skill, $id_ss, $nama_skill, 
-            $nilai1, $nilai2, $nilai3, $nilai4, $nilai, $deskripsi);
-        
-        if (mysqli_stmt_execute($stmt)) {
-            echo "<script>alert('Skill Standard berhasil ditambahkan!'); window.location.href='skill-standard-adminhrd';</script>";
-        } else {
-            echo "<script>alert('Gagal menambahkan Skill Standard: " . mysqli_error($conn) . "');</script>";
+    while ($hasil = mysqli_fetch_assoc($tewg)) {
+        $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_sspoin WHERE id_user=$id AND id_ss=" . $hasil['id_poinss'];
+        $sggh = mysqli_query($conn, $fiub);
+        while ($hasilsd = mysqli_fetch_assoc($sggh)) {
+            if ($hasilsd['total'] != 0 && $hasilsd['totil'] != 0) {
+                $row3cf = $hasilsd['total'] / $hasilsd['totil'];
+                $row3sd += $row3cf;
+                $totil++;
+            }
         }
     }
     
-    // Handler untuk edit skill standard
-    // MENJADI (BENAR):
-if (isset($_POST['edit_skill'])) {
-    $id_skill = intval($_POST['id_skill']);
-    $nama_skill = mysqli_real_escape_string($conn, $_POST['nama_skill']);
-    $nilai1 = mysqli_real_escape_string($conn, $_POST['indikator_1'] ?? '');
-    $nilai2 = mysqli_real_escape_string($conn, $_POST['indikator_2'] ?? '');
-    $nilai3 = mysqli_real_escape_string($conn, $_POST['indikator_3'] ?? '');
-    $nilai4 = mysqli_real_escape_string($conn, $_POST['indikator_4'] ?? '');
-    $deskripsi = mysqli_real_escape_string($conn, $_POST['deskripsi'] ?? '');
-    $nilai = floatval($_POST['level'] ?? 0);
-    
-    $sql = "UPDATE tb_sspoin 
-            SET poinss = ?, nilai1 = ?, nilai2 = ?, nilai3 = ?, nilai4 = ?, nilaiss = ?, deskripsi = ? 
-            WHERE id_sspoin = ?";
-    
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "sssssdi", 
-        $nama_skill, $nilai1, $nilai2, $nilai3, $nilai4, $nilai, $deskripsi, $id_skill);
-    
-    if (mysqli_stmt_execute($stmt)) {
-        echo "<script>alert('Skill Standard berhasil diupdate!'); window.location.href='skill-standard-adminhrd';</script>";
-    } else {
-        echo "<script>alert('Gagal mengupdate Skill Standard!');</script>";
+    if ($totil == 0) {
+        return "0.00";
     }
-}
     
-    // DARI (SALAH):
-if (isset($_POST['hapus_skill'])) {
-    $id_skill = intval($_POST['id_skill']);
-    $sql = "DELETE FROM tb_skill_standard WHERE id_skill = ?";
+    return number_format($row3sd / $totil, 2);
 }
 
-// MENJADI (BENAR):
-if (isset($_POST['hapus_skill'])) {
-    $id_skill = intval($_POST['id_skill']);
-    $sql = "DELETE FROM tb_sspoin WHERE id_sspoin = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $id_skill);
-    
-    if (mysqli_stmt_execute($stmt)) {
-        echo "<script>alert('Skill Standard berhasil dihapus!'); window.location.href='skill-standard-adminhrd';</script>";
-    } else {
-        echo "<script>alert('Gagal menghapus Skill Standard!');</script>";
-    }
-}
-    
-    // Ambil data semua karyawan untuk dropdown
-    $sql_users = "SELECT u.id, u.nama_lngkp, u.jabatan, u.divisi 
-                  FROM tb_users u
-                  INNER JOIN tb_auth a ON u.id = a.id_user
-                  WHERE u.jabatan != 'Admin HRD'
-                  ORDER BY u.nama_lngkp ASC";
-    $result_users = mysqli_query($conn, $sql_users);
-    
-    // MENJADI (BENAR - sesuai struktur database):
-$sql_skills = "SELECT 
-                sp.id_sspoin,
-                sp.id_user,
-                sp.poinss as nama_skill,
-                ss.poin_ss as kategori,
-                sp.nilaiss as level,
-                sp.deskripsi,
-                sp.nilai1,
-                sp.nilai2,
-                sp.nilai3,
-                sp.nilai4,
-                u.nama_lngkp,
-                u.jabatan,
-                u.divisi,
-                creator.nama_lngkp as created_by_name
-                FROM tb_sspoin sp
-                INNER JOIN tb_ss ss ON sp.id_ss = ss.id_poinss
-                INNER JOIN tb_users u ON sp.id_user = u.id
-                LEFT JOIN tb_users creator ON ss.id_user = creator.id
-                ORDER BY sp.id_sspoin DESC";
-    $result_skills = mysqli_query($conn, $sql_skills);
-    
-    // MENJADI (BENAR):
-$sql_stats = "SELECT 
-                COUNT(*) as total_skills,
-                COUNT(DISTINCT id_user) as total_karyawan_with_skills,
-                SUM(CASE WHEN nilaiss >= 3.5 THEN 1 ELSE 0 END) as total_expert,
-                SUM(CASE WHEN nilaiss >= 2.5 AND nilaiss < 3.5 THEN 1 ELSE 0 END) as total_advanced,
-                SUM(CASE WHEN nilaiss >= 1.5 AND nilaiss < 2.5 THEN 1 ELSE 0 END) as total_intermediate,
-                SUM(CASE WHEN nilaiss > 0 AND nilaiss < 1.5 THEN 1 ELSE 0 END) as total_beginner
-                FROM tb_sspoin";
-    $result_stats = mysqli_query($conn, $sql_stats);
-    $stats = mysqli_fetch_assoc($result_stats);
-}
+// Ambil semua data user yang memiliki skill standard
+$sql_users = "SELECT DISTINCT u.id, u.username, u.nama_lngkp, u.nik, u.bagian, u.departement, u.jabatan,
+              (SELECT COUNT(*) FROM tb_ss WHERE id_user = u.id) as total_ss
+              FROM tb_users u
+              INNER JOIN tb_ss s ON u.id = s.id_user
+              WHERE u.id != '$id_user'
+              ORDER BY u.nama_lngkp ASC";
+$result_users = mysqli_query($conn, $sql_users);
+
+// Ambil data untuk filter dropdown
+$sql_jabatan = "SELECT DISTINCT jabatan FROM tb_users WHERE jabatan IS NOT NULL AND jabatan != '' ORDER BY jabatan";
+$result_jabatan = mysqli_query($conn, $sql_jabatan);
+
+$sql_departemen = "SELECT DISTINCT departement FROM tb_users WHERE departement IS NOT NULL AND departement != '' ORDER BY departement";
+$result_departemen = mysqli_query($conn, $sql_departemen);
+
+$sql_bagian = "SELECT DISTINCT bagian FROM tb_users WHERE bagian IS NOT NULL AND bagian != '' ORDER BY bagian";
+$result_bagian = mysqli_query($conn, $sql_bagian);
 ?>
 
+<!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Skill Standard - Admin HRD</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/source-sans-3@5.0.12/index.css"
-        integrity="sha256-tXJfXfp6Ewt1ilPzLDtQnJV4hclT9XuaZUKyUvmyr+Q=" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.3.0/styles/overlayscrollbars.min.css"
-        integrity="sha256-dSokZseQNT08wYEWiz5iLI8QPlKxG+TswNRD8k35cpg=" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.min.css"
-        integrity="sha256-Qsx5lrStHZyR9REqhUF8iQt73X06c8LGIUPzpOhwRrI=" crossorigin="anonymous">
-    <link rel="stylesheet" href="assets/css/adminlte.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
-        integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
-    <link rel="stylesheet" type="text/css" href="assets/css/datatables/datatables.min.css" />
+<?php include("pages/part/p_header.php"); ?>
+<style>
+    .sp-indicator {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 8px;
+        height: 8px;
+        background: #dc3545;
+        border-radius: 50%;
+    }
     
-    <style>
-        .header-skill {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
-        }
-        
-        .stat-card {
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            border: none;
-            background: white;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
-        }
-        
-        .badge-level {
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-        
-        .level-expert {
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-            color: white;
-        }
-        
-        .level-advanced {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
-        }
-        
-        .level-intermediate {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-        }
-        
-        .level-beginner {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-        }
-        
-        .badge-kategori {
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        
-        .table-hover tbody tr:hover {
-            background-color: #f8fafc;
-            transform: scale(1.01);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: all 0.2s ease;
-        }
-        
-        .btn-action {
-            padding: 6px 12px;
-            margin: 0 2px;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-action:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-    </style>
-</head>
+    .nilai-badge {
+        font-size: 0.95rem;
+        font-weight: 600;
+        padding: 0.4rem 0.8rem;
+    }
+</style>
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
     <div class="app-wrapper">
@@ -260,86 +96,27 @@ $sql_stats = "SELECT
                 <div class="container-fluid">
                     
                     <!-- Header -->
-                    <div class="header-skill mt-4">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <h3 class="mb-2 fw-bold">
-                                    <i class="bi bi-award-fill me-2"></i>Skill Standard Karyawan
-                                </h3>
-                                <p class="mb-0 opacity-90">Kelola dan Monitor Standar Kompetensi Seluruh Karyawan</p>
-                            </div>
-                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                <button class="btn btn-light btn-lg shadow" data-toggle="modal" data-target="#modalTambahSkill">
-                                    <i class="bi bi-plus-circle me-2"></i>Tambah Skill
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Statistics Cards -->
-                    <div class="row mb-4">
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card stat-card shadow-sm border-0">
+                    <div class="row mb-3 mt-3">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
                                 <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                                         <div>
-                                            <h6 class="text-muted mb-1 small">Total Skills</h6>
-                                            <h3 class="fw-bold mb-0 text-primary"><?= $stats['total_skills'] ?></h3>
-                                            <small class="text-muted">Skill tercatat</small>
+                                            <h4 class="fw-bold mb-0">
+                                                <i class="bi bi-award-fill text-primary me-2"></i>
+                                                Data Skill Standard - Semua Karyawan
+                                            </h4>
+                                            <p class="text-muted mb-0 small mt-2">
+                                                Pilih karyawan untuk melihat detail skill standard mereka
+                                            </p>
                                         </div>
-                                        <div class="text-primary" style="opacity: 0.8;">
-                                            <i class="bi bi-clipboard-check-fill" style="font-size: 2.5rem;"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card stat-card shadow-sm border-0">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1 small">Expert Level</h6>
-                                            <h3 class="fw-bold mb-0 text-danger"><?= $stats['total_expert'] ?></h3>
-                                            <small class="text-muted">Tingkat ahli</small>
-                                        </div>
-                                        <div class="text-danger" style="opacity: 0.8;">
-                                            <i class="bi bi-trophy-fill" style="font-size: 2.5rem;"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card stat-card shadow-sm border-0">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="text-muted mb-1 small">Advanced Level</h6>
-                                            <h3 class="fw-bold mb-0 text-warning"><?= $stats['total_advanced'] ?></h3>
-                                            <small class="text-muted">Tingkat lanjut</small>
-                                        </div>
-                                        <div class="text-warning" style="opacity: 0.8;">
-                                            <i class="bi bi-star-fill" style="font-size: 2.5rem;"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card stat-card shadow-sm border-0">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="text-muted mb-1 small">Karyawan</h6>
-                                            <h3 class="fw-bold mb-0 text-success"><?= $stats['total_karyawan_with_skills'] ?></h3>
-                                            <small class="text-muted">Memiliki skill</small>
-                                        </div>
-                                        <div class="text-success" style="opacity: 0.8;">
-                                            <i class="bi bi-people-fill" style="font-size: 2.5rem;"></i>
+                                            <a href="dashboard-adminhrd"
+                                            class="btn btn-light btn-sm shadow-sm">
+                                                <i class="bi bi-arrow-left me-1"></i>
+                                                Kembali ke Dashboard
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -347,123 +124,177 @@ $sql_stats = "SELECT
                         </div>
                     </div>
 
-                    <!-- Table Data Skill Standard -->
+                    <!-- Filter Section -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="row g-3 align-items-end">
+                                        <!-- Filter Jabatan -->
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold">
+                                                <i class="bi bi-award me-1"></i>Jabatan
+                                            </label>
+                                            <select id="filterJabatan" class="form-select form-select-sm">
+                                                <option value="">-- Semua Jabatan --</option>
+                                                <?php 
+                                                mysqli_data_seek($result_jabatan, 0);
+                                                while ($jab = mysqli_fetch_assoc($result_jabatan)) { ?>
+                                                    <option value="<?= $jab['jabatan'] ?>">
+                                                        <?= $jab['jabatan'] ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+
+                                        <!-- Filter Departemen -->
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold">
+                                                <i class="bi bi-building me-1"></i>Departemen
+                                            </label>
+                                            <select id="filterDepartemen" class="form-select form-select-sm">
+                                                <option value="">-- Semua Departemen --</option>
+                                                <?php 
+                                                mysqli_data_seek($result_departemen, 0);
+                                                while ($dept = mysqli_fetch_assoc($result_departemen)) { ?>
+                                                    <option value="<?= $dept['departement'] ?>">
+                                                        <?= $dept['departement'] ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+
+                                        <!-- Filter Bagian -->
+                                        <div class="col-md-3">
+                                            <label class="form-label small fw-bold">
+                                                <i class="bi bi-diagram-3 me-1"></i>Bagian
+                                            </label>
+                                            <select id="filterBagian" class="form-select form-select-sm">
+                                                <option value="">-- Semua Bagian --</option>
+                                                <?php 
+                                                mysqli_data_seek($result_bagian, 0);
+                                                while ($bag = mysqli_fetch_assoc($result_bagian)) { ?>
+                                                    <option value="<?= $bag['bagian'] ?>">
+                                                        <?= $bag['bagian'] ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+
+                                        <!-- Tombol Reset -->
+                                        <div class="col-md-3">
+                                            <button id="resetFilter" class="btn btn-secondary btn-sm w-100">
+                                                <i class="bi bi-arrow-clockwise me-1"></i>Reset Filter
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Table -->
                     <div class="row">
                         <div class="col-12">
-                            <div class="card shadow-sm border-0" style="border-radius: 12px;">
-                                <div class="card-header bg-white border-0 pt-4">
-                                    <h5 class="fw-bold mb-0">
-                                        <i class="bi bi-table me-2 text-primary"></i>Data Skill Standard
-                                    </h5>
-                                </div>
+                            <div class="card shadow-sm border-0">
                                 <div class="card-body">
                                     <div class="table-responsive">
-                                        <table id="tableSkill" class="table table-hover table-striped">
-                                            <thead class="table-primary">
+                                        <table id="datatablenya" class="table table-hover table-bordered">
+                                            <thead class="table-dark">
                                                 <tr>
-                                                    <th class="text-center" width="5%">No</th>
-                                                    <th width="15%">Nama Karyawan</th>
-                                                    <th width="12%">Jabatan</th>
-                                                    <th width="12%">Divisi</th>
-                                                    <th width="15%">Nama Skill</th>
-                                                    <th width="10%">Kategori</th>
-                                                    <th class="text-center" width="8%">Level</th>
-                                                    <th width="12%">Tanggal Penilaian</th>
-                                                    <th class="text-center" width="11%">Aksi</th>
+                                                    <th width="3%"><center>No</center></th>
+                                                    <th><center>Nama Lengkap</center></th>
+                                                    <th width="12%"><center>NIK</center></th>
+                                                    <th width="15%"><center>Jabatan</center></th>
+                                                    <th width="15%"><center>Departemen</center></th>
+                                                    <th width="15%"><center>Bagian</center></th>
+                                                    <th width="10%"><center>Nilai Rata-rata</center></th>
+                                                    <th width="10%"><center>Total SS</center></th>
+                                                    <th width="8%"><center>Aksi</center></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php 
+                                            <?php 
                                                 $no = 1;
-                                                while($row = mysqli_fetch_assoc($result_skills)): 
-                                                    // Tentukan class level
-                                                    $level_class = '';
-                                                    switch($row['level']) {
-                                                        case 'Expert':
-                                                            $level_class = 'level-expert';
-                                                            break;
-                                                        case 'Advanced':
-                                                            $level_class = 'level-advanced';
-                                                            break;
-                                                        case 'Intermediate':
-                                                            $level_class = 'level-intermediate';
-                                                            break;
-                                                        case 'Beginner':
-                                                            $level_class = 'level-beginner';
-                                                            break;
+                                                while ($user = mysqli_fetch_assoc($result_users)) { 
+                                                    // Tentukan badge color berdasarkan jabatan
+                                                    $badge_color = 'secondary';
+                                                    $badge_icon = 'person-fill';
+                                                    
+                                                    if ($user['jabatan'] == 'Kadep') {
+                                                        $badge_color = 'danger';
+                                                        $badge_icon = 'award-fill';
+                                                    } elseif ($user['jabatan'] == 'Manager') {
+                                                        $badge_color = 'warning';
+                                                        $badge_icon = 'star-fill';
+                                                    } elseif ($user['jabatan'] == 'Koordinator') {
+                                                        $badge_color = 'info';
+                                                        $badge_icon  = 'people-fill';
+                                                    } elseif ($user['jabatan'] == 'Karyawan') {
+                                                        $badge_color = 'success';
+                                                        $badge_icon = 'person-check-fill';
                                                     }
                                                     
-                                                    // Warna kategori
-                                                    $kategori_colors = [
-                                                        'Technical' => 'bg-primary text-white',
-                                                        'Soft Skill' => 'bg-success text-white',
-                                                        'Leadership' => 'bg-danger text-white',
-                                                        'Management' => 'bg-warning text-dark',
-                                                        'Communication' => 'bg-info text-white',
-                                                        'Others' => 'bg-secondary text-white'
-                                                    ];
-                                                    $kategori_class = $kategori_colors[$row['kategori']] ?? 'bg-secondary text-white';
+                                                    // Hitung nilai rata-rata
+                                                    $nilai_avg = getss($conn, $user['id']);
+                                                    
+                                                    // Tentukan warna badge nilai berdasarkan nilai
+                                                    $nilai_color = 'secondary';
+                                                    if ($nilai_avg >= 4.0) {
+                                                        $nilai_color = 'success';
+                                                    } elseif ($nilai_avg >= 3.0) {
+                                                        $nilai_color = 'info';
+                                                    } elseif ($nilai_avg >= 2.0) {
+                                                        $nilai_color = 'warning';
+                                                    } elseif ($nilai_avg > 0) {
+                                                        $nilai_color = 'danger';
+                                                    }
                                                 ?>
                                                 <tr>
-                                                    <td class="text-center"><?= $no++ ?></td>
-                                                    <td>
-                                                        <strong><?= htmlspecialchars($row['nama_lngkp']) ?></strong>
+                                                    <td><center><?= $no++ ?></center></td>
+                                                    <td style="padding-left: 15px;">
+                                                        <strong><?= $user['nama_lngkp'] ?></strong>
+                                                        <br>
+                                                        <small class="text-muted">@<?= $user['username'] ?></small>
                                                     </td>
-                                                    <td><?= htmlspecialchars($row['jabatan']) ?></td>
-                                                    <td><?= htmlspecialchars($row['divisi']) ?></td>
+                                                    <td><center><?= $user['nik'] ?></center></td>
                                                     <td>
-                                                        <strong class="text-primary"><?= htmlspecialchars($row['nama_skill']) ?></strong>
+                                                        <center>
+                                                            <span class="badge bg-<?= $badge_color ?>">
+                                                                <i class="bi bi-<?= $badge_icon ?> me-1"></i>
+                                                                <?= $user['jabatan'] ?>
+                                                            </span>
+                                                        </center>
+                                                    </td>
+                                                    <td><center><?= $user['departement'] ?></center></td>
+                                                    <td><center><?= $user['bagian'] ?></center></td>
+                                                    <td>
+                                                        <center>
+                                                            <span class="badge bg-<?= $nilai_color ?> nilai-badge">
+                                                                <i class="bi bi-graph-up me-1"></i>
+                                                                <?= $nilai_avg ?>
+                                                            </span>
+                                                        </center>
                                                     </td>
                                                     <td>
-                                                        <span class="badge badge-kategori <?= $kategori_class ?>">
-                                                            <?= htmlspecialchars($row['kategori']) ?>
-                                                        </span>
+                                                        <center>
+                                                            <span class="badge bg-primary">
+                                                                <i class="bi bi-list-check me-1"></i>
+                                                                <?= $user['total_ss'] ?> SS
+                                                            </span>
+                                                        </center>
                                                     </td>
-                                                    // MENJADI (display nilai numeric):
-<td class="text-center">
-    <?php 
-    $nilai = floatval($row['level']);
-    if ($nilai >= 3.5) {
-        $level_class = 'level-expert';
-        $level_text = 'Expert (' . number_format($nilai, 2) . ')';
-    } elseif ($nilai >= 2.5) {
-        $level_class = 'level-advanced';
-        $level_text = 'Advanced (' . number_format($nilai, 2) . ')';
-    } elseif ($nilai >= 1.5) {
-        $level_class = 'level-intermediate';
-        $level_text = 'Intermediate (' . number_format($nilai, 2) . ')';
-    } elseif ($nilai > 0) {
-        $level_class = 'level-beginner';
-        $level_text = 'Beginner (' . number_format($nilai, 2) . ')';
-    } else {
-        $level_class = 'bg-secondary text-white';
-        $level_text = 'Belum Dinilai';
-    }
-    ?>
-    <span class="badge badge-level <?= $level_class ?>">
-        <?= $level_text ?>
-    </span>
-</td>
-                                                    <td><?= date('d/m/Y', strtotime($row['tanggal_penilaian'])) ?></td>
-                                                    <td class="text-center">
-                                                        <button class="btn btn-sm btn-info btn-action" 
-                                                                onclick="viewDetail(<?= htmlspecialchars(json_encode($row)) ?>)"
-                                                                title="Detail">
-                                                            <i class="bi bi-eye-fill"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-warning btn-action" 
-                                                                onclick="editSkill(<?= htmlspecialchars(json_encode($row)) ?>)"
-                                                                title="Edit">
-                                                            <i class="bi bi-pencil-fill"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-danger btn-action" 
-                                                                onclick="hapusSkill(<?= $row['id_skill'] ?>, '<?= htmlspecialchars($row['nama_skill']) ?>')"
-                                                                title="Hapus">
-                                                            <i class="bi bi-trash-fill"></i>
-                                                        </button>
+                                                    <td>
+                                                        <center>
+                                                            <a href="ssanggotadetail?id=<?= $user['id'] ?>" 
+                                                               class="btn btn-sm btn-success"
+                                                               title="Lihat Detail SS">
+                                                                <i class="bi bi-eye"></i> Lihat
+                                                            </a>
+                                                        </center>
                                                     </td>
                                                 </tr>
-                                                <?php endwhile; ?>
+                                                <?php } ?>
                                             </tbody>
                                         </table>
                                     </div>
@@ -475,254 +306,69 @@ $sql_stats = "SELECT
                 </div>
             </div>
         </main>
-        
-        <?php include("pages/part/p_footeradminhrd.php"); ?>
+
+        <?php include("pages/part/p_footer.php"); ?>
     </div>
 
-    <!-- Modal Tambah Skill -->
-    <div class="modal fade" id="modalTambahSkill" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">
-                        <i class="bi bi-plus-circle me-2"></i>Tambah Skill Standard
-                    </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="fw-bold">Nama Karyawan <span class="text-danger">*</span></label>
-                                    <select name="id_user" class="form-control" required>
-                                        <option value="">-- Pilih Karyawan --</option>
-                                        <?php 
-                                        mysqli_data_seek($result_users, 0);
-                                        while($user = mysqli_fetch_assoc($result_users)): 
-                                        ?>
-                                        <option value="<?= $user['id'] ?>">
-                                            <?= htmlspecialchars($user['nama_lngkp']) ?> - <?= htmlspecialchars($user['jabatan']) ?>
-                                        </option>
-                                        <?php endwhile; ?>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="fw-bold">Nama Skill <span class="text-danger">*</span></label>
-                                    <input type="text" name="nama_skill" class="form-control" 
-                                           placeholder="Contoh: Microsoft Excel, Leadership" required>
-                                </div>
-                            </div>
-                        </div>
+<!-- jQuery harus dimuat pertama -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="fw-bold">Kategori <span class="text-danger">*</span></label>
-                                    <select name="kategori" class="form-control" required>
-                                        <option value="">-- Pilih Kategori --</option>
-                                        <option value="Technical">Technical</option>
-                                        <option value="Soft Skill">Soft Skill</option>
-                                        <option value="Leadership">Leadership</option>
-                                        <option value="Management">Management</option>
-                                        <option value="Communication">Communication</option>
-                                        <option value="Others">Others</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="fw-bold">Level <span class="text-danger">*</span></label>
-                                    <input type="number" name="level" class="form-control" 
-       min="0" max="4" step="0.1"
-       placeholder="Masukkan nilai 0-4" required>
-<small class="text-muted">0-1.5: Beginner | 1.5-2.5: Intermediate | 2.5-3.5: Advanced | 3.5-4: Expert</small>
-                                </div>
-                            </div>
-                        </div>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-                        <div class="form-group">
-                            <label class="fw-bold">Tanggal Penilaian <span class="text-danger">*</span></label>
-                            <input type="date" name="tanggal_penilaian" class="form-control" 
-                                   value="<?= date('Y-m-d') ?>" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="fw-bold">Deskripsi</label>
-                            <textarea name="deskripsi" class="form-control" rows="3" 
-                                      placeholder="Deskripsi kemampuan atau catatan penilaian"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                            <i class="bi bi-x-circle me-2"></i>Batal
-                        </button>
-                        <button type="submit" name="edit_skill" class="btn btn-warning">
-                            <i class="bi bi-save me-2"></i>Update
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Detail Skill -->
-    <div class="modal fade" id="modalDetailSkill" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title">
-                        <i class="bi bi-eye-fill me-2"></i>Detail Skill Standard
-                    </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small mb-1">Nama Karyawan</label>
-                            <h6 class="fw-bold" id="detail_nama_karyawan"></h6>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small mb-1">Jabatan</label>
-                            <h6 id="detail_jabatan"></h6>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small mb-1">Divisi</label>
-                            <h6 id="detail_divisi"></h6>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small mb-1">Nama Skill</label>
-                            <h5 class="fw-bold text-primary" id="detail_nama_skill"></h5>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small mb-1">Kategori</label>
-                            <h6><span id="detail_kategori_badge"></span></h6>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="text-muted small mb-1">Level</label>
-                            <h6><span id="detail_level_badge"></span></h6>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small mb-1">Tanggal Penilaian</label>
-                            <h6 id="detail_tanggal"></h6>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small mb-1">Dinilai Oleh</label>
-                            <h6 id="detail_created_by"></h6>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="text-muted small mb-1">Deskripsi</label>
-                        <div class="p-3 bg-light rounded">
-                            <p id="detail_deskripsi" class="mb-0"></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Form Hidden untuk Hapus -->
-    <form id="formHapusSkill" method="POST" style="display:none;">
-        <input type="hidden" name="id_skill" id="hapus_id_skill">
-        <input type="hidden" name="hapus_skill" value="1">
-    </form>
-    
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/datatables/datatables.min.js"></script>
-    
-    <script>
-        $(document).ready(function() {
-            // Initialize DataTable
-            $('#tableSkill').DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Indonesian.json"
+<script>
+    $(document).ready(function() {
+        // Initialize DataTable
+        var table = $('#datatablenya').DataTable({
+            "responsive": true,
+            "language": {
+                "search": "Cari:",
+                "lengthMenu": "Tampilkan _MENU_ data per halaman",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 data",
+                "infoFiltered": "(difilter dari _MAX_ total data)",
+                "paginate": {
+                    "first": "Pertama",
+                    "last": "Terakhir",
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
                 },
-                "pageLength": 25,
-                "order": [[7, "desc"]],
-                "columnDefs": [
-                    { "orderable": false, "targets": [8] }
-                ]
-            });
+                "zeroRecords": "Data tidak ditemukan"
+            },
+            "pageLength": 10,
+            "order": [[1, 'asc']], // Urutkan berdasarkan nama
+            "columnDefs": [
+                { "orderable": false, "targets": [0, 8] } // No dan Aksi tidak bisa diurutkan
+            ]
         });
-
-        function editSkill(data) {
-            $('#edit_id_skill').val(data.id_skill);
-            $('#edit_nama_karyawan').val(data.nama_lngkp + ' - ' + data.jabatan);
-            $('#edit_nama_skill').val(data.nama_skill);
-            $('#edit_kategori').val(data.kategori);
-            $('#edit_level').val(data.level);
-            $('#edit_tanggal').val(data.tanggal_penilaian);
-            $('#edit_deskripsi').val(data.deskripsi);
-            $('#modalEditSkill').modal('show');
-        }
-
-        function viewDetail(data) {
-            $('#detail_nama_karyawan').text(data.nama_lngkp);
-            $('#detail_jabatan').text(data.jabatan);
-            $('#detail_divisi').text(data.divisi);
-            $('#detail_nama_skill').text(data.nama_skill);
-            $('#detail_tanggal').text(formatDate(data.tanggal_penilaian));
-            $('#detail_created_by').text(data.created_by_name || 'System');
-            $('#detail_deskripsi').text(data.deskripsi || 'Tidak ada deskripsi');
-
-            // Kategori badge
-            const kategoriColors = {
-                'Technical': 'bg-primary text-white',
-                'Soft Skill': 'bg-success text-white',
-                'Leadership': 'bg-danger text-white',
-                'Management': 'bg-warning text-dark',
-                'Communication': 'bg-info text-white',
-                'Others': 'bg-secondary text-white'
-            };
-            const kategoriClass = kategoriColors[data.kategori] || 'bg-secondary text-white';
-            $('#detail_kategori_badge').html('<span class="badge badge-kategori ' + kategoriClass + '">' + data.kategori + '</span>');
-
-            // Level badge
-            const levelClass = {
-                'Expert': 'level-expert',
-                'Advanced': 'level-advanced',
-                'Intermediate': 'level-intermediate',
-                'Beginner': 'level-beginner'
-            }[data.level] || 'level-beginner';
-            $('#detail_level_badge').html('<span class="badge badge-level ' + levelClass + '">' + data.level + '</span>');
-
-            $('#modalDetailSkill').modal('show');
-        }
-
-        function hapusSkill(id, nama) {
-            if (confirm('Apakah Anda yakin ingin menghapus skill "' + nama + '"?')) {
-                $('#hapus_id_skill').val(id);
-                $('#formHapusSkill').submit();
-            }
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            return date.toLocaleDateString('id-ID', options);
-        }
-    </script>
+        
+        // Filter Jabatan - otomatis
+        $('#filterJabatan').on('change', function() {
+            var jabatan = $(this).val();
+            table.column(3).search(jabatan).draw(); // Kolom 3 = Jabatan
+        });
+        
+        // Filter Departemen - otomatis
+        $('#filterDepartemen').on('change', function() {
+            var dept = $(this).val();
+            table.column(4).search(dept).draw(); // Kolom 4 = Departemen
+        });
+        
+        // Filter Bagian - otomatis
+        $('#filterBagian').on('change', function() {
+            var bagian = $(this).val();
+            table.column(5).search(bagian).draw(); // Kolom 5 = Bagian
+        });
+        
+        // Reset Filter
+        $('#resetFilter').on('click', function() {
+            $('#filterJabatan').val('');
+            $('#filterDepartemen').val('');
+            $('#filterBagian').val('');
+            table.search('').columns().search('').draw();
+        });
+    });
+</script>
 </body>
 </html>

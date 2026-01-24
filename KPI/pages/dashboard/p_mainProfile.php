@@ -87,7 +87,7 @@
                     class="btn btn-tool"
                     title="Salin ke Simulasi"
                     style="color: white; margin-top: -10px; margin-right: 5px;">
-                    <i class="bi bi-lightning-charge-fill fs-5"></i>
+                    <i class="bi bi-arrow-right-circle-fill fs-5"></i>
                 </button>
                 <button type="button"
                     data-bs-toggle="modal"
@@ -314,7 +314,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title fw-bold" id="simulateModalLabel">
-                        <i class="bi bi-lightning-charge-fill"></i> Simulasikan KPI
+                        <i class="bi bi-arrow-right-circle-fill"></i> Simulasikan KPI
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -322,7 +322,7 @@
                     <div class="modal-body">
                         <div class="text-center">
                             <div class="mb-4">
-                                <i class="bi bi-lightning-charge-fill text-primary" style="font-size: 4rem;"></i>
+                                <i class="bi bi-arrow-right-circle-fill text-primary" style="font-size: 4rem;"></i>
                             </div>
                             <h4 class="fw-bold text-primary mb-3">
                                 Salin Data KPI Real ke Simulasi?
@@ -356,7 +356,7 @@
                             <i class="bi bi-x-circle"></i> Batal
                         </button>
                         <button type="submit" name="simulateKPI" class="btn btn-primary">
-                            <i class="bi bi-lightning-charge-fill"></i> Ya, Simulasikan
+                            <i class="bi bi-arrow-right-circle-fill"></i> Ya, Simulasikan
                         </button>
                     </div>
                 </form>

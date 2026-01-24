@@ -228,12 +228,12 @@ if (!isset($_SESSION['id_user'])) {
                         <!-- Data User -->
                         <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
                             <div class="card shadow-sm menu-card" onclick="window.location.href='datauser-adminhrd'">
-                                <div class="card-body text-center p-4">
-                                    <div class="icon-wrapper icon-bg-info">
+                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
+                                    <div class="icon-wrapper icon-bg-info mb-3">
                                         <i class="bi bi-people-fill text-info" style="font-size:2.2rem;"></i>
                                     </div>
-                                    <h5 class="card-title">Data User</h5>
-                                    <p class="card-text">Kelola data pengguna sistem</p>
+                                    <h5 class="card-title mb-1">Data User</h5>
+                                    <p class="card-text text-muted mb-0">Kelola Data User</p>
                                 </div>
                             </div>
                         </div>
@@ -241,7 +241,7 @@ if (!isset($_SESSION['id_user'])) {
                         <!-- Data KPI Karyawan -->
                         <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
                             <div class="card shadow-sm menu-card" onclick="window.location.href='datakpi-adminhrd'">
-                                <div class="card-body text-center p-4">
+                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
                                     <div class="icon-wrapper icon-bg-success">
                                         <i class="bi bi-graph-up-arrow text-success" style="font-size:2.2rem;"></i>
                                     </div>
@@ -254,7 +254,7 @@ if (!isset($_SESSION['id_user'])) {
                         <!-- Archive -->
                         <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
                             <div class="card shadow-sm menu-card" onclick="window.location.href='archive-adminhrd'">
-                                <div class="card-body text-center p-4">
+                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
                                     <div class="icon-wrapper icon-bg-warning">
                                         <i class="bi bi-archive-fill text-warning" style="font-size:2.2rem;"></i>
                                     </div>
@@ -267,7 +267,7 @@ if (!isset($_SESSION['id_user'])) {
                         <!-- Eviden -->
                         <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
                             <div class="card shadow-sm menu-card" onclick="window.location.href='eviden-adminhrd'">
-                                <div class="card-body text-center p-4">
+                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
                                     <div class="icon-wrapper icon-bg-danger">
                                         <i class="bi bi-folder-fill text-danger" style="font-size:2.2rem;"></i>
                                     </div>
@@ -280,7 +280,7 @@ if (!isset($_SESSION['id_user'])) {
                         <!-- Lock KPI Settings -->
                         <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
                             <div class="card shadow-sm menu-card" onclick="window.location.href='kpi-lock-settings-adminhrd'">
-                                <div class="card-body text-center p-4">
+                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
                                     <div class="icon-wrapper icon-bg-purple">
                                         <i class="bi bi-lock-fill text-purple" style="font-size:2.2rem; color: #9333ea;"></i>
                                     </div>
@@ -293,7 +293,7 @@ if (!isset($_SESSION['id_user'])) {
                         <!-- Skill Standard - NEW -->
                         <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
                             <div class="card shadow-sm menu-card" onclick="window.location.href='skill-standard-adminhrd'">
-                                <div class="card-body text-center p-4">
+                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
                                     <div class="icon-wrapper icon-bg-primary">
                                         <i class="bi bi-award-fill text-primary" style="font-size:2.2rem;"></i>
                                     </div>
