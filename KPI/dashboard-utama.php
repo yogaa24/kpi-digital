@@ -2148,16 +2148,33 @@ if ($user_level >= 5) {
                                     return data.labels.map((label, i) => {
                                         const value = data.datasets[0].data[i];
                                         const percentage = ((value / total) * 100).toFixed(1);
+                                        const meta = chart.getDatasetMeta(0);
+                                        const hidden = meta.data[i].hidden;
+                                        
                                         return {
                                             text: `${label}: ${value} (${percentage}%)`,
                                             fillStyle: data.datasets[0].backgroundColor[i],
-                                            hidden: false,
-                                            index: i
+                                            hidden: hidden,
+                                            index: i,
+                                            // Tambahkan style untuk strikethrough
+                                            fontColor: hidden ? '#999' : '#666',
+                                            lineWidth: hidden ? 0 : 1
                                         };
                                     });
                                 }
                                 return [];
                             }
+                        },
+                        // Tambahkan onClick handler
+                        onClick: function(e, legendItem, legend) {
+                            const index = legendItem.index;
+                            const chart = legend.chart;
+                            const meta = chart.getDatasetMeta(0);
+                            
+                            // Toggle visibility
+                            meta.data[index].hidden = !meta.data[index].hidden;
+                            
+                            chart.update();
                         }
                     },
                     tooltip: {

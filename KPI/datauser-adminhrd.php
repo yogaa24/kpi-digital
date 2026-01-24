@@ -119,7 +119,8 @@ if (isset($_POST['register_user'])) {
     $jabatan = mysqli_real_escape_string($conn, $_POST['jabatan']);
     $bagian = mysqli_real_escape_string($conn, $_POST['bagian']);
     $atasan = mysqli_real_escape_string($conn, $_POST['atasan']);
-    $penilai = mysqli_real_escape_string($conn, $_POST['penilai']);
+    // Perbaikan untuk field penilai - cek apakah array atau string
+$penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST['penilai'][0]) : mysqli_real_escape_string($conn, $_POST['penilai']);
     $password = mysqli_real_escape_string($conn, $_POST['password']);
     $cpassword = mysqli_real_escape_string($conn, $_POST['cpassword']);
     
@@ -155,7 +156,7 @@ if (isset($_POST['register_user'])) {
                 $sql_bobot = "INSERT INTO tb_bobotkpi (`id_user`, `bobotwhat`, `bobothow`) VALUES ('$new_user_id', 0, 0)";
                 
                 // Insert ke db_simulasi - tb_bobotkpi
-                $sql_bobot_simulasi = "INSERT INTO tb_bobotkpi (`id_user`, `bobotwhat`, `bobothow`) VALUES ('$new_user_id', 0, 0)";
+                $sql_bobot_simulasi = "INSERT INTO tbsim_bobotkpi (`id_user`, `bobotwhat`, `bobothow`) VALUES ('$new_user_id', 0, 0)";
                 
                 // Eksekusi semua query
                 $success = true;
@@ -170,7 +171,7 @@ if (isset($_POST['register_user'])) {
                     $error_msg = "Gagal menambahkan data bobot";
                 }
                 
-                if (!mysqli_query($conn_sim, $sql_bobot_simulasi)) {
+                if (!mysqli_query($conn, $sql_bobot_simulasi)) {
                     $success = false;
                     $error_msg = "Gagal menambahkan data bobot ke db_simulasi";
                 }
