@@ -120,9 +120,9 @@ if ($nilai_kpi < 90) {
 } elseif ($nilai_kpi <= 100) {
     $colorClass = "orange";
 } elseif ($nilai_kpi <= 110) {
-    $colorClass = "green";
-} else {
     $colorClass = "blue";
+} else {
+    $colorClass = "green";
 }
 
 // Ambil bobot What dan How

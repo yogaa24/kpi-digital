@@ -438,7 +438,7 @@ function tmapil($bl, $th){
                                             </span>
                                         <?php } ?>
                                     </h5>
-                                    <?php if ($leveel == 2 || $leveel == 4 || $leveel == 5) { ?>
+                                    <?php if ($leveel == 2 || $leveel == 3 ||$leveel == 4 || $leveel == 5) { ?>
                                     <div class="card-tools">
                                         <button style="color: black; margin-top: -20px; margin-right: 5px;" type="button"
                                             data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
@@ -484,10 +484,10 @@ function tmapil($bl, $th){
                                         $wrabs = "orange";
                                         $rating = "GOOD";
                                     } elseif ($nilai_akhir <= 110) {
-                                        $wrabs = "green";
+                                        $wrabs = "blue";
                                         $rating = "Very Good";
                                     } else {
-                                        $wrabs = "blue";
+                                        $wrabs = "green";
                                         $rating = "Excellent";
                                     }
                                     ?>

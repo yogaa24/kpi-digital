@@ -1579,9 +1579,9 @@ if ($user_level >= 5) {
                                                                 <div class="fw-semibold text-dark fs-6">
                                                                     <?= number_format($previous_value, 2) ?>
                                                                 </div>
-                                                                <div class="text-body-secondary fs-7">
+                                                                <!-- <div class="text-body-secondary fs-7">
                                                                     (Total: <?= number_format($previous_raw, 2) ?>)
-                                                                </div>
+                                                                </div> -->
                                                             <?php } else { ?>
                                                                 <div class="fw-semibold text-secondary fs-6">-</div>
                                                                 <div class="text-body-secondary fs-7">No data</div>
@@ -1705,9 +1705,9 @@ if ($user_level >= 5) {
                                                                 <div class="fw-semibold text-dark fs-6">
                                                                     <?= number_format($previous_value, 2) ?>
                                                                 </div>
-                                                                <div class="text-body-secondary fs-7">
+                                                                <!-- <div class="text-body-secondary fs-7">
                                                                     (Total: <?= number_format($previous_raw, 2) ?>)
-                                                                </div>
+                                                                </div> -->
                                                             <?php } else { ?>
                                                                 <div class="fw-semibold text-secondary fs-6">-</div>
                                                                 <div class="text-body-secondary fs-7">No data</div>
@@ -2041,7 +2041,7 @@ if ($user_level >= 5) {
             } elseif ($score <= 110) {
                 return '#0d6efd'; // Biru untuk VERY GOOD
             } else {
-                return '#198754'; // Hijau untuk EXCELLENT
+                return '#28a745'; // Hijau untuk EXCELLENT
             }
         }, $dept_comparison)) ?>;
 
@@ -2219,7 +2219,7 @@ if ($user_level >= 5) {
                     {
                         label: 'Good (90-100)',
                         data: <?= json_encode(array_column($dept_performance_analysis, 'good')) ?>,
-                        backgroundColor: '#ffc107',
+                        backgroundColor: '#FFFF00',
                         borderRadius: 5,
                         borderWidth: 1,
                         borderColor: '#fff'

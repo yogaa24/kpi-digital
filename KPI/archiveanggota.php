@@ -72,9 +72,9 @@ function getsfo($nilair){
     } elseif ($nilair <= 100) {
         return "orange";
     } elseif ($nilair <= 110) {
-        return "green";
-    } else {
         return "blue";
+    } else {
+        return "green";
     }
 }
 

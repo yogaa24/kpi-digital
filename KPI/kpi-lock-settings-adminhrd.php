@@ -15,10 +15,14 @@ require 'helper/kpi_lock_functions.php';
 requireAdminHRD();
 
 // Handler untuk tambah periode lock
+// Handler untuk tambah periode lock
 if (isset($_POST['tambah_lock'])) {
     $nama_periode = mysqli_real_escape_string($conn, $_POST['nama_periode']);
     $tanggal_mulai = mysqli_real_escape_string($conn, $_POST['tanggal_mulai']);
-    $tanggal_selesai = mysqli_real_escape_string($conn, $_POST['tanggal_selesai']);
+    
+    // AUTO SET TANGGAL SELESAI = 1 TAHUN DARI TANGGAL MULAI
+    $tanggal_selesai = date('Y-m-d', strtotime($tanggal_mulai . ' +1 year -1 day'));
+    
     $level_akses = isset($_POST['level_akses']) ? implode(',', $_POST['level_akses']) : '';
     $keterangan = mysqli_real_escape_string($conn, $_POST['keterangan']);
     
@@ -31,10 +35,8 @@ if (isset($_POST['tambah_lock'])) {
     ];
     $izin_akses_json = json_encode($izin_akses);
     
-    // Validasi tanggal
-    if ($tanggal_selesai < $tanggal_mulai) {
-        echo "<script>alert('Tanggal selesai tidak boleh lebih kecil dari tanggal mulai!');</script>";
-    } elseif (checkPeriodOverlap($conn, $tanggal_mulai, $tanggal_selesai)) {
+    // Validasi overlap (tanggal selesai sudah otomatis dihitung)
+    if (checkPeriodOverlap($conn, $tanggal_mulai, $tanggal_selesai)) {
         echo "<script>alert('Periode yang dipilih bertumpuk dengan periode lain yang sudah ada!');</script>";
     } else {
         $sql = "INSERT INTO tb_kpi_lock_settings 
@@ -46,7 +48,7 @@ if (isset($_POST['tambah_lock'])) {
                               $level_akses, $izin_akses_json, $keterangan, $id_user);
         
         if (mysqli_stmt_execute($stmt)) {
-            echo "<script>alert('Pengaturan lock berhasil ditambahkan!'); window.location.href='kpi-lock-settings-adminhrd';</script>";
+            echo "<script>alert('Pengaturan lock berhasil ditambahkan!\\nPeriode: " . date('d/m/Y', strtotime($tanggal_mulai)) . " - " . date('d/m/Y', strtotime($tanggal_selesai)) . "'); window.location.href='kpi-lock-settings-adminhrd';</script>";
         } else {
             echo "<script>alert('Gagal menambahkan pengaturan lock!');</script>";
         }
@@ -344,12 +346,8 @@ $result_locks = getAllActiveLockPeriods($conn);
                             
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Tanggal Mulai <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" name="tanggal_mulai" required>
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Tanggal Selesai <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" name="tanggal_selesai" required>
+                                <input type="date" class="form-control" name="tanggal_mulai" id="tanggal_mulai" required>
+                                <small class="text-muted">Periode akan otomatis berakhir 1 tahun setelah tanggal mulai</small>
                             </div>
                             
                             <div class="col-12 mb-3">
@@ -508,6 +506,24 @@ $result_locks = getAllActiveLockPeriods($conn);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        document.getElementById('tanggal_mulai').addEventListener('change', function() {
+        const startDate = new Date(this.value);
+        const endDate = new Date(startDate);
+        endDate.setFullYear(endDate.getFullYear() + 1);
+        endDate.setDate(endDate.getDate() - 1); // -1 day
+        
+        const formatted = endDate.toLocaleDateString('id-ID');
+        
+        // Show preview
+        let preview = document.getElementById('date-preview');
+        if (!preview) {
+            preview = document.createElement('small');
+            preview.id = 'date-preview';
+            preview.className = 'text-success fw-bold d-block mt-1';
+            this.parentElement.appendChild(preview);
+        }
+        preview.textContent = '✓ Periode akan berakhir: ' + formatted;
+    });
         function editLock(data) {
             // Populate form
             document.getElementById('edit_id_lock').value = data.id_lock;

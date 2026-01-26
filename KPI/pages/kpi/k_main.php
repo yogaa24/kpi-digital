@@ -11,46 +11,33 @@
                     </h5>
                     <div class="card-tools">
                         <!-- Tombol Edit Goals What -->
-                        <?php if($can_edit): ?>
+                        <?php if ($can_edit): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="modal" data-bs-target="#EditModal<?= $idKPI ?>" class="btn btn-tool" title="Edit Goals What">
+                            data-bs-toggle="modal" data-bs-target="#EditModal<?= $idKPI ?>"
+                            class="btn btn-tool" title="Edit Goals What">
                             <i class="bi bi-pencil fs-6"></i>
-                        </button>
-                        <?php else: ?>
-                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            class="btn btn-tool" disabled title="Akses edit dibatasi">
-                            <i class="bi bi-lock-fill fs-6"></i>
                         </button>
                         <?php endif; ?>
                         
                         <!-- Tombol Hapus KPI -->
-                        <?php if($can_delete): ?>
+                        <?php if ($can_delete): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="modal" data-bs-target="#modalHapusKPI<?= $idKPI ?>" class="btn btn-tool" title="Hapus KPI">
+                            data-bs-toggle="modal" data-bs-target="#modalHapusKPI<?= $idKPI ?>"
+                            class="btn btn-tool" title="Hapus KPI">
                             <i class="bi bi-trash fs-6"></i>
-                        </button>
-                        <?php else: ?>
-                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            class="btn btn-tool" disabled title="Akses hapus dibatasi">
-                            <i class="bi bi-lock-fill fs-6"></i>
                         </button>
                         <?php endif; ?>
 
                         <!-- Tombol Tambah What -->
-                        <?php if($can_add): ?>
+                        <?php if ($can_add): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
                             data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle" title="Tambah What">
                             <i class="bi bi-plus-circle fs-6"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end" role="menu">
                             <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                                data-bs-target="#WhatModal<?= $idKPI ?>">Tambah What </a>
+                                data-bs-target="#WhatModal<?= $idKPI ?>">Tambah What</a>
                         </div>
-                        <?php else: ?>
-                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            class="btn btn-tool" disabled title="Akses tambah dibatasi">
-                            <i class="bi bi-lock-fill fs-6"></i>
-                        </button>
                         <?php endif; ?>
                         
                         <!-- Tombol Collapse -->
@@ -91,10 +78,10 @@
                                     <?php if ($is_edited_by_superior && !empty($res['original_p_what']) && $res['original_p_what'] != $res['p_what']) { ?>
                                         <span class="edited-badge"><i class="bi bi-pencil-fill"></i> DIUBAH ATASAN</span>
                                         <div class="change-info">
-                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <strong style="font-size: 9px;">Sendiri:</strong> 
                                             <span class="old-val"><?= htmlspecialchars(substr($res['original_p_what'], 0, 50)) ?><?= strlen($res['original_p_what']) > 50 ? '...' : '' ?></span>
                                             <br>
-                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <strong style="font-size: 9px;">Atasan:</strong> 
                                             <span class="new-val"><?= htmlspecialchars(substr($res['p_what'], 0, 50)) ?><?= strlen($res['p_what']) > 50 ? '...' : '' ?></span>
                                         </div>
                                     <?php } ?>
@@ -107,10 +94,10 @@
                                         <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>
                                             <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
                                             <div class="change-info">
-                                                <strong style="font-size: 9px;">Target Sebelum:</strong> 
+                                                <strong style="font-size: 9px;">Target Sendiri:</strong> 
                                                 <span class="old-val"><?= number_format($res['original_target_omset'], 2) ?></span>
                                                 <br>
-                                                <strong style="font-size: 9px;">Target Sesudah:</strong> 
+                                                <strong style="font-size: 9px;">Target Atasan:</strong> 
                                                 <span class="new-val"><?= number_format($res['target_omset'], 2) ?></span>
                                             </div>
                                         <?php } ?>
@@ -123,10 +110,10 @@
                                     <?php if ($is_edited_by_superior && !empty($res['original_hasil']) && $res['original_hasil'] != $res['hasil']) { ?>
                                         <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
                                         <div class="change-info">
-                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <strong style="font-size: 9px;">Seendiri:</strong> 
                                             <span class="old-val"><?= htmlspecialchars(substr($res['original_hasil'], 0, 30)) ?><?= strlen($res['original_hasil']) > 30 ? '...' : '' ?></span>
                                             <br>
-                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <strong style="font-size: 9px;">Atasan:</strong> 
                                             <span class="new-val"><?= htmlspecialchars(substr($res['hasil'], 0, 30)) ?><?= strlen($res['hasil']) > 30 ? '...' : '' ?></span>
                                         </div>
                                     <?php } ?>
@@ -339,36 +326,27 @@
                     </h5>
                     <div class="card-tools">
                         <!-- Tombol Edit Goals How -->
-                        <?php if($can_edit): ?>
+                        <?php if ($can_edit): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="modal" data-bs-target="#EditModal2<?= $idKPI ?>" class="btn btn-tool" title="Edit Goals How">
+                            data-bs-toggle="modal" data-bs-target="#EditModal2<?= $idKPI ?>"
+                            class="btn btn-tool" title="Edit Goals How">
                             <i class="bi bi-pencil fs-6"></i>
-                        </button>
-                        <?php else: ?>
-                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            class="btn btn-tool" disabled title="Akses edit dibatasi">
-                            <i class="bi bi-lock-fill fs-6"></i>
                         </button>
                         <?php endif; ?>
 
                         <!-- Tombol Tambah How -->
-                        <?php if($can_add): ?>
+                        <?php if ($can_add): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle" title="Tambah What">
+                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle" title="Tambah How">
                             <i class="bi bi-plus-circle fs-6"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end" role="menu">
                             <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                                data-bs-target="#HowModal<?= $idKPI ?>">Tambah How </a>
+                                data-bs-target="#HowModal<?= $idKPI ?>">Tambah How</a>
                         </div>
-                        <?php else: ?>
-                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            class="btn btn-tool" disabled title="Akses tambah dibatasi">
-                            <i class="bi bi-lock-fill fs-6"></i>
-                        </button>
                         <?php endif; ?>
-                        
-                        <!-- Tombol Collapse -->
+
+                        <!-- Tombol Collapse (tetap tampil) -->
                         <button style="color: white;" type="button" class="btn btn-tool"
                             data-lte-toggle="card-collapse">
                             <i data-lte-icon="expand" class="bi bi-caret-down-fill"></i>
@@ -405,10 +383,10 @@
                                     <?php if ($is_edited_by_superior && !empty($res['original_p_how']) && $res['original_p_how'] != $res['p_how']) { ?>
                                         <span class="edited-badge"><i class="bi bi-pencil-fill"></i> DIUBAH ATASAN</span>
                                         <div class="change-info">
-                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <strong style="font-size: 9px;">Sendiri:</strong> 
                                             <span class="old-val"><?= htmlspecialchars(substr($res['original_p_how'], 0, 50)) ?><?= strlen($res['original_p_how']) > 50 ? '...' : '' ?></span>
                                             <br>
-                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <strong style="font-size: 9px;">Atasan:</strong> 
                                             <span class="new-val"><?= htmlspecialchars(substr($res['p_how'], 0, 50)) ?><?= strlen($res['p_how']) > 50 ? '...' : '' ?></span>
                                         </div>
                                     <?php } ?>
@@ -422,10 +400,10 @@
                                         <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>
                                             <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
                                             <div class="change-info">
-                                                <strong style="font-size: 9px;">Target Sebelum:</strong> 
+                                                <strong style="font-size: 9px;">Target Sendiri:</strong> 
                                                 <span class="old-val"><?= number_format($res['original_target_omset'], 2) ?></span>
                                                 <br>
-                                                <strong style="font-size: 9px;">Target Sesudah:</strong> 
+                                                <strong style="font-size: 9px;">Target Atasan:</strong> 
                                                 <span class="new-val"><?= number_format($res['target_omset'], 2) ?></span>
                                             </div>
                                         <?php } ?>
@@ -439,10 +417,10 @@
                                     <?php if ($is_edited_by_superior && !empty($res['original_hasil']) && $res['original_hasil'] != $res['hasil']) { ?>
                                         <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
                                         <div class="change-info">
-                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <strong style="font-size: 9px;">Sendiri:</strong> 
                                             <span class="old-val"><?= htmlspecialchars(substr($res['original_hasil'], 0, 30)) ?><?= strlen($res['original_hasil']) > 30 ? '...' : '' ?></span>
                                             <br>
-                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <strong style="font-size: 9px;">Atasan:</strong> 
                                             <span class="new-val"><?= htmlspecialchars(substr($res['hasil'], 0, 30)) ?><?= strlen($res['hasil']) > 30 ? '...' : '' ?></span>
                                         </div>
                                     <?php } ?>

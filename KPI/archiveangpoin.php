@@ -8,6 +8,7 @@ if (!isset($_SESSION['id_user'])) {
 
     require 'helper/config.php';
     require 'helper/config.php';
+    require_once 'helper/sp_functions.php';
 
     // Ambil level user yang sedang login
     $id_user_login = $_SESSION['id_user'];
@@ -157,7 +158,17 @@ if (!isset($_SESSION['id_user'])) {
             $bulannnn = 'Desember ' . $busd[1];
         }
     }
+    $nilai_asli = $zbotw + $zboth;
+
+    // Hitung dengan pengurangan SP untuk user yang dilihat
+    $kpi_result = calculateKPIWithSP($conn, $id_user, $nilai_asli);
+
+    // Extract variabel untuk digunakan di archiveProfile.php
+    $nilai_akhir = $kpi_result['nilai_akhir'];
+    $sp_archive_data = $kpi_result['sp_data'];
+    $pengurangan = $kpi_result['pengurangan'];
 }
+
 ?>
 <html lang="en">
 

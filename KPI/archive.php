@@ -75,9 +75,9 @@ if (!isset($_SESSION['id_user'])) {
         } elseif ($nilair <= 100) {
             return "orange";
         } elseif ($nilair <= 110) {
-            return "green";
-        } else { // $nilai > 110
             return "blue";
+        } else { // $nilai > 110
+            return "green";
         }
     }
 

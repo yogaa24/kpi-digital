@@ -118,9 +118,9 @@ function getsfo($nilair) {
     } elseif ($nilair <= 100) {
         return "warning";
     } elseif ($nilair <= 110) {
-        return "success";
-    } else {
         return "primary";
+    } else {
+        return "success";
     }
 }
 

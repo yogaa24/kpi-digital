@@ -479,17 +479,17 @@ function getHoww($conn, $id)
                                                 <td><strong><?= $percent_poor ?>%</strong></td>
                                             </tr>
                                             <tr>
-                                                <td><span class="badge" style="background-color: #fd7e14;">GOOD</span></td>
+                                                <td><span class="badge" style="background-color: #FFFF00;">GOOD</span></td>
                                                 <td><?= $count_good ?> orang</td>
                                                 <td><strong><?= $percent_good ?>%</strong></td>
                                             </tr>
                                             <tr>
-                                                <td><span class="badge" style="background-color: #28a745;">Very Good</span></td>
+                                                <td><span class="badge" style="background-color: #007bff;">Very Good</span></td>
                                                 <td><?= $count_very_good ?> orang</td>
                                                 <td><strong><?= $percent_very_good ?>%</strong></td>
                                             </tr>
                                             <tr>
-                                                <td><span class="badge" style="background-color: #007bff;">Excellent</span></td>
+                                                <td><span class="badge" style="background-color: #28a745;">Excellent</span></td>
                                                 <td><?= $count_excellent ?> orang</td>
                                                 <td><strong><?= $percent_excellent ?>%</strong></td>
                                             </tr>
@@ -516,7 +516,7 @@ function getHoww($conn, $id)
                     height: 350
                 },
                 labels: ['POOR', 'GOOD', 'Very Good', 'Excellent'],
-                colors: ['#dc3545', '#fd7e14', '#28a745', '#007bff'],
+                colors: ['#dc3545', '#FFFF00', '#007bff', '#28a745'],
                 legend: {
                     position: 'bottom'
                 },

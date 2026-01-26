@@ -118,10 +118,10 @@
                 $wrabs  = 'orange';
                 $rating = 'GOOD';
             } elseif ($nilai_akhir <= 110) {
-                $wrabs  = 'green';
+                $wrabs  = 'blue';
                 $rating = 'VERY GOOD';
             } else {
-                $wrabs  = 'blue';
+                $wrabs  = 'green';
                 $rating = 'EXCELLENT';
             }
             ?>

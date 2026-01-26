@@ -413,24 +413,73 @@ if (isset($_POST['hapus_kategori_ss'])) {
                                                                             <strong>Poin:</strong> <?= $res['poinss']; ?>
                                                                         </div>
                                                                         
-                                                                       <div class="input-group mb-3">
+                                                                        <div class="input-group mb-3">
                                                                             <span style="color:#343A40;" class="input-group-text fw-bold">Nilai :</span>
                                                                             <input type="number" 
                                                                                 step="0.01" 
                                                                                 min="0"
+                                                                                max="4"
                                                                                 value="<?= $res['nilaiss'] != 0 ? $res['nilaiss'] : ''; ?>" 
                                                                                 class="form-control" 
                                                                                 name="nilai" 
-                                                                                placeholder="Masukkan nilai"
+                                                                                placeholder="Masukkan nilai 1-4"
                                                                                 required>
                                                                         </div>
                                                                         
                                                                         <div class="mb-3">
-                                                                            <label class="form-label fw-bold">Keterangan / Deskripsi :</label>
+                                                                            <label class="form-label fw-bold">Keterangan / Next Step :</label>
                                                                             <textarea class="form-control" name="keterangan" rows="5" 
                                                                                     placeholder="Jelaskan pencapaian, bukti, atau alasan pemberian nilai ini..." 
                                                                                     required><?= !empty($res['deskripsi']) ? $res['deskripsi'] : ''; ?></textarea>
                                                                         </div>
+                                                                        
+                                                                        <!-- Tampilkan Indikator Penilaian -->
+                                                                        <?php if (!empty($res['nilai1']) || !empty($res['nilai2']) || !empty($res['nilai3']) || !empty($res['nilai4'])) { ?>
+                                                                        <div class="alert alert-light border">
+
+                                                                            <h5 class="fw-bold mb-3">
+                                                                                <i class="bi bi-bar-chart-fill me-1"></i> Indikator Penilaian
+                                                                            </h5>
+
+                                                                            <?php if (!empty($res['nilai1'])) { ?>
+                                                                            <div class="mb-2">
+                                                                                <span class="badge bg-danger me-2">Nilai 1</span>
+                                                                                <span class="fw-semibold fs-7 text-dark">
+                                                                                    <?= $res['nilai1']; ?>
+                                                                                </span>
+                                                                            </div>
+                                                                            <?php } ?>
+
+                                                                            <?php if (!empty($res['nilai2'])) { ?>
+                                                                            <div class="mb-2">
+                                                                                <span class="badge me-2" style="background-color:#fd7e14; color:white;">Nilai 2</span>
+                                                                                <span class="fw-semibold fs-7 text-dark">
+                                                                                    <?= $res['nilai2']; ?>
+                                                                                </span>
+                                                                            </div>
+                                                                            <?php } ?>
+
+                                                                            <?php if (!empty($res['nilai3'])) { ?>
+                                                                            <div class="mb-2">
+                                                                                <span class="badge bg-warning me-2">Nilai 3</span>
+                                                                                <span class="fw-semibold fs-7 text-dark">
+                                                                                    <?= $res['nilai3']; ?>
+                                                                                </span>
+                                                                            </div>
+                                                                            <?php } ?>
+
+                                                                            <?php if (!empty($res['nilai4'])) { ?>
+                                                                            <div class="mb-2">
+                                                                                <span class="badge bg-success me-2">Nilai 4</span>
+                                                                                <span class="fw-semibold fs-7 text-dark">
+                                                                                    <?= $res['nilai4']; ?>
+                                                                                </span>
+                                                                            </div>
+                                                                            <?php } ?>
+
+                                                                        </div>
+                                                                        <?php } ?>
+
                                                                         
                                                                         <div class="alert alert-warning">
                                                                             <i class="bi bi-info-circle"></i> Nilai dan keterangan yang Anda berikan dapat diubah kapan saja
