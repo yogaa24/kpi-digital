@@ -183,8 +183,8 @@ if (isset($_POST['nilai_what'])) {
             $nilai = 0;
         }
         
-        $total = number_format($nilai * $bobot / 100, 2);
-        $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 2);
+        $total = number_format($nilai * $bobot / 100, 0, ',', '.');
+        $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 0, ',', '.');
         $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
         
         // ===== UBAH BAGIAN UPDATE INI =====
@@ -428,10 +428,10 @@ if (isset($_POST['nilai_how'])) {
             $nilai = 0;
         }
         
-        $total = number_format($nilai * $bobot / 100, 2);
-        $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 2);
+        $total = number_format($nilai * $bobot / 100, 0, ',', '.');
+        $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 0, ',', '.');
         $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
-        
+
         // ===== UBAH BAGIAN UPDATE INI =====
         if ($is_owner) {
             // Karyawan menilai sendiri - RESET tracking

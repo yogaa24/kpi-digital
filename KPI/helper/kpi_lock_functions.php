@@ -32,17 +32,23 @@ function checkKPIAccess($conn, $user_level, $tanggal = null, $action = 'view') {
         $tanggal = date('Y-m-d');
     }
     
+    $current_day = intval(date('d', strtotime($tanggal)));
+    
     // Cari pengaturan yang aktif untuk tanggal tersebut
-    $sql = "SELECT level_akses, izin_akses 
+    $sql = "SELECT level_akses, izin_akses, is_recurring, recurring_day_start, recurring_day_end,
+                   tanggal_mulai, tanggal_selesai
             FROM tb_kpi_lock_settings 
             WHERE status = 'aktif' 
-            AND tanggal_mulai <= ? 
-            AND tanggal_selesai >= ?
-            ORDER BY created_at DESC
+            AND (
+                (is_recurring = 1 AND recurring_day_start <= ? AND recurring_day_end >= ?)
+                OR
+                (is_recurring = 0 AND tanggal_mulai <= ? AND tanggal_selesai >= ?)
+            )
+            ORDER BY is_recurring DESC, created_at DESC
             LIMIT 1";
     
     $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "ss", $tanggal, $tanggal);
+    mysqli_stmt_bind_param($stmt, "iiss", $current_day, $current_day, $tanggal, $tanggal);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
     
@@ -52,16 +58,13 @@ function checkKPIAccess($conn, $user_level, $tanggal = null, $action = 'view') {
         
         // Cek apakah level user termasuk dalam level yang diizinkan
         if (empty($row['level_akses'])) {
-            // Jika level_akses kosong, berarti semua level tidak boleh kecuali view
             return ($action === 'view' && isset($izin_akses['view']) && $izin_akses['view']);
         }
         
         if (in_array($user_level, $level_akses)) {
-            // Cek izin untuk action tertentu
             return isset($izin_akses[$action]) && $izin_akses[$action];
         }
         
-        // Level tidak termasuk yang diizinkan, hanya boleh view jika diperbolehkan
         return ($action === 'view' && isset($izin_akses['view']) && $izin_akses['view']);
     }
     
@@ -77,37 +80,45 @@ function getKPILockMessage($conn, $user_level, $tanggal = null) {
         $tanggal = date('Y-m-d');
     }
     
-    $sql = "SELECT nama_periode, tanggal_mulai, tanggal_selesai, level_akses, keterangan 
+    $current_day = intval(date('d', strtotime($tanggal)));
+    
+    $sql = "SELECT nama_periode, tanggal_mulai, tanggal_selesai, level_akses, keterangan,
+                   is_recurring, recurring_day_start, recurring_day_end
             FROM tb_kpi_lock_settings 
             WHERE status = 'aktif' 
-            AND tanggal_mulai <= ? 
-            AND tanggal_selesai >= ?
-            ORDER BY created_at DESC
+            AND (
+                (is_recurring = 1 AND recurring_day_start <= ? AND recurring_day_end >= ?)
+                OR
+                (is_recurring = 0 AND tanggal_mulai <= ? AND tanggal_selesai >= ?)
+            )
+            ORDER BY is_recurring DESC, created_at DESC
             LIMIT 1";
     
     $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "ss", $tanggal, $tanggal);
+    mysqli_stmt_bind_param($stmt, "iiss", $current_day, $current_day, $tanggal, $tanggal);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
     
     if ($row = mysqli_fetch_assoc($result)) {
         $level_akses = explode(',', $row['level_akses']);
         
+        $periode_text = $row['is_recurring'] 
+            ? "setiap bulan tanggal {$row['recurring_day_start']} - {$row['recurring_day_end']}"
+            : date('d/m/Y', strtotime($row['tanggal_mulai'])) . " - " . date('d/m/Y', strtotime($row['tanggal_selesai']));
+        
         if (!in_array($user_level, $level_akses) && !empty($row['level_akses'])) {
             return [
                 'locked' => true,
                 'message' => "Akses KPI dibatasi pada periode ini ({$row['nama_periode']}). " . 
                             "Hanya level " . implode(', ', $level_akses) . " yang dapat mengakses. " .
-                            "Periode: " . date('d/m/Y', strtotime($row['tanggal_mulai'])) . 
-                            " - " . date('d/m/Y', strtotime($row['tanggal_selesai'])),
+                            "Periode: " . $periode_text,
                 'keterangan' => $row['keterangan']
             ];
         } elseif (empty($row['level_akses'])) {
             return [
                 'locked' => true,
                 'message' => "Periode input KPI telah ditutup ({$row['nama_periode']}). " .
-                            "Periode: " . date('d/m/Y', strtotime($row['tanggal_mulai'])) . 
-                            " - " . date('d/m/Y', strtotime($row['tanggal_selesai'])),
+                            "Periode: " . $periode_text,
                 'keterangan' => $row['keterangan']
             ];
         }

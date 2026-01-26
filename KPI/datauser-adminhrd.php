@@ -385,14 +385,14 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                                                                             <select class="form-select departemen-edit" name="departement" 
                                                                                     data-user-id="<?= $user['id'] ?>" required>
                                                                                 <option value="">Pilih Departemen</option>
-                                                                                <option value="Keuangan & Sales" <?= $user['departement'] == 'Keuangan & Sales' ? 'selected' : '' ?>>Keuangan & Sales</option>
-                                                                                <option value="Purchasing" <?= $user['departement'] == 'Purchasing' ? 'selected' : '' ?>>Purchasing</option>
+                                                                                <option value="KEUANGAN & SALES" <?= $user['departement'] == 'KEUANGAN & SALES' ? 'selected' : '' ?>>KEUANGAN & SALES</option>
+                                                                                <option value="PURCHASING" <?= $user['departement'] == 'PURCHASING' ? 'selected' : '' ?>>PURCHASING</option>
                                                                                 <option value="IT" <?= $user['departement'] == 'IT' ? 'selected' : '' ?>>IT</option>
                                                                                 <option value="HRD" <?= $user['departement'] == 'HRD' ? 'selected' : '' ?>>HRD</option>
-                                                                                <option value="Logistik" <?= $user['departement'] == 'Logistik' ? 'selected' : '' ?>>Logistik</option>
+                                                                                <option value="LOGISTIC" <?= $user['departement'] == 'LOGISTIC' ? 'selected' : '' ?>>LOGISTIC</option>
                                                                                 <option value="GA" <?= $user['departement'] == 'GA' ? 'selected' : '' ?>>GA</option>
-                                                                                <option value="Unit Bisnis Seed" <?= $user['departement'] == 'Unit Bisnis Seed' ? 'selected' : '' ?>>Unit Bisnis Seed</option>
-                                                                                <option value="Unit Bisnis CP" <?= $user['departement'] == 'Unit Bisnis CP' ? 'selected' : '' ?>>Unit Bisnis CP</option>
+                                                                                <option value="UNIT BISNIS SEED" <?= $user['departement'] == 'UNIT BISNIS SEED' ? 'selected' : '' ?>>UNIT BISNIS SEED</option>
+                                                                                <option value="UNIT BISNIS CP" <?= $user['departement'] == 'UNIT BISNIS CP' ? 'selected' : '' ?>>UNIT BISNIS CP</option>
                                                                             </select>
                                                                         </div>
                                                                         <div class="col-md-6 mb-3">
@@ -520,28 +520,28 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                 
                 let items = [];
 
-                if (this.value === 'Keuangan & Sales') {
+                if (this.value === 'KEUANGAN & SALES') {
                     items = ["Pilih Atasan", "Ibnu Sutoro", "Evi Yulia Purnama Sari", "Ahmad Syaiti", "Iva Isti Farini"];
                 }
                 else if (this.value === 'IT') {
                     items = ["Pilih Atasan", "Wahyu Arif Prasetyo"];
                 }  
-                else if (this.value === 'Purchasing') {
+                else if (this.value === 'PURCHASING') {
                     items = ["Pilih Atasan", "Evi Yulia", "Heru Sucahyo"];
                 } 
                 else if (this.value === 'HRD') {
                     items = ["Pilih Atasan","Siwi Mardlatus Syafirah","Riza Dwi Fitrianingtyas"];
                 }
-                else if (this.value === 'Logistik') {
+                else if (this.value === 'LOGISTIC') {
                     items = ["Pilih Atasan", "Fauzan", "Wildan Ma'ruf N. W."];
                 } 
                 else if (this.value === 'GA') {
                     items = ["Pilih Atasan", "Nandang", "Wawan"];
                 }
-                else if (this.value === 'Unit Bisnis Seed') {
+                else if (this.value === 'UNIT BISNIS SEED') {
                     items = ["Pilih Atasan", "Acep Andriyanto", "Yama Muhammad", "Ahmad Muhlisin"];
                 }
-                else if (this.value === 'Unit Bisnis CP') {
+                else if (this.value === 'UNIT BISNIS CP') {
                     items = ["Pilih Atasan", "Arfin Indra Cahyadi"];
                 }
 

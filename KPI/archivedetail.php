@@ -1,3 +1,4 @@
+<!-- archivedetail.php -->
 <!DOCTYPE html>
 <?php
 session_start();
@@ -9,8 +10,6 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/config.php';
     require 'helper/getUser.php';
     require 'helper/getKPIArch.php';
-
-
 }
 ?>
 

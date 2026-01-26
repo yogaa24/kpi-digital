@@ -87,18 +87,30 @@
                                     <?php } ?>
                                     
                                     <?php if ($res['tipe_what'] == 'B' && $res['target_omset'] > 0) { ?>
-                                        <br><small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
-                                             Target: <?=number_format($res['target_omset'], 2)?>
+                                        <br>
+                                        <small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
+                                            Target: <?= number_format($res['target_omset'], 0, ',', '.') ?>
                                         </small>
-                                        
-                                        <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>
-                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+
+                                        <?php if (
+                                            $is_edited_by_superior &&
+                                            isset($res['original_target_omset']) &&
+                                            $res['original_target_omset'] > 0 &&
+                                            $res['original_target_omset'] != $res['target_omset']
+                                        ) { ?>
+                                            <span class="edited-badge">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </span>
                                             <div class="change-info">
-                                                <strong style="font-size: 9px;">Target Sendiri:</strong> 
-                                                <span class="old-val"><?= number_format($res['original_target_omset'], 2) ?></span>
+                                                <strong style="font-size: 9px;">Target Sendiri:</strong>
+                                                <span class="old-val">
+                                                    <?= number_format($res['original_target_omset'], 0, ',', '.') ?>
+                                                </span>
                                                 <br>
-                                                <strong style="font-size: 9px;">Target Atasan:</strong> 
-                                                <span class="new-val"><?= number_format($res['target_omset'], 2) ?></span>
+                                                <strong style="font-size: 9px;">Target Atasan:</strong>
+                                                <span class="new-val">
+                                                    <?= number_format($res['target_omset'], 0, ',', '.') ?>
+                                                </span>
                                             </div>
                                         <?php } ?>
                                     <?php } ?>
@@ -392,23 +404,35 @@
                                     <?php } ?>
                                     
                                     <?php if ($res['tipe_how'] == 'B' && $res['target_omset'] > 0) { ?>
-                                        <br><small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
-                                            Target: <?=number_format($res['target_omset'], 2)?>
-                                        </small>
-                                        
-                                        <!-- ===== TAMBAHAN BARU: TAMPILKAN PERUBAHAN TARGET OMSET HOW B ===== -->
-                                        <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>
-                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
-                                            <div class="change-info">
-                                                <strong style="font-size: 9px;">Target Sendiri:</strong> 
-                                                <span class="old-val"><?= number_format($res['original_target_omset'], 2) ?></span>
-                                                <br>
-                                                <strong style="font-size: 9px;">Target Atasan:</strong> 
-                                                <span class="new-val"><?= number_format($res['target_omset'], 2) ?></span>
-                                            </div>
-                                        <?php } ?>
-                                        <!-- ===== AKHIR TAMBAHAN ===== -->
+                                    <br>
+                                    <small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
+                                        Target: <?= number_format($res['target_omset'], 0, ',', '.') ?>
+                                    </small>
+
+                                    <!-- ===== TAMBAHAN BARU: TAMPILKAN PERUBAHAN TARGET OMSET HOW B ===== -->
+                                    <?php if (
+                                        $is_edited_by_superior &&
+                                        isset($res['original_target_omset']) &&
+                                        $res['original_target_omset'] > 0 &&
+                                        $res['original_target_omset'] != $res['target_omset']
+                                    ) { ?>
+                                        <span class="edited-badge">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </span>
+                                        <div class="change-info">
+                                            <strong style="font-size: 9px;">Target Sendiri:</strong>
+                                            <span class="old-val">
+                                                <?= number_format($res['original_target_omset'], 0, ',', '.') ?>
+                                            </span>
+                                            <br>
+                                            <strong style="font-size: 9px;">Target Atasan:</strong>
+                                            <span class="new-val">
+                                                <?= number_format($res['target_omset'], 0, ',', '.') ?>
+                                            </span>
+                                        </div>
                                     <?php } ?>
+                                    <!-- ===== AKHIR TAMBAHAN ===== -->
+                                <?php } ?>
                                 </td>
                                 
                                 <!-- KOLOM HASIL -->

@@ -41,14 +41,14 @@
                             <label class="form-label">Departemen <span class="text-danger">*</span></label>
                             <select class="form-select" name="departemen" id="departemen_register" required>
                                 <option value="">Pilih Departemen</option>
-                                <option value="Keuangan & Sales">Keuangan & Sales</option>
-                                <option value="Purchasing">Purchasing</option>
+                                <option value="Keuangan & Sales">KEUANGAN & SALES</option>
+                                <option value="Purchasing">PURCHASING</option>
                                 <option value="IT">IT</option>
                                 <option value="HRD">HRD</option>
-                                <option value="Logistik">Logistik</option>
+                                <option value="Logistik">LOGISTIC</option>
                                 <option value="GA">GA</option>
-                                <option value="Unit Bisnis Seed">Unit Bisnis Seed</option>
-                                <option value="Unit Bisnis CP">Unit Bisnis CP</option>
+                                <option value="Unit Bisnis Seed">UNIT BISNIS SEED</option>
+                                <option value="Unit Bisnis CP">UNIT BISNIS CP</option>
                             </select>
                         </div>
                     </div>

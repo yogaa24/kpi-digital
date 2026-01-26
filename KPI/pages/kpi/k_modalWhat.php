@@ -26,7 +26,7 @@
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="tipe_what" id="tipeWhatB<?=$idKPI?>" value="B" onchange="toggleWhatType<?=$idKPI?>(this.value)">
                 <label class="form-check-label" for="tipeWhatB<?=$idKPI?>">
-                  What B (Target Omset)
+                  What B (Dengan Angka Penilaian)
                 </label>
               </div>
             </div>
