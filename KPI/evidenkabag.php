@@ -45,7 +45,7 @@ if (!isset($_SESSION['id_user'])) {
             <div class="container-fluid">
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i class="bi bi-list"></i> </a> </li>
-                    <?php if(in_array($jabatan, ['Koordinator','Manager', 'Kadep', 'Direktur'])){ ?>
+                    <?php if(in_array($jabatan, ['Koordinator','Manager', 'Kadep', 'Direktur','Wadir Utama'])){ ?>
                         <li class="nav-item d-none d-md-block">
                             <a href="eviden" class="nav-link">Kembali</a>
                         </li>
@@ -108,9 +108,14 @@ if (!isset($_SESSION['id_user'])) {
                                                     <center><?= $row['bagian']; ?></center>
                                                 </td>
                                                 <td>
-                                                    <center>
-                                                        <a type="button" class="btn btn-sm btn-success" href="evidenanggota?id=<?= $row['id']; ?>"><i class="bi bi-eye"></i></a>
-                                                    </center>
+                                                    <?php 
+                                                        // Jangan tampilkan tombol untuk diri sendiri saja
+                                                        if($row['id'] != $_SESSION['id_user']){ 
+                                                    ?>
+                                                        <center>
+                                                            <a type="button" class="btn btn-sm btn-success" href="evidenanggota?id=<?= $row['id']; ?>"><i class="bi bi-eye"></i></a>
+                                                        </center>
+                                                    <?php } ?>
                                                 </td>
                                             </tr>
                                             <div class="modal fade" id="viewImage<?= $row['id']; ?>" tabindex="-1" aria-labelledby="viewImage" aria-hidden="true">

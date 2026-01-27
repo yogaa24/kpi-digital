@@ -5,7 +5,7 @@
  * Cek apakah user adalah Admin HRD (level 5)
  */
 function isAdminHRD() {
-    return isset($_SESSION['level']) && $_SESSION['level'] == 6;
+    return isset($_SESSION['level']) && $_SESSION['level'] == 7;
 }
 
 /**
@@ -48,8 +48,10 @@ function requireAdminHRD() {
  */
 function getUserLevelName($level) {
     switch($level) {
-        case 6:
+        case 7:
             return "Admin HRD";
+        case 6:
+            return "Wadir Utama";
         case 5:
             return "Direktur";
         case 4:

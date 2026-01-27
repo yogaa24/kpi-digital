@@ -139,7 +139,7 @@ ORDER BY
                                                 <center><?php echo getss($conn, $hasilsfa['id']); ?></center>
                                             </td>
                                             <td>
-                                                <?php if ($hasilsfa['jabatan'] != 'Kadep') { ?>
+                                                <?php if ($hasilsfa['nama_lngkp'] != $nama_lngkp) { ?>
                                                     <center><a type="button" href="ssanggotadetail?id=<?= $hasilsfa['id']; ?>"
                                                             class="btn btn-success btn-sm">
                                                             <i class="bi bi-eye fs-8"></i>

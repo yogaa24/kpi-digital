@@ -248,12 +248,12 @@ function getkpi($nilair)
                                     $tahunIni = date('Y');
                                     $namaBulanIni = getNamaBulan($bulanIni);
                                     
-                                    $sqlhd = "SELECT * 
+                                   $sqlhd = "SELECT * 
                                             FROM tb_users
-                                            WHERE atasan = 'Diana Wulandari' OR nama_lngkp = 'Diana Wulandari'
+                                            WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
                                             ORDER BY 
                                                 CASE 
-                                                    WHEN nama_lngkp = 'Diana Wulandari' THEN 0 
+                                                    WHEN nama_lngkp = '$nama_lngkp' THEN 0 
                                                     ELSE 1 
                                                 END,
                                                 nama_lngkp";
@@ -357,7 +357,7 @@ function getkpi($nilair)
                                             </td>
                                             
                                             <td>
-                                                <?php if ($hasilsfa['jabatan'] != 'Direktur') { ?>
+                                                <?php if ($hasilsfa['nama_lngkp'] != $nama_lngkp) { ?>
                                                     <center>
                                                         <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>"
                                                             class="btn btn-success btn-sm">
@@ -383,14 +383,14 @@ function getkpi($nilair)
                     $total_team = 0;
 
                     $sqlhd_stats = "SELECT * 
-                            FROM tb_users
-                            WHERE atasan = 'Diana Wulandari' OR nama_lngkp = 'Diana Wulandari'
-                            ORDER BY 
-                                CASE 
-                                    WHEN nama_lngkp = 'Diana Wulandari' THEN 0 
-                                    ELSE 1 
-                                END,
-                                nama_lngkp";
+        FROM tb_users
+        WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
+        ORDER BY 
+            CASE 
+                WHEN nama_lngkp = '$nama_lngkp' THEN 0 
+                ELSE 1 
+            END,
+            nama_lngkp";
 
                     $sgdah_stats = mysqli_query($conn, $sqlhd_stats);
                     while ($hasil_stats = mysqli_fetch_assoc($sgdah_stats)) {

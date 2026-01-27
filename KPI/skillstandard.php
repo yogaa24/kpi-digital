@@ -131,7 +131,7 @@ if (!isset($_SESSION['id_user'])) {
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                 class="bi bi-list"></i> </a> </li>
                     <li class="nav-item d-none d-md-block"> <a href="dashboard-utama" class="nav-link">Kembali</a> </li>
-                    <?php if ($jabatan == "Manager" || $jabatan == "Kadep" || $jabatan == "Koordinator" || $jabatan == "Direktur") { ?>
+                    <?php if ($jabatan == "Manager" || $jabatan == "Kadep" || $jabatan == "Koordinator" || $jabatan == "Direktur"|| $jabatan == "Wadir Utama") { ?>
                         <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#SSmodal"
                                 class="nav-link">Tambah Poin SS</a> </li>
                         <li class="nav-item d-none d-md-block"> <a href="ssanggota" class="nav-link">SS Anggota</a> </li>
