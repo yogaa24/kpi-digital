@@ -27,7 +27,7 @@ if (isset($_POST['submit'])) {
         $_SESSION['level'] = $row['level'];
         
         // Redirect berdasarkan level
-        if ($row['level'] == 6) {
+        if ($row['level'] == 7) {
             // Admin HRD
             header("Location: dashboard-adminhrd");
         } else {

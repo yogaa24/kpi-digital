@@ -155,7 +155,8 @@ echo '
                         $jabatan == "Koordinator" ||
                         $jabatan == "Manager" ||
                         $jabatan == "Kadep" ||
-                        $jabatan == "Direktur"
+                        $jabatan == "Direktur" ||
+                        $jabatan == "Wadir Utama"
                     ) { ?>
                         <li class="nav-item d-none d-md-block"> <a href="archivekabag" class="nav-link">Archive KPI Anggota</a> </li>
                     <?php }?>

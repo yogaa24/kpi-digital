@@ -164,7 +164,7 @@ if (isset($_POST['hapus_kategori_ss'])) {
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                 class="bi bi-list"></i> </a> </li>
-                    <?php if ($leveel == 6) { ?>
+                    <?php if ($leveel == 7) { ?>
                         <li class="nav-item d-none d-md-block">
                             <a href="skill-standard-adminhrd" class="nav-link">Kembali</a>
                         </li>

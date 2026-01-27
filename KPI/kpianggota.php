@@ -330,11 +330,11 @@ function tmapil($bl, $th){
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                  class="bi bi-list"></i> </a> </li>
-                               <?php if ($leveel == 5) { ?>
+                               <?php if ($leveel == 5 || $leveel == 6) { ?>
                                 <li class="nav-item d-none d-md-block">
-                                    <a href="kpikadep" class="nav-link">Kembali</a>
+                                    <a href="kpidirektur" class="nav-link">Kembali</a>
                                 </li>
-                            <?php } elseif ($leveel == 6) { ?>
+                            <?php } elseif ($leveel == 7) { ?>
                                 <li class="nav-item d-none d-md-block">
                                     <a href="dashboard-adminhrd" class="nav-link">Kembali</a>
                                 </li>
