@@ -808,13 +808,13 @@ if ($user_level >= 5) {
                                             <?php 
                                             // Tentukan judul berdasarkan level
                                             if ($user_level == 2) {
-                                                echo "My Team Performance (Koordinator)";
+                                                echo "My Team Performance";
                                             } elseif ($user_level == 3) {
-                                                echo "My Team Performance (Manager)";
+                                                echo "My Team Performance ";
                                             } elseif ($user_level == 4) {
-                                                echo $user_info['departement'] . " Department (Kadep)";
+                                                echo $user_info['departement'] . " Department ";
                                             } elseif ($user_level >= 5) {
-                                                echo !empty($filter_departemen) ? $filter_departemen . " Department (Direktur)" : "All Departments (Direktur)";
+                                                echo !empty($filter_departemen) ? $filter_departemen . " Department " : "All Departments";
                                             } else {
                                                 echo $comparison_title;
                                             }
@@ -1625,12 +1625,12 @@ if ($user_level >= 5) {
                                                         <td class="text-center text-primary"><?= number_format($data_current['total_what'], 2) ?></td>
                                                         <td class="text-center text-secondary"><?= number_format($data_previous['total_what'], 2) ?></td>
                                                         <td class="text-center">
-                                                            <span class="badge bg-<?= $delta_what >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                            <span class="badge bg-<?= $delta_what >= 0 ? 'success' : 'danger' ?> fs-8">
                                                                 <?= $delta_what >= 0 ? '+' : '' ?><?= number_format($delta_what, 2) ?>
                                                             </span>
                                                         </td>
                                                         <td class="text-center">
-                                                            <span class="badge bg-<?= $growth_what >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                            <span class="badge bg-<?= $growth_what >= 0 ? 'success' : 'danger' ?> fs-8">
                                                                 <?= number_format(abs($growth_what), 1) ?>%
                                                             </span>
                                                         </td>
@@ -1751,12 +1751,12 @@ if ($user_level >= 5) {
                                                         <td class="text-center text-success"><?= number_format($data_current['total_how'], 2) ?></td>
                                                         <td class="text-center text-secondary"><?= number_format($data_previous['total_how'], 2) ?></td>
                                                         <td class="text-center">
-                                                            <span class="badge bg-<?= $delta_how >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                            <span class="badge bg-<?= $delta_how >= 0 ? 'success' : 'danger' ?> fs-8">
                                                                 <?= $delta_how >= 0 ? '+' : '' ?><?= number_format($delta_how, 2) ?>
                                                             </span>
                                                         </td>
                                                         <td class="text-center">
-                                                            <span class="badge bg-<?= $growth_how >= 0 ? 'success' : 'danger' ?> fs-6">
+                                                            <span class="badge bg-<?= $growth_how >= 0 ? 'success' : 'danger' ?> fs-8">
                                                                 <?= number_format(abs($growth_how), 1) ?>%
                                                             </span>
                                                         </td>
