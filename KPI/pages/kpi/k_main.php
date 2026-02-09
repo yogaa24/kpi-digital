@@ -1,44 +1,36 @@
 <!-- k_main.php -->
 <div class="row">
     <div class="col-lg connectedSortable">
-        <div class="d-flex flex-column flex-lg-row gap-2">
+        <div class="d-flex">
             <!-- CARD WHAT -->
-            <div class="card mb-3 mb-lg-4 flex-fill">
+            <div class="card mb-4 w-50" style="margin-right:7px;">
                 <div style="height: 50px; margin-top: -3px;" class="card-header bg-primary">
                     <h5 style="color:white;" class="card-title"><?= $poin; ?></h5>
                     <h5 style="color:white; margin-left: 15px;" class="badge text-bg-warning fs-7 fw-bolder">Bobot :
                         <?= $bobot ?>%
                     </h5>
                     <div class="card-tools">
-                        <!-- Tombol Edit Goals What -->
-                        <?php if ($can_edit): ?>
+                        <!-- Tombol Edit What -->
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="modal" data-bs-target="#EditModal<?= $idKPI ?>"
-                            class="btn btn-tool" title="Edit Goals What">
+                            data-bs-toggle="modal" data-bs-target="#EditModal<?= $idKPI ?>" class="btn btn-tool" title="Edit Goals What">
                             <i class="bi bi-pencil fs-6"></i>
                         </button>
-                        <?php endif; ?>
                         
-                        <!-- Tombol Hapus KPI -->
-                        <?php if ($can_delete): ?>
+                        <!-- Tombol Hapus KPI - STYLE SAMA DENGAN EDIT -->
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="modal" data-bs-target="#modalHapusKPI<?= $idKPI ?>"
-                            class="btn btn-tool" title="Hapus KPI">
+                            data-bs-toggle="modal" data-bs-target="#modalHapusKPI<?= $idKPI ?>" class="btn btn-tool" title="Hapus KPI">
                             <i class="bi bi-trash fs-6"></i>
                         </button>
-                        <?php endif; ?>
 
                         <!-- Tombol Tambah What -->
-                        <?php if ($can_add): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle" title="Tambah What">
+                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
                             <i class="bi bi-plus-circle fs-6"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end" role="menu">
                             <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                                data-bs-target="#WhatModal<?= $idKPI ?>">Tambah What</a>
+                                data-bs-target="#WhatModal<?= $idKPI ?>">Tambah What </a>
                         </div>
-                        <?php endif; ?>
                         
                         <!-- Tombol Collapse -->
                         <button style="color: white;" type="button" class="btn btn-tool"
@@ -49,320 +41,272 @@
                     </div>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-bordered mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Whats</th>
-                                    <th style="width: 30%">Hasil</th>
-                                    <th style="width: 5%"><center>Nilai</center></th>
-                                    <th style="width: 4%"><center>Bobot</center></th>
-                                    <th style="width: 4%"><center>Total</center></th>
-                                    <th style="width: 9%"><center>Action</center></th>
-                                </tr>
-                            </thead>
-                            
-                            <tbody>
-                            <?php 
-                            $sql1 = "SELECT * FROM tb_whats WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
-                            $ql = mysqli_query($conn, $sql1);
-                            while ($res = mysqli_fetch_assoc($ql)) {
-                                // CEK: Hanya tampilkan info edited jika DIUBAH ATASAN (edited_by != id_user)
-                                $is_edited_by_superior = ($res['is_edited'] && $res['edited_by'] != $id_user && !empty($res['edited_by']));
-                                $row_class = $is_edited_by_superior ? 'edited-row' : '';
-                            ?>
-                                <tr class="align-middle <?= $row_class ?>">
-                                    <!-- KOLOM WHATS -->
-                                    <td>
-                                        <?= $res['p_what']; ?>
-                                        
-                                        <?php if ($is_edited_by_superior && !empty($res['original_p_what']) && $res['original_p_what'] != $res['p_what']) { ?>
-                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i> DIUBAH ATASAN</span>
-                                            <div class="change-info">
-                                                <strong style="font-size: 9px;">Sendiri:</strong> 
-                                                <span class="old-val"><?= htmlspecialchars(substr($res['original_p_what'], 0, 50)) ?><?= strlen($res['original_p_what']) > 50 ? '...' : '' ?></span>
-                                                <br>
-                                                <strong style="font-size: 9px;">Atasan:</strong> 
-                                                <span class="new-val"><?= htmlspecialchars(substr($res['p_what'], 0, 50)) ?><?= strlen($res['p_what']) > 50 ? '...' : '' ?></span>
-                                            </div>
-                                        <?php } ?>
-                                        
-                                        <?php if ($res['tipe_what'] == 'B' && $res['target_omset'] > 0) { ?>
-                                            <br>
-                                            <small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
-                                                Target: <?= number_format($res['target_omset'], 0, ',', '.') ?>
-                                            </small>
-
-                                            <?php if (
-                                                $is_edited_by_superior &&
-                                                isset($res['original_target_omset']) &&
-                                                $res['original_target_omset'] > 0 &&
-                                                $res['original_target_omset'] != $res['target_omset']
-                                            ) { ?>
-                                                <span class="edited-badge">
-                                                    <i class="bi bi-pencil-fill"></i>
-                                                </span>
-                                                <div class="change-info">
-                                                    <strong style="font-size: 9px;">Target Sendiri:</strong>
-                                                    <span class="old-val">
-                                                        <?= number_format($res['original_target_omset'], 0, ',', '.') ?>
-                                                    </span>
-                                                    <br>
-                                                    <strong style="font-size: 9px;">Target Atasan:</strong>
-                                                    <span class="new-val">
-                                                        <?= number_format($res['target_omset'], 0, ',', '.') ?>
-                                                    </span>
-                                                </div>
-                                            <?php } ?>
-                                        <?php } ?>
-                                    </td>
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Whats</th>
+                                <th style="width: 30%">Hasil</th>
+                                <th style="width: 5%"><center>Nilai</center></th>
+                                <th style="width: 4%"><center>Bobot</center></th>
+                                <th style="width: 4%"><center>Total</center></th>
+                                <th style="width: 9%"><center>Action</center></th>
+                            </tr>
+                        </thead>
+                        
+                        <tbody>
+                        <?php 
+                        $sql1 = "SELECT * FROM tb_whats WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
+                        $ql = mysqli_query($conn, $sql1);
+                        while ($res = mysqli_fetch_assoc($ql)) {
+                            // CEK: Hanya tampilkan info edited jika DIUBAH ATASAN (edited_by != id_user)
+                            $is_edited_by_superior = ($res['is_edited'] && $res['edited_by'] != $id_user && !empty($res['edited_by']));
+                            $row_class = $is_edited_by_superior ? 'edited-row' : '';
+                        ?>
+                            <tr class="align-middle <?= $row_class ?>">
+                                <!-- KOLOM WHATS -->
+                                <td>
+                                    <?= $res['p_what']; ?>
                                     
-                                    <!-- KOLOM HASIL -->
-                                    <td>
-                                        <?= $res['hasil']; ?>
-                                        <?php if ($is_edited_by_superior && !empty($res['original_hasil']) && $res['original_hasil'] != $res['hasil']) { ?>
+                                    <?php if ($is_edited_by_superior && !empty($res['original_p_what']) && $res['original_p_what'] != $res['p_what']) { ?>
+                                        <span class="edited-badge"><i class="bi bi-pencil-fill"></i> DIUBAH ATASAN</span>
+                                        <div class="change-info">
+                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <span class="old-val"><?= htmlspecialchars(substr($res['original_p_what'], 0, 50)) ?><?= strlen($res['original_p_what']) > 50 ? '...' : '' ?></span>
+                                            <br>
+                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <span class="new-val"><?= htmlspecialchars(substr($res['p_what'], 0, 50)) ?><?= strlen($res['p_what']) > 50 ? '...' : '' ?></span>
+                                        </div>
+                                    <?php } ?>
+                                    
+                                    <?php if ($res['tipe_what'] == 'B' && $res['target_omset'] > 0) { ?>
+                                        <br><small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
+                                             Target: <?=number_format($res['target_omset'], 2)?>
+                                        </small>
+                                        
+                                        <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>
                                             <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
                                             <div class="change-info">
-                                                <strong style="font-size: 9px;">Seendiri:</strong> 
-                                                <span class="old-val"><?= htmlspecialchars(substr($res['original_hasil'], 0, 30)) ?><?= strlen($res['original_hasil']) > 30 ? '...' : '' ?></span>
+                                                <strong style="font-size: 9px;">Target Sebelum:</strong> 
+                                                <span class="old-val"><?= number_format($res['original_target_omset'], 2) ?></span>
                                                 <br>
-                                                <strong style="font-size: 9px;">Atasan:</strong> 
-                                                <span class="new-val"><?= htmlspecialchars(substr($res['hasil'], 0, 30)) ?><?= strlen($res['hasil']) > 30 ? '...' : '' ?></span>
+                                                <strong style="font-size: 9px;">Target Sesudah:</strong> 
+                                                <span class="new-val"><?= number_format($res['target_omset'], 2) ?></span>
                                             </div>
                                         <?php } ?>
-                                    </td>
-                                    
-                                    <!-- KOLOM NILAI -->
-                                    <td>
-                                        <center>
-                                            <?= $res['nilai']; ?>
-                                            <?php if ($is_edited_by_superior && $res['original_nilai'] != null && $res['original_nilai'] != $res['nilai']) { ?>
-                                                <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
-                                                <div class="change-info" style="text-align: left;">
-                                                    <span class="old-val"><?= $res['original_nilai'] ?></span> 
-                                                    → 
-                                                    <span class="new-val"><?= $res['nilai'] ?></span>
-                                                </div>
-                                            <?php } ?>
-                                        </center>
-                                    </td>
-                                    
-                                    <!-- KOLOM BOBOT -->
-                                    <td>
-                                        <center>
-                                            <?= $res['bobot']; ?>%
-                                            <?php if ($is_edited_by_superior && $res['original_bobot'] != null && $res['original_bobot'] != $res['bobot']) { ?>
-                                                <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
-                                                <div class="change-info" style="text-align: left;">
-                                                    <span class="old-val"><?= $res['original_bobot'] ?>%</span> 
-                                                    → 
-                                                    <span class="new-val"><?= $res['bobot'] ?>%</span>
-                                                </div>
-                                            <?php } ?>
-                                        </center>
-                                    </td>
-                                    
-                                    <!-- KOLOM TOTAL -->
-                                    <td>
-                                        <center>
-                                            <?= $res['total']; ?>
-                                            <?php if ($is_edited_by_superior && $res['original_total'] != null && $res['original_total'] != $res['total']) { ?>
-                                                <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
-                                                <div class="change-info" style="text-align: left;">
-                                                    <span class="old-val"><?= $res['original_total'] ?></span> 
-                                                    → 
-                                                    <span class="new-val"><?= $res['total'] ?></span>
-                                                </div>
-                                            <?php } ?>
-                                        </center>
-                                    </td>
-                                    
-                                    <!-- KOLOM ACTION -->
-                                    <td class="text-center">
-                                        <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
-                                            <i class="bi bi-eye fs-8"></i>
-                                        </button>
-                                        <div class="dropdown-menu dropdown-menu-end" role="menu">
-                                            <?php if($can_edit): ?>
-                                            <a value="<?php echo $res['id_what']; ?>" name="what_edit" class="dropdown-item"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#EditWhatModal<?= $res['id_what'] ?>">
-                                                <i class="bi bi-pencil me-2"></i>Edit
-                                            </a>
-                                            <?php else: ?>
-                                            <a class="dropdown-item disabled text-muted">
-                                                <i class="bi bi-lock me-2"></i>Edit (Terkunci)
-                                            </a>
-                                            <?php endif; ?>
-                                            
-                                            <?php if($can_delete): ?>
-                                            <a class="dropdown-item text-danger" data-bs-toggle="modal"
-                                                data-bs-target="#HapusWhatModal<?= $res['id_what'] ?>">
-                                                <i class="bi bi-trash me-2"></i>Hapus
-                                            </a>
-                                            <?php else: ?>
-                                            <a class="dropdown-item disabled text-muted">
-                                                <i class="bi bi-lock me-2"></i>Hapus (Terkunci)
-                                            </a>
-                                            <?php endif; ?>
-                                            
-                                            <?php if ($can_edit): ?>
-                                                <div class="dropdown-divider"></div>
-                                                <a class="dropdown-item fw-bolder"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#NilaiWhatModal<?= $res['id_what'] ?>">
-                                                    <i class="bi bi-star me-2"></i>Nilai
-                                                </a>
-                                            <?php else: ?>
-                                                <a class="dropdown-item disabled text-muted fw-bolder">
-                                                    <i class="bi bi-lock me-2"></i>Nilai (Terkunci)
-                                                </a>
-                                            <?php endif; ?>
-                                        </div>
-                                        
-                                        <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>
-                                            <div class="change-timestamp mt-1">
-                                                <i class="bi bi-clock"></i> <?= date('d/m H:i', strtotime($res['edited_at'])) ?>
-                                            </div>
-                                        <?php } ?>
-                                    </td>
-
-                                    <?php include('pages/kpi/k_modalHapuswhat.php'); ?>
-                                </tr>
+                                    <?php } ?>
+                                </td>
                                 
-                                <?php
-                                // Ambil data what
-                                $tipe_what = $res['tipe_what'];
-                                $target_omset = $res['target_omset'];
-                                ?>
-
-                                <!-- Modal Nilai What -->
-                                <div class="modal fade" id="NilaiWhatModal<?=$res['id_what']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                    
-                                    <!-- Tambahkan style ini -->
-                                    <style>
-                                        #NilaiWhatModal<?=$res['id_what']?> select option {
-                                        white-space: normal;
-                                        word-wrap: break-word;
-                                        overflow-wrap: break-word;
-                                        max-width: 100%;
-                                        }
-                                        
-                                        #NilaiWhatModal<?=$res['id_what']?> select {
-                                        max-width: 100%;
-                                        }
-                                    </style>
-                                    
-                                    <div class="modal-header"> 
-                                        <h5 class="modal-title fw-bold" id="exampleModalLabel">
-                                        Penilaian What <?=$tipe_what?>
-                                        </h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <!-- KOLOM HASIL -->
+                                <td>
+                                    <?= $res['hasil']; ?>
+                                    <?php if ($is_edited_by_superior && !empty($res['original_hasil']) && $res['original_hasil'] != $res['hasil']) { ?>
+                                        <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                        <div class="change-info">
+                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <span class="old-val"><?= htmlspecialchars(substr($res['original_hasil'], 0, 30)) ?><?= strlen($res['original_hasil']) > 30 ? '...' : '' ?></span>
+                                            <br>
+                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <span class="new-val"><?= htmlspecialchars(substr($res['hasil'], 0, 30)) ?><?= strlen($res['hasil']) > 30 ? '...' : '' ?></span>
+                                        </div>
+                                    <?php } ?>
+                                </td>
+                                
+                                <!-- KOLOM NILAI -->
+                                <td>
+                                    <center>
+                                        <?= $res['nilai']; ?>
+                                        <?php if ($is_edited_by_superior && $res['original_nilai'] != null && $res['original_nilai'] != $res['nilai']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_nilai'] ?></span> 
+                                                → 
+                                                <span class="new-val"><?= $res['nilai'] ?></span>
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM BOBOT -->
+                                <td>
+                                    <center>
+                                        <?= $res['bobot']; ?>%
+                                        <?php if ($is_edited_by_superior && $res['original_bobot'] != null && $res['original_bobot'] != $res['bobot']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_bobot'] ?>%</span> 
+                                                → 
+                                                <span class="new-val"><?= $res['bobot'] ?>%</span>
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM TOTAL -->
+                                <td>
+                                    <center>
+                                        <?= $res['total']; ?>
+                                        <?php if ($is_edited_by_superior && $res['original_total'] != null && $res['original_total'] != $res['total']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_total'] ?></span> 
+                                                → 
+                                                <span class="new-val"><?= $res['total'] ?></span>
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM ACTION -->
+                                <td class="text-center">
+                                    <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
+                                        <i class="bi bi-eye fs-8"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end" role="menu">
+                                        <a value="<?php echo $res['id_what']; ?>" name="what_edit" class="dropdown-item"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#EditWhatModal<?= $res['id_what'] ?>">Edit</a>
+                                        <a class="dropdown-item" data-bs-toggle="modal"
+                                            data-bs-target="#HapusWhatModal<?= $res['id_what'] ?>">Hapus</a>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
+                                            data-bs-target="#NilaiWhatModal<?= $res['id_what'] ?>">Nilai</a>
                                     </div>
-                                    <div class="modal-body">
-                                        <form method="POST" action="">
-                                        <input type="hidden" value="<?php echo $res['id_what']; ?>" name="idkpi"> 
+                                    
+                                    <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>
+                                        <div class="change-timestamp mt-1">
+                                            <i class="bi bi-clock"></i> <?= date('d/m H:i', strtotime($res['edited_at'])) ?>
+                                        </div>
+                                    <?php } ?>
+                                </td>
+
+                                <?php include('pages/kpi/k_modalHapuswhat.php'); ?>
+                            </tr>
+                            
+                            <?php
+                            // Ambil data what
+                            $tipe_what = $res['tipe_what'];
+                            $target_omset = $res['target_omset'];
+                            ?>
+
+                            <!-- Modal Nilai What -->
+                            <div class="modal fade" id="NilaiWhatModal<?=$res['id_what']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                
+                                <!-- Tambahkan style ini -->
+                                <style>
+                                    #NilaiWhatModal<?=$res['id_what']?> select option {
+                                    white-space: normal;
+                                    word-wrap: break-word;
+                                    overflow-wrap: break-word;
+                                    max-width: 100%;
+                                    }
+                                    
+                                    #NilaiWhatModal<?=$res['id_what']?> select {
+                                    max-width: 100%;
+                                    }
+                                </style>
+                                
+                                <div class="modal-header"> 
+                                    <h5 class="modal-title fw-bold" id="exampleModalLabel">
+                                    Penilaian What <?=$tipe_what?>
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form method="POST" action="">
+                                    <input type="hidden" value="<?php echo $res['id_what']; ?>" name="idkpi"> 
+                                    
+                                    <div class="input-group mb-3">
+                                        <span style="color: #343A40;" class="input-group-text fw-bold" id="tujuan">Tujuan :</span>
+                                        <textarea type="input" class="form-control" name="indikatorwhat" disabled placeholder="" aria-label="Tujuan KPI" aria-describedby="tujuan"><?=$res['p_what']?></textarea>
+                                    </div>
+                                    
+                                    <?php if ($tipe_what == 'A') { ?>
+                                        <!-- WHAT A: Pilih dari indikator -->
+                                        <div class="mb-3">
+                                        <label class="form-label fw-bold">Pilih Nilai Penilaian:</label>
+                                        <select required class="form-select" name="nilaisi" id="nilaisi<?=$res['id_what']?>">
+                                            <option selected disabled>-- Pilih Nilai --</option>
+                                            <?php 
+                                            $id_what = $res['id_what'];
+                                            $sql_indikator = "SELECT * FROM tb_indikator_whats 
+                                                            WHERE id_what = '$id_what' 
+                                                            ORDER BY urutan ASC";
+                                            $result_indikator = mysqli_query($conn, $sql_indikator);
+                                            
+                                            while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                                // Potong keterangan jika terlalu panjang untuk ditampilkan
+                                                $ket_display = strlen($indikator['keterangan']) > 80 
+                                                            ? substr($indikator['keterangan'], 0, 80) . '...' 
+                                                            : $indikator['keterangan'];
+                                                
+                                                echo '<option value="'.$indikator['id_indikator'].'" title="'.$indikator['keterangan'].'">';
+                                                echo htmlspecialchars($ket_display) . ' = ' . $indikator['nilai'];
+                                                echo '</option>';
+                                            }
+                                            ?>
+                                        </select>
+                                        <small class="text-muted">Hover pada pilihan untuk melihat keterangan lengkap</small>
+                                        </div>
+                                    <?php } else { ?>
+                                        <!-- WHAT B: Input target omset dan hasil -->
+                                        <div class="input-group mb-3">
+                                        <span style="color: #343A40;" class="input-group-text fw-bold">Target Omset :</span>
+                                        <input type="number" step="0.01" class="form-control" name="target_omset" 
+                                            value="<?=$target_omset?>" required placeholder="Contoh: 1000000">
+                                        </div>
                                         
                                         <div class="input-group mb-3">
-                                            <span style="color: #343A40;" class="input-group-text fw-bold" id="tujuan">Tujuan :</span>
-                                            <textarea type="input" class="form-control" name="indikatorwhat" disabled placeholder="" aria-label="Tujuan KPI" aria-describedby="tujuan"><?=$res['p_what']?></textarea>
+                                        <span style="color: #343A40;" class="input-group-text fw-bold">Hasil Omset :</span>
+                                        <input type="number" step="0.01" class="form-control" name="hasil_omset" 
+                                            required placeholder="Hasil yang dicapai">
                                         </div>
-                                        
-                                        <?php if ($tipe_what == 'A') { ?>
-                                            <!-- WHAT A: Pilih dari indikator -->
-                                            <div class="mb-3">
-                                            <label class="form-label fw-bold">Pilih Nilai Penilaian:</label>
-                                            <select required class="form-select" name="nilaisi" id="nilaisi<?=$res['id_what']?>">
-                                                <option selected disabled>-- Pilih Nilai --</option>
-                                                <?php 
-                                                $id_what = $res['id_what'];
-                                                $sql_indikator = "SELECT * FROM tb_indikator_whats 
-                                                                WHERE id_what = '$id_what' 
-                                                                ORDER BY urutan ASC";
-                                                $result_indikator = mysqli_query($conn, $sql_indikator);
-                                                
-                                                while ($indikator = mysqli_fetch_assoc($result_indikator)) {
-                                                    // Potong keterangan jika terlalu panjang untuk ditampilkan
-                                                    $ket_display = strlen($indikator['keterangan']) > 80 
-                                                                ? substr($indikator['keterangan'], 0, 80) . '...' 
-                                                                : $indikator['keterangan'];
-                                                    
-                                                    echo '<option value="'.$indikator['id_indikator'].'" title="'.$indikator['keterangan'].'">';
-                                                    echo htmlspecialchars($ket_display) . ' = ' . $indikator['nilai'];
-                                                    echo '</option>';
-                                                }
-                                                ?>
-                                            </select>
-                                            <small class="text-muted">Hover pada pilihan untuk melihat keterangan lengkap</small>
-                                            </div>
-                                        <?php } else { ?>
-                                            <!-- WHAT B: Input target omset dan hasil -->
-                                            <div class="input-group mb-3">
-                                            <span style="color: #343A40;" class="input-group-text fw-bold">Target Omset :</span>
-                                            <input type="number" step="0.01" class="form-control" name="target_omset" 
-                                                value="<?=$target_omset?>" required placeholder="Contoh: 1000000">
-                                            </div>
-                                            
-                                            <div class="input-group mb-3">
-                                            <span style="color: #343A40;" class="input-group-text fw-bold">Hasil Omset :</span>
-                                            <input type="number" step="0.01" class="form-control" name="hasil_omset" 
-                                                required placeholder="Hasil yang dicapai">
-                                            </div>
-                                        <?php } ?>
-                                        
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            <button type="submit" name="nilai_what" class="btn btn-primary">Simpan</button>
-                                        </div>
-                                        </form>
+                                    <?php } ?>
+                                    
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" name="nilai_what" class="btn btn-primary">Simpan</button>
                                     </div>
-                                    </div>
+                                    </form>
                                 </div>
                                 </div>
-                                
-                                <?php include('pages/kpi/k_modalEditwhat.php'); ?>
+                            </div>
+                            </div>
+                             
+                            <?php include('pages/kpi/k_modalEditwhat.php'); ?>
 
-                                <?php } ?>
-                            </tbody>
-                        </table>
-                    </div>
+                            <?php } ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
             
             <!-- CARD HOW -->
-            <div class="card mb-3 mb-lg-4 flex-fill">
-               <div style="height: auto; min-height: 50px; margin-top: -3px;" class="card-header bg-primary">
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <h5 style="color:white; margin: 0;" class="card-title flex-grow-1"><?= $poin; ?></h5>
-                        <h5 style="color:white; margin: 0;" class="badge text-bg-warning fs-7 fw-bolder">
-                            Bobot : <?= $bobot ?>%
-                        </h5>
-                    </div>
+            <div class="card mb-4 w-50" style="margin-left:7px;">
+                <div style="height: 50px; margin-top: -3px;" class="card-header bg-success">
+                    <h5 style="color:white;" class="card-title"><?= $poin2; ?></h5>
+                    <h5 style="color:white; margin-left: 15px;" class="badge text-bg-warning fs-7 fw-bolder">
+                        Bobot : <?= $bobot2 ?>%
+                    </h5>
                     <div class="card-tools">
-                        <!-- Tombol Edit Goals How -->
-                        <?php if ($can_edit): ?>
+                        <!-- Tombol Edit How -->
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="modal" data-bs-target="#EditModal2<?= $idKPI ?>"
-                            class="btn btn-tool" title="Edit Goals How">
+                            data-bs-toggle="modal" data-bs-target="#EditModal2<?= $idKPI ?>" class="btn btn-tool" title="Edit Goals How">
                             <i class="bi bi-pencil fs-6"></i>
                         </button>
-                        <?php endif; ?>
-
+                        
                         <!-- Tombol Tambah How -->
-                        <?php if ($can_add): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
-                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle" title="Tambah How">
+                            data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
                             <i class="bi bi-plus-circle fs-6"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end" role="menu">
                             <a href="#" class="dropdown-item" data-bs-toggle="modal"
-                                data-bs-target="#HowModal<?= $idKPI ?>">Tambah How</a>
+                                data-bs-target="#HowModal<?= $idKPI ?>">Tambah How </a>
                         </div>
-                        <?php endif; ?>
-
-                        <!-- Tombol Collapse (tetap tampil) -->
+                        
+                        <!-- Tombol Collapse -->
                         <button style="color: white;" type="button" class="btn btn-tool"
                             data-lte-toggle="card-collapse">
                             <i data-lte-icon="expand" class="bi bi-caret-down-fill"></i>
@@ -371,275 +315,222 @@
                     </div>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-bordered mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Hows</th>
-                                    <th style="width: 30%">Hasil</th>
-                                    <th style="width: 5%"><center>Nilai</center></th>
-                                    <th style="width: 4%"><center>Bobot</center></th>
-                                    <th style="width: 4%"><center>Total</center></th>
-                                    <th style="width: 9%"><center>Action</center></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            <?php
-                                $sql1 = "SELECT * FROM tb_hows WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
-                                $ql = mysqli_query($conn, $sql1);
-                                while ($res = mysqli_fetch_assoc($ql)) {
-                                    // CEK: Hanya tampilkan jika DIUBAH ATASAN
-                                    $is_edited_by_superior = ($res['is_edited'] && $res['edited_by'] != $id_user && !empty($res['edited_by']));
-                                    $row_class = $is_edited_by_superior ? 'edited-row' : '';
-                                ?>
-                                <tr class="align-middle <?= $row_class ?>">
-                                    <!-- KOLOM HOWS -->
-                                    <td>
-                                        <?= $res['p_how']; ?>
-                                        
-                                        <?php if ($is_edited_by_superior && !empty($res['original_p_how']) && $res['original_p_how'] != $res['p_how']) { ?>
-                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i> DIUBAH ATASAN</span>
-                                            <div class="change-info">
-                                                <strong style="font-size: 9px;">Sendiri:</strong> 
-                                                <span class="old-val"><?= htmlspecialchars(substr($res['original_p_how'], 0, 50)) ?><?= strlen($res['original_p_how']) > 50 ? '...' : '' ?></span>
-                                                <br>
-                                                <strong style="font-size: 9px;">Atasan:</strong> 
-                                                <span class="new-val"><?= htmlspecialchars(substr($res['p_how'], 0, 50)) ?><?= strlen($res['p_how']) > 50 ? '...' : '' ?></span>
-                                            </div>
-                                        <?php } ?>
-                                        
-                                        <?php if ($res['tipe_how'] == 'B' && $res['target_omset'] > 0) { ?>
-                                        <br>
-                                        <small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
-                                            Target: <?= number_format($res['target_omset'], 0, ',', '.') ?>
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Hows</th>
+                                <th style="width: 30%">Hasil</th>
+                                <th style="width: 5%"><center>Nilai</center></th>
+                                <th style="width: 4%"><center>Bobot</center></th>
+                                <th style="width: 4%"><center>Total</center></th>
+                                <th style="width: 9%"><center>Action</center></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                            $sql1 = "SELECT * FROM tb_hows WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
+                            $ql = mysqli_query($conn, $sql1);
+                            while ($res = mysqli_fetch_assoc($ql)) {
+                                // CEK: Hanya tampilkan jika DIUBAH ATASAN
+                                $is_edited_by_superior = ($res['is_edited'] && $res['edited_by'] != $id_user && !empty($res['edited_by']));
+                                $row_class = $is_edited_by_superior ? 'edited-row' : '';
+                            ?>
+                            <tr class="align-middle <?= $row_class ?>">
+                                <!-- KOLOM HOWS -->
+                                <td>
+                                    <?= $res['p_how']; ?>
+                                    
+                                    <?php if ($is_edited_by_superior && !empty($res['original_p_how']) && $res['original_p_how'] != $res['p_how']) { ?>
+                                        <span class="edited-badge"><i class="bi bi-pencil-fill"></i> DIUBAH ATASAN</span>
+                                        <div class="change-info">
+                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <span class="old-val"><?= htmlspecialchars(substr($res['original_p_how'], 0, 50)) ?><?= strlen($res['original_p_how']) > 50 ? '...' : '' ?></span>
+                                            <br>
+                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <span class="new-val"><?= htmlspecialchars(substr($res['p_how'], 0, 50)) ?><?= strlen($res['p_how']) > 50 ? '...' : '' ?></span>
+                                        </div>
+                                    <?php } ?>
+                                    
+                                    <?php if ($res['tipe_how'] == 'B' && $res['target_omset'] > 0) { ?>
+                                        <br><small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
+                                            Target: <?=number_format($res['target_omset'], 2)?>
                                         </small>
-
+                                        
                                         <!-- ===== TAMBAHAN BARU: TAMPILKAN PERUBAHAN TARGET OMSET HOW B ===== -->
-                                        <?php if (
-                                            $is_edited_by_superior &&
-                                            isset($res['original_target_omset']) &&
-                                            $res['original_target_omset'] > 0 &&
-                                            $res['original_target_omset'] != $res['target_omset']
-                                        ) { ?>
-                                            <span class="edited-badge">
-                                                <i class="bi bi-pencil-fill"></i>
-                                            </span>
+                                        <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
                                             <div class="change-info">
-                                                <strong style="font-size: 9px;">Target Sendiri:</strong>
-                                                <span class="old-val">
-                                                    <?= number_format($res['original_target_omset'], 0, ',', '.') ?>
-                                                </span>
+                                                <strong style="font-size: 9px;">Target Sebelum:</strong> 
+                                                <span class="old-val"><?= number_format($res['original_target_omset'], 2) ?></span>
                                                 <br>
-                                                <strong style="font-size: 9px;">Target Atasan:</strong>
-                                                <span class="new-val">
-                                                    <?= number_format($res['target_omset'], 0, ',', '.') ?>
-                                                </span>
+                                                <strong style="font-size: 9px;">Target Sesudah:</strong> 
+                                                <span class="new-val"><?= number_format($res['target_omset'], 2) ?></span>
                                             </div>
                                         <?php } ?>
                                         <!-- ===== AKHIR TAMBAHAN ===== -->
                                     <?php } ?>
-                                    </td>
-                                    
-                                    <!-- KOLOM HASIL -->
-                                    <td>
-                                        <?= $res['hasil']; ?>
-                                        <?php if ($is_edited_by_superior && !empty($res['original_hasil']) && $res['original_hasil'] != $res['hasil']) { ?>
-                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
-                                            <div class="change-info">
-                                                <strong style="font-size: 9px;">Sendiri:</strong> 
-                                                <span class="old-val"><?= htmlspecialchars(substr($res['original_hasil'], 0, 30)) ?><?= strlen($res['original_hasil']) > 30 ? '...' : '' ?></span>
-                                                <br>
-                                                <strong style="font-size: 9px;">Atasan:</strong> 
-                                                <span class="new-val"><?= htmlspecialchars(substr($res['hasil'], 0, 30)) ?><?= strlen($res['hasil']) > 30 ? '...' : '' ?></span>
-                                            </div>
-                                        <?php } ?>
-                                    </td>
-                                    
-                                    <!-- KOLOM NILAI -->
-                                    <td>
-                                        <center>
-                                            <?= $res['nilai']; ?>
-                                            <?php if ($is_edited_by_superior && $res['original_nilai'] != null && $res['original_nilai'] != $res['nilai']) { ?>
-                                                <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
-                                                <div class="change-info" style="text-align: left;">
-                                                    <span class="old-val"><?= $res['original_nilai'] ?></span> 
-                                                    → 
-                                                    <span class="new-val"><?= $res['nilai'] ?></span>
-                                                </div>
-                                            <?php } ?>
-                                        </center>
-                                    </td>
-                                    
-                                    <!-- KOLOM BOBOT -->
-                                    <td>
-                                        <center>
-                                            <?= $res['bobot']; ?>%
-                                            <?php if ($is_edited_by_superior && $res['original_bobot'] != null && $res['original_bobot'] != $res['bobot']) { ?>
-                                                <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
-                                                <div class="change-info" style="text-align: left;">
-                                                    <span class="old-val"><?= $res['original_bobot'] ?>%</span> 
-                                                    → 
-                                                    <span class="new-val"><?= $res['bobot'] ?>%</span>
-
-                                                </div>
-                                            <?php } ?>
-                                        </center>
-                                    </td>
-                                    
-                                    <!-- KOLOM TOTAL -->
-                                    <td>
-                                        <center>
-                                            <?= $res['total']; ?>
-                                            <?php if ($is_edited_by_superior && $res['original_total'] != null && $res['original_total'] != $res['total']) { ?>
-                                                <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
-                                                <div class="change-info" style="text-align: left;">
-                                                    <span class="old-val"><?= $res['original_total'] ?></span> 
-                                                    → 
-                                                    <span class="new-val"><?= $res['total'] ?></span>
-                                                </div>
-                                            <?php } ?>
-                                        </center>
-                                    </td>
-                                    
-                                    <!-- ACTION -->
-                                    <td class="text-center">
-                                        <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
-                                            <i class="bi bi-eye fs-8"></i>
-                                        </button>
-                                        <div class="dropdown-menu dropdown-menu-end" role="menu">
-                                            <?php if($can_edit): ?>
-                                            <a value="<?php echo $res['id_how']; ?>" name="how_edit" class="dropdown-item"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#EditHowModal<?= $res['id_how'] ?>">
-                                                <i class="bi bi-pencil me-2"></i>Edit
-                                            </a>
-                                            <?php else: ?>
-                                            <a class="dropdown-item disabled text-muted">
-                                                <i class="bi bi-lock me-2"></i>Edit (Terkunci)
-                                            </a>
-                                            <?php endif; ?>
-                                            
-                                            <?php if($can_delete): ?>
-                                            <a class="dropdown-item text-danger" data-bs-toggle="modal"
-                                                data-bs-target="#HapusHowModal<?= $res['id_how'] ?>">
-                                                <i class="bi bi-trash me-2"></i>Hapus
-                                            </a>
-                                            <?php else: ?>
-                                            <a class="dropdown-item disabled text-muted">
-                                                <i class="bi bi-lock me-2"></i>Hapus (Terkunci)
-                                            </a>
-                                            <?php endif; ?>
-
-                                            <?php if ($can_edit): ?>
-                                                <div class="dropdown-divider"></div>
-                                                <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
-                                                    data-bs-target="#NilaiHowModal<?= $res['id_how'] ?>">
-                                                    <i class="bi bi-star me-2"></i>Nilai
-                                                </a>
-                                            <?php else: ?>
-                                                <a class="dropdown-item disabled text-muted fw-bolder">
-                                                    <i class="bi bi-lock me-2"></i>Nilai (Terkunci)
-                                                </a>
-                                            <?php endif; ?>
-                                        </div>
-                                        
-                                        <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>
-                                            <div class="change-timestamp mt-1">
-                                                <i class="bi bi-clock"></i> <?= date('d/m H:i', strtotime($res['edited_at'])) ?>
-                                            </div>
-                                        <?php } ?>
-                                    </td>
-                                </tr>
+                                </td>
                                 
-                                <?php
-                                $tipe_how = $res['tipe_how'];
-                                $target_omset = $res['target_omset'];
-                                ?>
-
-                                <!-- Modal Nilai How -->
-                                <div class="modal fade" id="NilaiHowModal<?=$res['id_how']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-lg">
-                                        <div class="modal-content"> 
-                                            <style>
-                                            #NilaiHowModal<?=$res['id_how']?> select option {
-                                                white-space: normal;
-                                                word-wrap: break-word;
-                                                overflow-wrap: break-word;
-                                                max-width: 100%;
-                                            }
-
-                                            #NilaiHowModal<?=$res['id_how']?> select {
-                                                max-width: 100%;
-                                            }
-                                            </style>
-
-                                            <div class="modal-header"> 
-                                                <h5 class="modal-title fw-bold" id="exampleModalLabel">
-                                                    Penilaian How <?=$tipe_how?>
-                                                </h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <!-- KOLOM HASIL -->
+                                <td>
+                                    <?= $res['hasil']; ?>
+                                    <?php if ($is_edited_by_superior && !empty($res['original_hasil']) && $res['original_hasil'] != $res['hasil']) { ?>
+                                        <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                        <div class="change-info">
+                                            <strong style="font-size: 9px;">Sebelum:</strong> 
+                                            <span class="old-val"><?= htmlspecialchars(substr($res['original_hasil'], 0, 30)) ?><?= strlen($res['original_hasil']) > 30 ? '...' : '' ?></span>
+                                            <br>
+                                            <strong style="font-size: 9px;">Sesudah:</strong> 
+                                            <span class="new-val"><?= htmlspecialchars(substr($res['hasil'], 0, 30)) ?><?= strlen($res['hasil']) > 30 ? '...' : '' ?></span>
+                                        </div>
+                                    <?php } ?>
+                                </td>
+                                
+                                <!-- KOLOM NILAI -->
+                                <td>
+                                    <center>
+                                        <?= $res['nilai']; ?>
+                                        <?php if ($is_edited_by_superior && $res['original_nilai'] != null && $res['original_nilai'] != $res['nilai']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_nilai'] ?></span> 
+                                                → 
+                                                <span class="new-val"><?= $res['nilai'] ?></span>
                                             </div>
-                                            <div class="modal-body">
-                                                <form method="POST" action="">
-                                                    <input type="hidden" value="<?php echo $res['id_how']; ?>" name="idkpi"> 
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM BOBOT -->
+                                <td>
+                                    <center>
+                                        <?= $res['bobot']; ?>%
+                                        <?php if ($is_edited_by_superior && $res['original_bobot'] != null && $res['original_bobot'] != $res['bobot']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_bobot'] ?>%</span> 
+                                                → 
+                                                <span class="new-val"><?= $res['bobot'] ?>%</span>
+
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- KOLOM TOTAL -->
+                                <td>
+                                    <center>
+                                        <?= $res['total']; ?>
+                                        <?php if ($is_edited_by_superior && $res['original_total'] != null && $res['original_total'] != $res['total']) { ?>
+                                            <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
+                                            <div class="change-info" style="text-align: left;">
+                                                <span class="old-val"><?= $res['original_total'] ?></span> 
+                                                → 
+                                                <span class="new-val"><?= $res['total'] ?></span>
+                                            </div>
+                                        <?php } ?>
+                                    </center>
+                                </td>
+                                
+                                <!-- ACTION -->
+                                <td class="text-center">
+                                    <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
+                                        <i class="bi bi-eye fs-8"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end" role="menu">
+                                        <a value="<?php echo $res['id_how']; ?>" name="how_edit" class="dropdown-item"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#EditHowModal<?= $res['id_how'] ?>">Edit</a>
+                                        <a class="dropdown-item" data-bs-toggle="modal"
+                                            data-bs-target="#HapusHowModal<?= $res['id_how'] ?>">Hapus</a>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
+                                            data-bs-target="#NilaiHowModal<?= $res['id_how'] ?>">Nilai</a>
+                                    </div>
+                                    
+                                    <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>
+                                        <div class="change-timestamp mt-1">
+                                            <i class="bi bi-clock"></i> <?= date('d/m H:i', strtotime($res['edited_at'])) ?>
+                                        </div>
+                                    <?php } ?>
+                                </td>
+                            </tr>
+                            
+                            <?php
+                            $tipe_how = $res['tipe_how'];
+                            $target_omset = $res['target_omset'];
+                            ?>
+
+                            <!-- Modal Nilai How -->
+                            <div class="modal fade" id="NilaiHowModal<?=$res['id_how']?>" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content"> 
+                                        <div class="modal-header"> 
+                                            <h5 class="modal-title fw-bold" id="exampleModalLabel">
+                                                Penilaian How <?=$tipe_how?>
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="POST" action="">
+                                                <input type="hidden" value="<?php echo $res['id_how']; ?>" name="idkpi"> 
+                                                
+                                                <div class="input-group mb-3">
+                                                    <span style="color: #343A40;" class="input-group-text fw-bold" id="tujuan">Tujuan :</span>
+                                                    <textarea type="input" class="form-control" name="indikatorhow" disabled placeholder="" aria-label="Tujuan KPI" aria-describedby="tujuan"><?=$res['p_how']?></textarea>
+                                                </div>
+                                                
+                                                <?php if ($tipe_how == 'A') { ?>
+                                                    <!-- HOW A: Pilih dari indikator -->
+                                                    <div class="input-group mb-3">
+                                                        <span style="color: #343A40;" class="input-group-text fw-bold">Nilai :</span>
+                                                        <select required class="form-control" name="nilaisi" id="nilaisi">
+                                                            <option selected disabled>Pilih Nilai</option>
+                                                            <?php 
+                                                            $id_how = $res['id_how'];
+                                                            $sql_indikator = "SELECT * FROM tb_indikator_hows 
+                                                                            WHERE id_how = '$id_how' 
+                                                                            ORDER BY urutan ASC";
+                                                            $result_indikator = mysqli_query($conn, $sql_indikator);
+                                                            
+                                                            while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                                                echo '<option value="'.$indikator['id_indikator'].'">';
+                                                                echo ''.$indikator['keterangan'].' = '.$indikator['nilai'];
+                                                                echo '</option>';
+                                                            }
+                                                            ?>
+                                                        </select>
+                                                    </div>
+                                                <?php } else { ?>
+                                                    <!-- HOW B: Input target omset dan hasil -->
+                                                    <div class="input-group mb-3">
+                                                        <span style="color: #343A40;" class="input-group-text fw-bold">Target Omset :</span>
+                                                        <input type="number" step="0.01" class="form-control" name="target_omset" 
+                                                            value="<?=$target_omset?>" required placeholder="Contoh: 1000000">
+                                                    </div>
                                                     
                                                     <div class="input-group mb-3">
-                                                        <span style="color: #343A40;" class="input-group-text fw-bold" id="tujuan">Tujuan :</span>
-                                                        <textarea type="input" class="form-control" name="indikatorhow" disabled placeholder="" aria-label="Tujuan KPI" aria-describedby="tujuan"><?=$res['p_how']?></textarea>
+                                                        <span style="color: #343A40;" class="input-group-text fw-bold">Hasil Omset :</span>
+                                                        <input type="number" step="0.01" class="form-control" name="hasil_omset" 
+                                                            required placeholder="Hasil yang dicapai">
                                                     </div>
-                                                    
-                                                    <?php if ($tipe_how == 'A') { ?>
-                                                        <!-- HOW A: Pilih dari indikator -->
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-bold">Pilih Nilai Penilaian:</label>
-                                                            <select required class="form-select" name="nilaisi" id="nilaisi<?=$res['id_how']?>">
-                                                                <option selected disabled>-- Pilih Nilai --</option>
-                                                                <?php 
-                                                                $id_how = $res['id_how'];
-                                                                $sql_indikator = "SELECT * FROM tb_indikator_hows 
-                                                                                WHERE id_how = '$id_how' 
-                                                                                ORDER BY urutan ASC";
-                                                                $result_indikator = mysqli_query($conn, $sql_indikator);
-                                                                
-                                                                while ($indikator = mysqli_fetch_assoc($result_indikator)) {
-                                                                    echo '<option value="'.$indikator['id_indikator'].'">';
-                                                                    echo htmlspecialchars($indikator['keterangan']) . ' = ' . $indikator['nilai'];
-                                                                    echo '</option>';
-                                                                }
-                                                                ?>
-                                                            </select>
-                                                        </div>
-                                                    <?php } else { ?>
-                                                        <!-- HOW B: Input target omset dan hasil -->
-                                                        <div class="input-group mb-3">
-                                                            <span style="color: #343A40;" class="input-group-text fw-bold">Target Omset :</span>
-                                                            <input type="number" step="0.01" class="form-control" name="target_omset" 
-                                                                value="<?=$target_omset?>" required placeholder="Contoh: 1000000">
-                                                        </div>
-                                                        
-                                                        <div class="input-group mb-3">
-                                                            <span style="color: #343A40;" class="input-group-text fw-bold">Hasil Omset :</span>
-                                                            <input type="number" step="0.01" class="form-control" name="hasil_omset" 
-                                                                required placeholder="Hasil yang dicapai">
-                                                        </div>
-                                                    <?php } ?>
-                                                    
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                        <button type="submit" name="nilai_how" class="btn btn-success">Simpan</button>
-                                                    </div>
-                                                </form>
-                                            </div>
+                                                <?php } ?>
+                                                
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" name="nilai_how" class="btn btn-success">Simpan</button>
+                                                </div>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <?php include('pages/kpi/k_modalEdithow.php'); ?>
-                                <?php include('pages/kpi/k_modalHapushow.php'); ?>
-                                <?php } ?>
-                            </tbody>
-                        </table>
-                    </div>
+                            <?php include('pages/kpi/k_modalEdithow.php'); ?>
+                            <?php include('pages/kpi/k_modalHapushow.php'); ?>
+                            <?php } ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
