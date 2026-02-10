@@ -346,7 +346,7 @@ if (!isset($_SESSION['id_user'])) {
             
             // 2. Copy KPI Points
             $kpi_real = mysqli_query($conn, "SELECT * FROM tb_kpi WHERE id_user = $id_user");
-            $kpi_mapping = []; // Untuk mapping ID lama ke ID baru
+            $kpi_mapping = [];
             
             while ($kpi = mysqli_fetch_assoc($kpi_real)) {
                 $poin = mysqli_real_escape_string($conn, $kpi['poin']);
@@ -368,13 +368,19 @@ if (!isset($_SESSION['id_user'])) {
                     $tipe_what = mysqli_real_escape_string($conn, $what['tipe_what']);
                     $p_what = mysqli_real_escape_string($conn, $what['p_what']);
                     $bobot_what = $what['bobot'];
-                    $target_omset = $what['target_omset'];
+                    
+                    // ⭐ PERBAIKAN: Handle NULL untuk target_omset
+                    $target_omset = ($what['target_omset'] !== null && $what['target_omset'] !== '') 
+                        ? $what['target_omset'] 
+                        : 0;
+                    
                     $hasil = mysqli_real_escape_string($conn, $what['hasil']);
                     $nilai = $what['nilai'];
                     $total = $what['total'];
                     
                     $sql_insert_what = "INSERT INTO tbsim_whats (id_user, id_kpi, tipe_what, p_what, bobot, target_omset, hasil, nilai, total) 
                                         VALUES ($id_user, $new_kpi_id, '$tipe_what', '$p_what', $bobot_what, $target_omset, '$hasil', $nilai, $total)";
+                    
                     mysqli_query($conn, $sql_insert_what);
                     
                     $new_what_id = mysqli_insert_id($conn);
@@ -402,13 +408,19 @@ if (!isset($_SESSION['id_user'])) {
                     $tipe_how = mysqli_real_escape_string($conn, $how['tipe_how']);
                     $p_how = mysqli_real_escape_string($conn, $how['p_how']);
                     $bobot_how = $how['bobot'];
-                    $target_omset = $how['target_omset'];
+                    
+                    // ⭐ PERBAIKAN: Handle NULL untuk target_omset
+                    $target_omset = ($how['target_omset'] !== null && $how['target_omset'] !== '') 
+                        ? $how['target_omset'] 
+                        : 0;
+                    
                     $hasil = mysqli_real_escape_string($conn, $how['hasil']);
                     $nilai = $how['nilai'];
                     $total = $how['total'];
                     
                     $sql_insert_how = "INSERT INTO tbsim_hows (id_user, id_kpi, tipe_how, p_how, bobot, target_omset, hasil, nilai, total) 
                                     VALUES ($id_user, $new_kpi_id, '$tipe_how', '$p_how', $bobot_how, $target_omset, '$hasil', $nilai, $total)";
+                    
                     mysqli_query($conn, $sql_insert_how);
                     
                     $new_how_id = mysqli_insert_id($conn);

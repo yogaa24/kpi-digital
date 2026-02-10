@@ -482,10 +482,10 @@
                                                 
                                                 <?php if ($tipe_how == 'A') { ?>
                                                     <!-- HOW A: Pilih dari indikator -->
-                                                    <div class="input-group mb-3">
-                                                        <span style="color: #343A40;" class="input-group-text fw-bold">Nilai :</span>
-                                                        <select required class="form-control" name="nilaisi" id="nilaisi">
-                                                            <option selected disabled>Pilih Nilai</option>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-bold">Pilih Nilai Penilaian:</label>
+                                                        <select required class="form-select" name="nilaisi" id="nilaisi<?=$res['id_how']?>">
+                                                            <option selected disabled>-- Pilih Nilai --</option>
                                                             <?php 
                                                             $id_how = $res['id_how'];
                                                             $sql_indikator = "SELECT * FROM tb_indikator_hows 
@@ -494,12 +494,17 @@
                                                             $result_indikator = mysqli_query($conn, $sql_indikator);
                                                             
                                                             while ($indikator = mysqli_fetch_assoc($result_indikator)) {
-                                                                echo '<option value="'.$indikator['id_indikator'].'">';
-                                                                echo ''.$indikator['keterangan'].' = '.$indikator['nilai'];
+                                                                $ket_display = strlen($indikator['keterangan']) > 80 
+                                                                            ? substr($indikator['keterangan'], 0, 80) . '...' 
+                                                                            : $indikator['keterangan'];
+                                                                
+                                                                echo '<option value="'.$indikator['id_indikator'].'" title="'.$indikator['keterangan'].'">';
+                                                                echo htmlspecialchars($ket_display) . ' = ' . $indikator['nilai'];
                                                                 echo '</option>';
                                                             }
                                                             ?>
                                                         </select>
+                                                        <small class="text-muted">Hover pada pilihan untuk melihat keterangan lengkap</small>
                                                     </div>
                                                 <?php } else { ?>
                                                     <!-- HOW B: Input target omset dan hasil -->
