@@ -49,7 +49,7 @@
           <!-- Target Omset (Hanya untuk What B) -->
           <div id="targetOmsetSection<?=$idKPI?>" style="display:none;">
             <div class="input-group mb-3">
-              <span class="input-group-text fw-bold">Target Omset</span>
+              <span class="input-group-text fw-bold">Target</span>
               <input type="number" step="0.01" class="form-control" name="target_omset" placeholder="Contoh: 1000000">
             </div>
           </div>

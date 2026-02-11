@@ -26,7 +26,7 @@
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="tipe_how" id="tipeHowB<?=$idKPI?>" value="B" onchange="toggleHowType<?=$idKPI?>(this.value)">
                 <label class="form-check-label" for="tipeHowB<?=$idKPI?>">
-                  How B (Target Omset)
+                  How B (Target Angka)
                 </label>
               </div>
             </div>
@@ -49,7 +49,7 @@
           <!-- Target Omset (Hanya untuk How B) -->
           <div id="targetOmsetSectionHow<?=$idKPI?>" style="display:none;">
             <div class="input-group mb-3">
-              <span class="input-group-text fw-bold">Target Omset</span>
+              <span class="input-group-text fw-bold">Target</span>
               <input type="number" step="0.01" class="form-control" name="target_omset" placeholder="Contoh: 1000000">
             </div>
           </div>
