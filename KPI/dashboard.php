@@ -338,7 +338,9 @@ if (!isset($_SESSION['id_user'])) {
         mysqli_begin_transaction($conn);
         
         try {
-            // 1. Hapus data simulasi lama (jika ada)
+            // 1. Hapus data simulasi lama (jika ada) - PERBAIKAN: Hapus indikator dulu
+            mysqli_query($conn, "DELETE FROM tbsim_indikator_whats WHERE id_what IN (SELECT id_what FROM tbsim_whats WHERE id_user = $id_user)");
+            mysqli_query($conn, "DELETE FROM tbsim_indikator_hows WHERE id_how IN (SELECT id_how FROM tbsim_hows WHERE id_user = $id_user)");
             mysqli_query($conn, "DELETE FROM tbsim_whats WHERE id_user = $id_user");
             mysqli_query($conn, "DELETE FROM tbsim_hows WHERE id_user = $id_user");
             mysqli_query($conn, "DELETE FROM tbsim_kpi WHERE id_user = $id_user");
@@ -369,7 +371,6 @@ if (!isset($_SESSION['id_user'])) {
                     $p_what = mysqli_real_escape_string($conn, $what['p_what']);
                     $bobot_what = $what['bobot'];
                     
-                    // ⭐ PERBAIKAN: Handle NULL untuk target_omset
                     $target_omset = ($what['target_omset'] !== null && $what['target_omset'] !== '') 
                         ? $what['target_omset'] 
                         : 0;
@@ -381,22 +382,22 @@ if (!isset($_SESSION['id_user'])) {
                     $sql_insert_what = "INSERT INTO tbsim_whats (id_user, id_kpi, tipe_what, p_what, bobot, target_omset, hasil, nilai, total) 
                                         VALUES ($id_user, $new_kpi_id, '$tipe_what', '$p_what', $bobot_what, $target_omset, '$hasil', $nilai, $total)";
                     
-                    mysqli_query($conn, $sql_insert_what);
-                    
-                    $new_what_id = mysqli_insert_id($conn);
-                    
-                    // Copy indikator whats (jika tipe A)
-                    if ($what['tipe_what'] == 'A') {
-                        $indikator_whats = mysqli_query($conn, "SELECT * FROM tb_indikator_whats WHERE id_what = " . $what['id_what'] . " ORDER BY urutan");
+                    if (mysqli_query($conn, $sql_insert_what)) {
+                        $new_what_id = mysqli_insert_id($conn);
                         
-                        while ($ind_what = mysqli_fetch_assoc($indikator_whats)) {
-                            $keterangan = mysqli_real_escape_string($conn, $ind_what['keterangan']);
-                            $nilai_ind = $ind_what['nilai'];
-                            $urutan = $ind_what['urutan'];
+                        // Copy indikator whats (jika tipe A) - PERBAIKAN: Pastikan hanya 1x insert
+                        if ($what['tipe_what'] == 'A') {
+                            $indikator_whats = mysqli_query($conn, "SELECT * FROM tb_indikator_whats WHERE id_what = " . $what['id_what'] . " ORDER BY urutan");
                             
-                            $sql_insert_ind = "INSERT INTO tbsim_indikator_whats (id_what, keterangan, nilai, urutan) 
-                                            VALUES ($new_what_id, '$keterangan', $nilai_ind, $urutan)";
-                            mysqli_query($conn, $sql_insert_ind);
+                            while ($ind_what = mysqli_fetch_assoc($indikator_whats)) {
+                                $keterangan = mysqli_real_escape_string($conn, $ind_what['keterangan']);
+                                $nilai_ind = $ind_what['nilai'];
+                                $urutan = $ind_what['urutan'];
+                                
+                                $sql_insert_ind = "INSERT INTO tbsim_indikator_whats (id_what, keterangan, nilai, urutan) 
+                                                VALUES ($new_what_id, '$keterangan', $nilai_ind, $urutan)";
+                                mysqli_query($conn, $sql_insert_ind);
+                            }
                         }
                     }
                 }
@@ -409,7 +410,6 @@ if (!isset($_SESSION['id_user'])) {
                     $p_how = mysqli_real_escape_string($conn, $how['p_how']);
                     $bobot_how = $how['bobot'];
                     
-                    // ⭐ PERBAIKAN: Handle NULL untuk target_omset
                     $target_omset = ($how['target_omset'] !== null && $how['target_omset'] !== '') 
                         ? $how['target_omset'] 
                         : 0;
@@ -421,22 +421,22 @@ if (!isset($_SESSION['id_user'])) {
                     $sql_insert_how = "INSERT INTO tbsim_hows (id_user, id_kpi, tipe_how, p_how, bobot, target_omset, hasil, nilai, total) 
                                     VALUES ($id_user, $new_kpi_id, '$tipe_how', '$p_how', $bobot_how, $target_omset, '$hasil', $nilai, $total)";
                     
-                    mysqli_query($conn, $sql_insert_how);
-                    
-                    $new_how_id = mysqli_insert_id($conn);
-                    
-                    // Copy indikator hows (jika tipe A)
-                    if ($how['tipe_how'] == 'A') {
-                        $indikator_hows = mysqli_query($conn, "SELECT * FROM tb_indikator_hows WHERE id_how = " . $how['id_how'] . " ORDER BY urutan");
+                    if (mysqli_query($conn, $sql_insert_how)) {
+                        $new_how_id = mysqli_insert_id($conn);
                         
-                        while ($ind_how = mysqli_fetch_assoc($indikator_hows)) {
-                            $keterangan = mysqli_real_escape_string($conn, $ind_how['keterangan']);
-                            $nilai_ind = $ind_how['nilai'];
-                            $urutan = $ind_how['urutan'];
+                        // Copy indikator hows (jika tipe A) - PERBAIKAN: Pastikan hanya 1x insert
+                        if ($how['tipe_how'] == 'A') {
+                            $indikator_hows = mysqli_query($conn, "SELECT * FROM tb_indikator_hows WHERE id_how = " . $how['id_how'] . " ORDER BY urutan");
                             
-                            $sql_insert_ind = "INSERT INTO tbsim_indikator_hows (id_how, keterangan, nilai, urutan) 
-                                            VALUES ($new_how_id, '$keterangan', $nilai_ind, $urutan)";
-                            mysqli_query($conn, $sql_insert_ind);
+                            while ($ind_how = mysqli_fetch_assoc($indikator_hows)) {
+                                $keterangan = mysqli_real_escape_string($conn, $ind_how['keterangan']);
+                                $nilai_ind = $ind_how['nilai'];
+                                $urutan = $ind_how['urutan'];
+                                
+                                $sql_insert_ind = "INSERT INTO tbsim_indikator_hows (id_how, keterangan, nilai, urutan) 
+                                                VALUES ($new_how_id, '$keterangan', $nilai_ind, $urutan)";
+                                mysqli_query($conn, $sql_insert_ind);
+                            }
                         }
                     }
                 }

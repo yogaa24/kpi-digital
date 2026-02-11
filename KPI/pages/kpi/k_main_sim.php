@@ -179,7 +179,7 @@
                             </div>
                             </div>
                              
-                            <?php include('pages/kpi/k_modalEditwhat.php'); ?>
+                            <?php include('pages/kpi/k_modalEditwhat_sim.php'); ?>
 
                             <?php } ?>
                         </tbody>
@@ -340,7 +340,7 @@
                                 </div>
                             </div>
 
-                            <?php include('pages/kpi/k_modalEdithow.php'); ?>
+                            <?php include('pages/kpi/k_modalEdithow_sim.php'); ?>
                             <?php include('pages/kpi/k_modalHapushow.php'); ?>
                             <?php } ?>
                         </tbody>
