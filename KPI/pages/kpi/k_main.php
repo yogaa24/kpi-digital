@@ -80,7 +80,7 @@
                                     
                                     <?php if ($res['tipe_what'] == 'B' && $res['target_omset'] > 0) { ?>
                                         <br><small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
-                                             Target: <?=number_format($res['target_omset'], 2)?>
+                                             Target: <?=number_format($res['target_omset'], 2, '.', '.')?>
                                         </small>
                                         
                                         <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>

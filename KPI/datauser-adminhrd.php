@@ -410,11 +410,9 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                                                                         </div>
                                                                         <div class="col-md-6 mb-3">
                                                                             <label class="form-label">Atasan <span class="text-danger">*</span></label>
-                                                                            <select class="form-select atasan-edit" name="atasan" 
-                                                                                    id="atasan_edit_<?= $user['id'] ?>" required>
-                                                                                <option value="">Pilih Atasan</option>
-                                                                                <option value="<?= $user['atasan'] ?>" selected><?= $user['atasan'] ?></option>
-                                                                            </select>
+                                                                            <input type="text" class="form-control" name="atasan" 
+                                                                                value="<?= $user['atasan'] ?>" 
+                                                                                placeholder="Masukkan nama atasan" required>
                                                                         </div>
                                                                         <div class="col-md-6 mb-3">
                                                                             <label class="form-label">Penilai</label>
@@ -506,47 +504,23 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-        // Handle perubahan departemen pada modal edit
-        document.querySelectorAll('.departemen-edit').forEach(function(departemenSelect) {
-            departemenSelect.addEventListener('change', function() {
-                const userId = this.getAttribute('data-user-id');
-                const atasanSelect = document.getElementById('atasan_edit_' + userId);
-                const jabatanSelect = document.querySelector(`.jabatan-edit[data-user-id="${userId}"]`);
-                
-                // PENTING: Cek dulu jabatannya, jika Manager/Kadep/Direktur jangan overwrite
-                if (jabatanSelect.value === 'Koordinator' || jabatanSelect.value === 'Manager'|| jabatanSelect.value === 'Kadep' || jabatanSelect.value === 'Direktur') {
-                    return; // Skip update atasan jika jabatan sudah Manager/Kadep/Direktur
-                }
-                
-                let items = [];
-
-                if (this.value === 'KEUANGAN & SALES') {
-                    items = ["Pilih Atasan", "Ibnu Sutoro", "Evi Yulia Purnama Sari", "Ahmad Syaiti", "Iva Isti Farini"];
-                }
-                else if (this.value === 'IT') {
-                    items = ["Pilih Atasan", "Wahyu Arif Prasetyo"];
-                }  
-                else if (this.value === 'PURCHASING') {
-                    items = ["Pilih Atasan", "Evi Yulia", "Heru Sucahyo"];
-                } 
-                else if (this.value === 'HRD') {
-                    items = ["Pilih Atasan","Siwi Mardlatus Syafirah","Riza Dwi Fitrianingtyas"];
-                }
-                else if (this.value === 'LOGISTIC') {
-                    items = ["Pilih Atasan", "Fauzan", "Wildan Ma'ruf N. W."];
-                } 
-                else if (this.value === 'GA') {
-                    items = ["Pilih Atasan", "Nandang", "Wawan"];
-                }
-                else if (this.value === 'UNIT BISNIS SEED') {
-                    items = ["Pilih Atasan", "Acep Andriyanto", "Yama Muhammad", "Ahmad Muhlisin"];
-                }
-                else if (this.value === 'UNIT BISNIS CP') {
-                    items = ["Pilih Atasan", "Arfin Indra Cahyadi"];
-                }
-
-                renderAtasanEdit(items, atasanSelect);
+            // Handle perubahan departemen pada modal edit
+            document.querySelectorAll('.departemen-edit').forEach(function(departemenSelect) {
+                departemenSelect.addEventListener('change', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    const atasanSelect = document.getElementById('atasan_edit_' + userId);
+                    const jabatanSelect = document.querySelector(`.jabatan-edit[data-user-id="${userId}"]`);
+                    
+                });
             });
+
+            // Handle perubahan jabatan pada modal edit
+            document.querySelectorAll('.jabatan-edit').forEach(function(jabatanSelect) {
+            });
+
+            // Function untuk render dropdown atasan di modal edit
+            function renderAtasanEdit(items, selectElement) {
+            }
         });
 
         // Handle perubahan jabatan pada modal edit
