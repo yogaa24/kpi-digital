@@ -73,9 +73,9 @@
                         } elseif ($nilair <= 100) {
                             $wrabs = "orange";
                         } elseif ($nilair <= 110) {
-                            $wrabs = "green";
-                        } else { // $nilai > 110
                             $wrabs = "blue";
+                        } else { // $nilai > 110
+                            $wrabs = "green";
                         } ?>
                         <td colspan="2" style="font-size: 25pt; color:<?= $wrabs ?>" class="fw-bolder">
                             <?php
