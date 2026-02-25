@@ -5,8 +5,8 @@
 $server = "localhost";
 $user = "root";
 $pass = "";
-// $database = "u471548307_karismaerp";
-$database = "db_kpi";
+$database = "u471548307_karismaerp";
+// $database = "db_kpi";
 $conn = mysqli_connect($server, $user, $pass, $database);
 if (!$conn) {
     header("Location: error");

@@ -313,7 +313,7 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                                                     <td><?= $user['nama_lngkp'] ?></td>
                                                     <td><?= $user['nik'] ?></td>
                                                     <td><?= $user['bagian'] ?></td>
-                                                    <td><?= $user['departement'] ?></td>
+                                                    <td data-search="<?= htmlspecialchars($user['departement']) ?>"><?= $user['departement'] ?></td>
                                                     <td><?= $user['jabatan'] ?></td>
                                                     <td><center><span class="badge bg-primary"><?= $level_name ?></span></center></td>
                                                     <td>
@@ -529,16 +529,20 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                 ]
             });
             
-            // Filter Departemen
             $('#filterDepartemen').on('change', function() {
                 var dept = $(this).val();
-                table.column(5).search(dept).draw(); // Kolom 5 = Departement
+                if (dept) {
+                    var escapedDept = $.fn.dataTable.util.escapeRegex(dept);
+                    table.column(5).search('^' + escapedDept + '$', true, false).draw();
+                } else {
+                    table.column(5).search('', false, false).draw();
+                }
             });
-            
+
             // Filter Jabatan
             $('#filterJabatan').on('change', function() {
                 var jabatan = $(this).val();
-                table.column(6).search(jabatan).draw(); // Kolom 6 = Jabatan
+                table.column(6).search(jabatan ? '^' + $.fn.dataTable.util.escapeRegex(jabatan) + '$' : '', true, false).draw();
             });
             
             // Reset Filter

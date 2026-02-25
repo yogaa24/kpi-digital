@@ -486,7 +486,7 @@ function getkpi($nilair)
                                                     </span>
                                                 </center>
                                             </td>
-                                            <td><center><?= $hasilsfa['departement']; ?></center></td>
+                                            <td data-search="<?= htmlspecialchars($hasilsfa['departement']) ?>"><center><?= $hasilsfa['departement']; ?></center></td>
                                             <td><center><?= $hasilsfa['bagian']; ?></center></td>
                                             <td><center><strong><?= getWhatt($conn, $hasilsfa['id']); ?></strong></center></td>
                                             <td><center><strong><?= getHoww($conn, $hasilsfa['id']); ?></strong></center></td>
@@ -637,16 +637,25 @@ function getkpi($nilair)
                 ]
             });
             
-            // Filter Departemen
             $('#filterDepartemen').on('change', function() {
                 var dept = $(this).val();
-                table.column(3).search(dept).draw(); // Kolom 3 = Departemen
+                if (dept) {
+                    var escapedDept = $.fn.dataTable.util.escapeRegex(dept);
+                    table.column(3).search('^' + escapedDept + '$', true, false).draw();
+                } else {
+                    table.column(3).search('', false, false).draw();
+                }
             });
-            
+
             // Filter Jabatan
             $('#filterJabatan').on('change', function() {
                 var jabatan = $(this).val();
-                table.column(2).search(jabatan).draw(); // Kolom 2 = Jabatan
+                if (jabatan) {
+                    var escapedJabatan = $.fn.dataTable.util.escapeRegex(jabatan);
+                    table.column(2).search('^' + escapedJabatan + '$', true, false).draw();
+                } else {
+                    table.column(2).search('', false, false).draw();
+                }
             });
             
             // Filter Status KPI
