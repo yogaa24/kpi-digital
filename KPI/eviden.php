@@ -94,6 +94,31 @@ if (isset($_POST['editevi'])) {
         }
     }
 }
+if (isset($_POST['deleteevi'])) {
+    $ids = $_POST['idnya'];
+
+    // Ambil nama file dulu sebelum dihapus
+    $cekfile = mysqli_query($conn, "SELECT namafoto FROM tb_eviden WHERE id = $ids AND id_user = $id_user");
+    $datafile = mysqli_fetch_assoc($cekfile);
+
+    if ($datafile) {
+        $filepath = "assets/kpi/eviden/" . $id_user . "/" . $datafile['namafoto'];
+        if (file_exists($filepath)) {
+            unlink($filepath); // Hapus file fisik
+        }
+    }
+
+    $sql = "DELETE FROM tb_eviden WHERE id = $ids AND id_user = $id_user";
+    $result = mysqli_query($conn, $sql);
+
+    if (!$result) {
+        echo "<script>alert('Gagal hapus data')</script>";
+        exit;
+    } else {
+        header('Location: ' . $_SERVER['REQUEST_URI']);
+        exit;
+    }
+}
 
 ?>
 <html lang="en">
@@ -179,7 +204,7 @@ if (isset($_POST['editevi'])) {
                                                 <th width="55%">
                                                     <center>Keterangan</center>
                                                 </th>
-                                                <th width="10%">
+                                                <th width="15%">
                                                     <center>#</center>
                                                 </th>
                                             </tr>
@@ -198,8 +223,15 @@ if (isset($_POST['editevi'])) {
                                                 </td>
                                                 <td>
                                                     <center>
-                                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#viewImage<?= $row['id']; ?>"><i class="bi bi-eye"></i></button>
-                                                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#tambahEviEditModal<?= $row['id']; ?>"><i class="bi bi-pencil"></i></button>
+                                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#viewImage<?= $row['id']; ?>">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#tambahEviEditModal<?= $row['id']; ?>">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#hapusEviModal<?= $row['id']; ?>">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
                                                     </center>
                                                 </td>
                                             </tr>
@@ -244,12 +276,38 @@ if (isset($_POST['editevi'])) {
                                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                         </div>
                                                         <div class="modal-body">
-                                                            <embed src="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto'];?>" width="100%" height="650px">
-                                                                <?php $fileExtension = pathinfo($row['namafoto'], PATHINFO_EXTENSION); $fileExtension = strtolower($fileExtension);
-                                                                if ($fileExtension === 'xlsx'|| $fileExtension === 'csv' || $fileExtension === 'xls' || $fileExtension === 'xlsm' || $fileExtension === 'xltx' || $fileExtension === 'xltm') {?>
-                                                                    <p>This browser does not support Excel. Please download the Excel to view it: <a href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto'];?>">Download File</a>.</p>
+                                                                <?php $fileExtension = pathinfo($row['namafoto'], PATHINFO_EXTENSION);
+                                                                $fileExtension = strtolower($fileExtension);
+                                                                if ($fileExtension === 'xlsx' || $fileExtension === 'csv' || $fileExtension === 'xls' || $fileExtension === 'xlsm' || $fileExtension === 'xltx' || $fileExtension === 'xltm') { ?>
+                                                                    <p>This browser does not support Excel. Please download the Excel to view it: <a href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
+                                                                <?php } else { ?>
+                                                                    <embed src="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>" width="100%" height="650px">
+
+                                                                    </embed>
+                                                                    <p><a href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
                                                                 <?php } ?>
-                                                            </embed>
+                                                        </div> 
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal fade" id="hapusEviModal<?= $row['id']; ?>" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-sm">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header bg-danger text-white">
+                                                            <h5 class="modal-title fw-bold">Konfirmasi Hapus</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body text-center">
+                                                            <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 2rem;"></i>
+                                                            <p class="mt-2">Yakin ingin menghapus eviden <strong><?= $row['nama_eviden']; ?></strong>?</p>
+                                                            <small class="text-muted">File terkait juga akan ikut terhapus.</small>
+                                                        </div>
+                                                        <div class="modal-footer justify-content-center">
+                                                            <form action="" method="POST">
+                                                                <input type="hidden" name="idnya" value="<?= $row['id']; ?>">
+                                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                                                                <button type="submit" name="deleteevi" class="btn btn-danger btn-sm">Ya, Hapus</button>
+                                                            </form>
                                                         </div>
                                                     </div>
                                                 </div>

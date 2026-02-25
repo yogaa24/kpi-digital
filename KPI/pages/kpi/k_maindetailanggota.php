@@ -290,7 +290,7 @@
                                 if ($has_edited_indikator) {
                                     mysqli_data_seek($result_indikator, 0); // Reset pointer
                             ?>
-                                <tr class="edited-row">
+                                <!-- <tr class="edited-row">
                                     <td colspan="6">
                                         <div class="alert alert-warning mb-0">
                                             <small>
@@ -354,7 +354,7 @@
                                             </small>
                                         </div>
                                     </td>
-                                </tr>
+                                </tr> -->
 
                             <?php 
                                 }
@@ -661,7 +661,7 @@
                                 if ($has_edited_indikator) {
                                     mysqli_data_seek($result_indikator, 0);
                             ?>
-                                <tr class="edited-row">
+                                <!-- <tr class="edited-row">
                                     <td colspan="6">
                                         <div class="alert alert-warning mb-0">
                                             <strong><i class="bi bi-exclamation-triangle-fill"></i> Indikator yang Diubah:</strong>
@@ -706,7 +706,7 @@
                                             </ul>
                                         </div>
                                     </td>
-                                </tr>
+                                </tr> -->
                             <?php 
                                 }
                             }

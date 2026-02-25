@@ -178,12 +178,12 @@ if (isset($_POST['nilai_what'])) {
         
         if ($target_omset > 0) {
             $persentase = ($hasil_omset / $target_omset) * 100;
-            $nilai = round($persentase, 2);
+            $nilai = round($persentase, 0);
         } else {
             $nilai = 0;
         }
         
-        $total = number_format($nilai * $bobot / 100, 0, ',', '.');
+        $total = number_format($nilai * $bobot / 100, 0, ',', '');
         $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 0, ',', '.');
         $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
         
@@ -423,12 +423,12 @@ if (isset($_POST['nilai_how'])) {
         
         if ($target_omset > 0) {
             $persentase = ($hasil_omset / $target_omset) * 100;
-            $nilai = $persentase;
+            $nilai = round($persentase, 0);
         } else {
             $nilai = 0;
         }
         
-        $total = number_format($nilai * $bobot / 100, 0, ',', '.');
+        $total = number_format($nilai * $bobot / 100, 0, ',', '');
         $hasil_text = " Hasil Tercapai: " . number_format($hasil_omset, 0, ',', '.');
         $hasil_text = mysqli_real_escape_string($conn, $hasil_text);
 
