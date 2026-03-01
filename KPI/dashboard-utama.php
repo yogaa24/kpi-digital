@@ -116,7 +116,7 @@ function calculateKPI($conn, $user_id, $is_simulation = false) {
 
 // ==================== SAVE KPI HISTORY FUNCTION ====================
 function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
-    $bulan = date('Y-m');
+   $bulan = date('Y-m', strtotime('-1 month'));
     
     // ✅ VALIDASI: Pastikan user_id sesuai dengan data yang akan disimpan
     if (!empty($kpi_real['kpi_details'])) {
@@ -617,7 +617,7 @@ if ($user_level >= 5) {
                                 <div class="card-body">
                                     <div class="row g-2">
                                         <?php if ($user_level == 1) { ?>
-                                        <div class="col-md-3">
+                                        <div class="col">
                                             <a href="dashboard" class="btn btn-outline-primary w-100">
                                                 <i class="bi bi-speedometer2 me-2"></i>Real KPI Dashboard
                                             </a>
@@ -638,30 +638,39 @@ if ($user_level >= 5) {
                                                 $kpi_anggota_url = 'kpidirektur'; // Direktur
                                             }
                                         ?>
-                                        <div class="col-md-3">
+                                        <div class="col">
                                             <a href="<?= $kpi_anggota_url ?>" class="btn btn-outline-secondary w-100">
                                                 <i class="bi bi-people-fill me-2"></i><?= $kpi_label ?>
                                             </a>
                                         </div>
                                         <?php } ?>
                                         
-                                        <div class="col-md-3">
+                                        <div class="col">
                                             <a href="skillstandard" class="btn btn-outline-info w-100">
                                                 <i class="bi bi-award me-2"></i>Skill Standard
                                             </a>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col">
                                             <a href="eviden" class="btn btn-outline-warning w-100">
                                                 <i class="bi bi-folder me-2"></i>Evidence
                                             </a>
                                         </div>
 
                                         <!-- 🔥 TAMBAHAN ARCHIVE (TANPA MENGUBAH KODE LAIN) -->
-                                        <div class="col-md-3">
+                                        <div class="col">
                                             <a href="archive" class="btn btn-outline-dark w-100">
                                                 <i class="bi bi-archive me-2"></i>Archive KPI
                                             </a>
                                         </div>
+
+                                        <!-- KPI Departemen: hanya untuk Kadep (4) dan Direktur (5) -->
+                                        <?php if ($user_level == 4 || $user_level >= 5) { ?>
+                                        <div class="col">
+                                            <a href="kpidepartemen" class="btn btn-outline-success w-100">
+                                                <i class="bi bi-diagram-3-fill me-2"></i>KPI Departemen
+                                            </a>
+                                        </div>
+                                        <?php } ?>
 
                                     </div>
                                 </div>
