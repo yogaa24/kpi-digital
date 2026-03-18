@@ -372,7 +372,7 @@ function getkpi($nilair)
                                                     ) { 
                                                     ?>
                                                     <center>
-                                                        <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>"
+                                                        <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>&from=kpikabag"
                                                             class="btn btn-success btn-sm" title="Lihat Detail">
                                                             <i class="bi bi-eye fs-8"></i>
                                                         </a>

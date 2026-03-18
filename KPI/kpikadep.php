@@ -231,7 +231,7 @@ function getHoww($conn, $id)
                                         <th colspan="3"><center>Bulan Ini</center></th>
                                         <th colspan="3"><center>Bulan Lalu</center></th>
                                         <th width="8%" rowspan="2"><center>Trend</center></th>
-                                        <th width="5%" rowspan="2"><center>#</center></th>
+                                        <th width="10%" rowspan="2"><center>#</center></th>
                                     </tr>
                                     <tr>
                                         <!-- Bulan Ini -->
@@ -390,9 +390,13 @@ function getHoww($conn, $id)
                                             ) {
                                             ?>
                                             <center>
-                                                <a href="kpianggota?id=<?= $hasilsfa['id']; ?>"
-                                                class="btn btn-success btn-sm">
+                                                <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>&from=kpikadep"
+                                                    class="btn btn-success btn-sm" title="Lihat Detail">
                                                     <i class="bi bi-eye fs-8"></i>
+                                                </a>
+                                                <a type="button" href="export_kpi_detail.php?id=<?= $hasilsfa['id']; ?>"
+                                                    class="btn btn-primary btn-sm" title="Export Excel Detail">
+                                                    <i class="bi bi-file-earmark-excel fs-8"></i>
                                                 </a>
                                             </center>
                                             <?php } ?>

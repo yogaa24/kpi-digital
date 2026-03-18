@@ -359,7 +359,7 @@ function getkpi($nilair)
                                             <td>
                                                 <?php if ($hasilsfa['nama_lngkp'] != $nama_lngkp) { ?>
                                                     <center>
-                                                        <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>"
+                                                        <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>&from=kpidirektur"
                                                             class="btn btn-success btn-sm">
                                                             <i class="bi bi-eye fs-8"></i>
                                                         </a>

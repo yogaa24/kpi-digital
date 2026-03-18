@@ -10,6 +10,7 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/getUser.php';
 
     $id_sf = $_GET['id'];
+    $from = $_GET['from'] ?? '';
 
     if (isset($_POST['submit'])) {
     $poin = $_POST['poin'];
@@ -686,9 +687,15 @@ if (isset($_POST['update2'])) {
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i
                                 class="bi bi-list"></i> </a> </li>
-                                <?php
-                                // Tentukan URL kembali berdasarkan parameter ref
-                                $back_url = 'kpianggota?id=' . $_GET['id']; // default
+                               <?php
+                                $id   = $_GET['id'] ?? '';
+                                $from = $_GET['from'] ?? '';
+
+                                $back_url = 'kpianggota?id=' . $id;
+
+                                if (!empty($from)) {
+                                    $back_url .= '&from=' . urlencode($from);
+                                }
                                 ?>
 
                                 <li class="nav-item d-none d-md-block"> 

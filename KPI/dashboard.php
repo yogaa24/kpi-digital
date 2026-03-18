@@ -42,11 +42,175 @@ if (!isset($_SESSION['id_user'])) {
     // Proses verify/unverify
     if (isset($_POST['verifyKPI'])) {
         $keterangan = $_POST['keterangan'] ?? '';
-        if (verifyKPI($conn, $id_user, $id_user, $keterangan, $bulan_sekarang)) {
+        
+        if (verifyKPI($conn, $id_sf, $id_user, $keterangan, $bulan_sekarang)) {
+            
+            // AUTO ARCHIVE setelah verifikasi berhasil
+            $blan_now   = date('m/Y');
+            $busd_now   = explode('/', $blan_now);
+            $odkgh      = (int)$busd_now[0] - 1;
+            $tahunArchive = (int)$busd_now[1];
+
+            if ($odkgh == 0) {
+                $odkgh      = 12;
+                $tahunArchive = $tahunArchive - 1;
+            }
+
+            $tgslk = str_pad($odkgh, 2, '0', STR_PAD_LEFT) . '/' . $tahunArchive;
+
+            // Cek apakah archive bulan lalu sudah ada untuk user ini
+            $cek_existing = mysqli_query($conn,
+                "SELECT id_archive FROM tbar_archive 
+                WHERE bulan = '$tgslk' AND id_user = $id_sf"
+            );
+
+            if (mysqli_num_rows($cek_existing) == 0) {
+                // Hitung nilai KPI dengan SP
+                $kpi_result  = getnilaiWithSPDisplay($conn, $id_sf);
+                $nilai_asli  = $kpi_result['nilai_asli'];
+                $nilai_akhir = $kpi_result['nilai_akhir'];
+                $sp_data     = $kpi_result['sp_data'];
+                $pengurangan = $kpi_result['pengurangan'];
+
+                // Insert header archive
+                mysqli_query($conn,
+                    "INSERT INTO tbar_archive (bulan, id_user) VALUES ('$tgslk', $id_sf)"
+                );
+                $idarcv = mysqli_insert_id($conn);
+
+                // Copy KPI points + whats + hows (beserta indikatornya)
+                $panggilPoin = mysqli_query($conn,
+                    "SELECT * FROM tb_kpi WHERE id_user = $id_sf"
+                );
+                while ($ppPoin = mysqli_fetch_assoc($panggilPoin)) {
+                    mysqli_query($conn,
+                        "INSERT INTO tbar_kpi (id_user, id_arcv, poin, bobot, poin2, bobot2)
+                        VALUES ($id_sf, $idarcv,
+                                '" . mysqli_real_escape_string($conn, $ppPoin['poin'])  . "',
+                                '" . $ppPoin['bobot']  . "',
+                                '" . mysqli_real_escape_string($conn, $ppPoin['poin2']) . "',
+                                '" . $ppPoin['bobot2'] . "')"
+                    );
+                    $last_poin = mysqli_insert_id($conn);
+
+                    // -- HOWS --
+                    $panggilHow = mysqli_query($conn,
+                        "SELECT * FROM tb_hows WHERE id_user = $id_sf AND id_kpi = " . $ppPoin['id']
+                    );
+                    while ($howPoin = mysqli_fetch_assoc($panggilHow)) {
+                        mysqli_query($conn,
+                            "INSERT INTO tbar_hows
+                                (id_user, id_kpi, tipe_how, p_how, bobot,
+                                target_omset, hasil, nilai, total)
+                            VALUES ($id_sf, $last_poin,
+                                    '" . mysqli_real_escape_string($conn, $howPoin['tipe_how'])     . "',
+                                    '" . mysqli_real_escape_string($conn, $howPoin['p_how'])        . "',
+                                    '" . $howPoin['bobot']        . "',
+                                    '" . $howPoin['target_omset'] . "',
+                                    '" . mysqli_real_escape_string($conn, $howPoin['hasil'])        . "',
+                                    '" . $howPoin['nilai']        . "',
+                                    '" . $howPoin['total']        . "')"
+                        );
+                        $last_how_id = mysqli_insert_id($conn);
+
+                        $panggilIndH = mysqli_query($conn,
+                            "SELECT * FROM tb_indikator_hows
+                            WHERE id_how = " . $howPoin['id_how'] . " ORDER BY urutan"
+                        );
+                        while ($indH = mysqli_fetch_assoc($panggilIndH)) {
+                            mysqli_query($conn,
+                                "INSERT INTO tbar_indikator_hows (id_how, keterangan, nilai, urutan)
+                                VALUES ($last_how_id,
+                                        '" . mysqli_real_escape_string($conn, $indH['keterangan']) . "',
+                                        '" . $indH['nilai']  . "',
+                                        '" . $indH['urutan'] . "')"
+                            );
+                        }
+                    }
+
+                    // -- WHATS --
+                    $panggilWhat = mysqli_query($conn,
+                        "SELECT * FROM tb_whats WHERE id_user = $id_sf AND id_kpi = " . $ppPoin['id']
+                    );
+                    while ($whatPoin = mysqli_fetch_assoc($panggilWhat)) {
+                        mysqli_query($conn,
+                            "INSERT INTO tbar_whats
+                                (id_user, id_kpi, tipe_what, p_what, bobot,
+                                target_omset, hasil, nilai, total)
+                            VALUES ($id_sf, $last_poin,
+                                    '" . mysqli_real_escape_string($conn, $whatPoin['tipe_what'])    . "',
+                                    '" . mysqli_real_escape_string($conn, $whatPoin['p_what'])       . "',
+                                    '" . $whatPoin['bobot']        . "',
+                                    '" . $whatPoin['target_omset'] . "',
+                                    '" . mysqli_real_escape_string($conn, $whatPoin['hasil'])        . "',
+                                    '" . $whatPoin['nilai']        . "',
+                                    '" . $whatPoin['total']        . "')"
+                        );
+                        $last_what_id = mysqli_insert_id($conn);
+
+                        $panggilIndW = mysqli_query($conn,
+                            "SELECT * FROM tb_indikator_whats
+                            WHERE id_what = " . $whatPoin['id_what'] . " ORDER BY urutan"
+                        );
+                        while ($indW = mysqli_fetch_assoc($panggilIndW)) {
+                            mysqli_query($conn,
+                                "INSERT INTO tbar_indikator_whats (id_what, keterangan, nilai, urutan)
+                                VALUES ($last_what_id,
+                                        '" . mysqli_real_escape_string($conn, $indW['keterangan']) . "',
+                                        '" . $indW['nilai']  . "',
+                                        '" . $indW['urutan'] . "')"
+                            );
+                        }
+                    }
+                }
+
+                // Copy bobot KPI
+                $panggilbobot = mysqli_query($conn,
+                    "SELECT * FROM tb_bobotkpi WHERE id_user = $id_sf"
+                );
+                while ($bobotPoin = mysqli_fetch_assoc($panggilbobot)) {
+                    mysqli_query($conn,
+                        "INSERT INTO tbar_bobotkpi (id_user, id_arcv, bobotwhat, bobothow)
+                        VALUES ($id_sf, $idarcv,
+                                " . $bobotPoin['bobotwhat'] . ",
+                                " . $bobotPoin['bobothow']  . ")"
+                    );
+                }
+
+                // Simpan data SP jika ada
+                if ($sp_data) {
+                    $j_sp  = mysqli_real_escape_string($conn, $sp_data['jenis_sp']);
+                    $n_sp  = mysqli_real_escape_string($conn, $sp_data['nomor_sp']);
+                    $t_sp  = mysqli_real_escape_string($conn, $sp_data['tanggal_sp']);
+                    $al    = mysqli_real_escape_string($conn, $sp_data['alasan']);
+                    $ket   = mysqli_real_escape_string($conn, $sp_data['keterangan']);
+                    $mb_m  = mysqli_real_escape_string($conn, $sp_data['masa_berlaku_mulai']);
+                    $mb_s  = mysqli_real_escape_string($conn, $sp_data['masa_berlaku_selesai']);
+                    $f_sp  = mysqli_real_escape_string($conn, $sp_data['file_sp']);
+
+                    mysqli_query($conn,
+                        "INSERT INTO tbar_sp_archive
+                            (id_archive, id_user, jenis_sp, nomor_sp, tanggal_sp,
+                            alasan, keterangan, masa_berlaku_mulai, masa_berlaku_selesai,
+                            file_sp, nilai_asli, nilai_akhir, pengurangan)
+                        VALUES
+                            ($idarcv, $id_sf, '$j_sp', '$n_sp', '$t_sp',
+                            '$al', '$ket', '$mb_m', '$mb_s',
+                            '$f_sp', $nilai_asli, $nilai_akhir, $pengurangan)"
+                    );
+                }
+
+                $archive_msg = " Archive periode $tgslk juga berhasil dibuat.";
+            } else {
+                $archive_msg = " (Archive periode $tgslk sudah ada sebelumnya, dilewati.)";
+            }
+            // END AUTO ARCHIVE
+
             echo "<script>
-                alert('KPI berhasil diverifikasi!');
-                window.location.href = '" . $_SERVER['PHP_SELF'] . "?id=" . $id_user . "';
+                alert('KPI berhasil diverifikasi!' + ' ' + '" . addslashes($archive_msg) . "');
+                window.location.href = '" . $_SERVER['PHP_SELF'] . "?id=" . $id_sf . "';
             </script>";
+
         } else {
             echo "<script>alert('Gagal memverifikasi KPI!');</script>";
         }
@@ -245,7 +409,7 @@ if (!isset($_SESSION['id_user'])) {
         
         if ($odkgh == 0) {
             $odkgh = 12;
-            $tahunArchive = $busd[1] - 1;
+            $tahunArchive = $busd[1];
         } else {
             $tahunArchive = $busd[1];
         }

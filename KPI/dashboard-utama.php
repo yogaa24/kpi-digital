@@ -116,59 +116,68 @@ function calculateKPI($conn, $user_id, $is_simulation = false) {
 
 // ==================== SAVE KPI HISTORY FUNCTION ====================
 function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
-   $bulan = date('Y-m', strtotime('-1 month'));
-    
-    // ✅ VALIDASI: Pastikan user_id sesuai dengan data yang akan disimpan
+    // ✅ Bulan berjalan disimpan sebagai bulan-1 (mundur 1 bulan)
+    $bulan_simpan = date('Y-m', strtotime('-1 month')); // Maret → simpan sebagai Februari
+    $bulan_sekarang = date('Y-m'); // Maret
+
+    // Validasi owner
     if (!empty($kpi_real['kpi_details'])) {
         $first_kpi_id = $kpi_real['kpi_details'][0]['id'];
         $check_owner = mysqli_query($conn, "SELECT id_user FROM tb_kpi WHERE id='$first_kpi_id' LIMIT 1");
-        
         if ($check_owner && mysqli_num_rows($check_owner) > 0) {
             $owner = mysqli_fetch_assoc($check_owner);
-            if ($owner['id_user'] != $user_id) {
-                return false;
-            }
+            if ($owner['id_user'] != $user_id) return false;
         }
     }
-    
-    // Check if table exists
+
+    // Check table exists
     $check_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_history'");
-    if (mysqli_num_rows($check_table) == 0) {
-        return false;
+    if (mysqli_num_rows($check_table) == 0) return false;
+
+    // ✅ CEK: Apakah sudah ada data bulan SEKARANG yang tersimpan?
+    // Jika ada, berarti bulan sudah berganti dan bulan_simpan sudah terkunci
+    $check_next_month = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
+                                             WHERE id_user='$user_id' 
+                                             AND bulan='$bulan_sekarang'
+                                             AND is_summary=1");
+
+    // Jika sudah ada data bulan sekarang (sebagai bulan_simpan di iterasi berikutnya),
+    // berarti bulan_simpan sebelumnya sudah terkunci, jangan update lagi
+    if (mysqli_num_rows($check_next_month) > 0) {
+        return true; // Data bulan_simpan sudah terkunci
     }
-    
-    // ========== 1. SIMPAN/UPDATE SUMMARY ROW (DENGAN FINAL_WHAT DAN FINAL_HOW) ==========
-    $check_summary = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
-                                          WHERE id_user='$user_id' 
-                                          AND bulan='$bulan' 
-                                          AND is_summary=1");
-    
-    // TAMBAHKAN NILAI FINAL WHAT DAN FINAL HOW
-    $final_what = mysqli_real_escape_string($conn, $kpi_real['final_what']);
-    $final_how = mysqli_real_escape_string($conn, $kpi_real['final_how']);
-    $total_what = mysqli_real_escape_string($conn, $kpi_real['total_what']);
-    $total_how = mysqli_real_escape_string($conn, $kpi_real['total_how']);
+
+    // ========== SIMPAN/UPDATE summary untuk bulan_simpan ==========
+    $final_what     = mysqli_real_escape_string($conn, $kpi_real['final_what']);
+    $final_how      = mysqli_real_escape_string($conn, $kpi_real['final_how']);
+    $total_what     = mysqli_real_escape_string($conn, $kpi_real['total_what']);
+    $total_how      = mysqli_real_escape_string($conn, $kpi_real['total_how']);
     $total_kpi_real = mysqli_real_escape_string($conn, $kpi_real['total_kpi']);
     $total_kpi_target = mysqli_real_escape_string($conn, $kpi_sim['total_kpi']);
-    $bobot_what = mysqli_real_escape_string($conn, $kpi_real['bobot_what']);
-    $bobot_how = mysqli_real_escape_string($conn, $kpi_real['bobot_how']);
-    
+    $bobot_what     = mysqli_real_escape_string($conn, $kpi_real['bobot_what']);
+    $bobot_how      = mysqli_real_escape_string($conn, $kpi_real['bobot_how']);
+
+    $check_summary = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
+                                          WHERE id_user='$user_id' 
+                                          AND bulan='$bulan_simpan' 
+                                          AND is_summary=1");
+
     if (mysqli_num_rows($check_summary) > 0) {
-        // Update summary - TAMBAHKAN bobot_what, bobot_how, nilai_what, nilai_how
+        // Update - karena masih bulan yang sama, data boleh di-update
         $sql_summary = "UPDATE tb_kpi_history SET 
-                       total_kpi_real = '$total_kpi_real',
-                       total_kpi_target = '$total_kpi_target',
-                       total_what = '$total_what',
-                       total_how = '$total_how',
-                       bobot_what = '$bobot_what',
-                       bobot_how = '$bobot_how',
-                       nilai_what = '$final_what',
-                       nilai_how = '$final_how'
+                       total_kpi_real    = '$total_kpi_real',
+                       total_kpi_target  = '$total_kpi_target',
+                       total_what        = '$total_what',
+                       total_how         = '$total_how',
+                       bobot_what        = '$bobot_what',
+                       bobot_how         = '$bobot_how',
+                       nilai_what        = '$final_what',
+                       nilai_how         = '$final_how'
                        WHERE id_user='$user_id' 
-                       AND bulan='$bulan' 
+                       AND bulan='$bulan_simpan' 
                        AND is_summary=1";
     } else {
-        // Insert summary - TAMBAHKAN bobot_what, bobot_how, nilai_what, nilai_how
+        // Insert baru
         $sql_summary = "INSERT INTO tb_kpi_history 
                        (id_user, id_kpi, bulan, is_summary, 
                         total_kpi_real, total_kpi_target, 
@@ -176,66 +185,63 @@ function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
                         bobot_what, bobot_how,
                         nilai_what, nilai_how) 
                        VALUES 
-                       ('$user_id', NULL, '$bulan', 1, 
+                       ('$user_id', NULL, '$bulan_simpan', 1, 
                         '$total_kpi_real', '$total_kpi_target', 
                         '$total_what', '$total_how',
                         '$bobot_what', '$bobot_how',
                         '$final_what', '$final_how')";
     }
-    
-    if (!mysqli_query($conn, $sql_summary)) {
-        return false;
-    }
-    
-    // ========== 2. SIMPAN/UPDATE DETAIL ROWS ==========
+
+    if (!mysqli_query($conn, $sql_summary)) return false;
+
+    // ========== SIMPAN/UPDATE detail rows ==========
     foreach ($kpi_real['kpi_details'] as $detail) {
-        $id_kpi = mysqli_real_escape_string($conn, $detail['id']);
-        $poin_what = mysqli_real_escape_string($conn, $detail['poin_what']);
-        $poin_how = mysqli_real_escape_string($conn, $detail['poin_how']);
-        $bobot_what = mysqli_real_escape_string($conn, $detail['bobot_what']);
-        $bobot_how = mysqli_real_escape_string($conn, $detail['bobot_how']);
+        $id_kpi        = mysqli_real_escape_string($conn, $detail['id']);
+        $poin_what     = mysqli_real_escape_string($conn, $detail['poin_what']);
+        $poin_how      = mysqli_real_escape_string($conn, $detail['poin_how']);
+        $bobot_what    = mysqli_real_escape_string($conn, $detail['bobot_what']);
+        $bobot_how     = mysqli_real_escape_string($conn, $detail['bobot_how']);
         $total_what_raw = mysqli_real_escape_string($conn, $detail['total_what_raw']);
         $total_how_raw = mysqli_real_escape_string($conn, $detail['total_how_raw']);
-        $nilai_what = mysqli_real_escape_string($conn, $detail['nilai_what']);
-        $nilai_how = mysqli_real_escape_string($conn, $detail['nilai_how']);
-        
-        // Check if detail exists
+        $nilai_what    = mysqli_real_escape_string($conn, $detail['nilai_what']);
+        $nilai_how     = mysqli_real_escape_string($conn, $detail['nilai_how']);
+
         $check_detail = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
                                              WHERE id_user='$user_id' 
                                              AND id_kpi='$id_kpi' 
-                                             AND bulan='$bulan'
+                                             AND bulan='$bulan_simpan'
                                              AND is_summary=0");
-        
+
         if (mysqli_num_rows($check_detail) > 0) {
             // Update detail
             $sql_detail = "UPDATE tb_kpi_history SET 
-                          poin_what = '$poin_what',
-                          poin_how = '$poin_how',
-                          bobot_what = '$bobot_what',
-                          bobot_how = '$bobot_how',
-                          total_what_raw = '$total_what_raw',
-                          total_how_raw = '$total_how_raw',
-                          nilai_what = '$nilai_what',
-                          nilai_how = '$nilai_how'
+                          poin_what       = '$poin_what',
+                          poin_how        = '$poin_how',
+                          bobot_what      = '$bobot_what',
+                          bobot_how       = '$bobot_how',
+                          total_what_raw  = '$total_what_raw',
+                          total_how_raw   = '$total_how_raw',
+                          nilai_what      = '$nilai_what',
+                          nilai_how       = '$nilai_how'
                           WHERE id_user='$user_id' 
                           AND id_kpi='$id_kpi' 
-                          AND bulan='$bulan'
+                          AND bulan='$bulan_simpan'
                           AND is_summary=0";
         } else {
-            // Insert detail
+            // Insert detail baru
             $sql_detail = "INSERT INTO tb_kpi_history 
                           (id_user, id_kpi, bulan, is_summary, poin_what, poin_how, 
                            bobot_what, bobot_how, total_what_raw, total_how_raw, 
                            nilai_what, nilai_how) 
                           VALUES 
-                          ('$user_id', '$id_kpi', '$bulan', 0, '$poin_what', '$poin_how', 
+                          ('$user_id', '$id_kpi', '$bulan_simpan', 0, '$poin_what', '$poin_how', 
                            '$bobot_what', '$bobot_how', '$total_what_raw', '$total_how_raw', 
                            '$nilai_what', '$nilai_how')";
         }
-        
+
         mysqli_query($conn, $sql_detail);
     }
-    
+
     return true;
 }
 
@@ -293,7 +299,7 @@ $user_info = mysqli_fetch_assoc($result_user_info);
 
 // ==================== GET DETAILED KPI COMPARISON ====================
 $bulan_ini = date('Y-m');
-$bulan_kemarin = date('Y-m', strtotime('-1 month'));
+$bulan_kemarin = date('Y-m', strtotime('-2 month'));
 
 // Ambil data summary bulan ini (is_summary = 1)
 $sql_current = "SELECT * FROM tb_kpi_history 
@@ -664,7 +670,7 @@ if ($user_level >= 5) {
                                         </div>
 
                                         <!-- KPI Departemen: hanya untuk Kadep (4) dan Direktur (5) -->
-                                        <?php if ($user_level == 4 || $user_level >= 5) { ?>
+                                        <?php if ($user_level == 4 || $user_level >= 5 || $user_level >= 6) { ?>
                                         <div class="col">
                                             <a href="kpidepartemen" class="btn btn-outline-success w-100">
                                                 <i class="bi bi-diagram-3-fill me-2"></i>KPI Departemen
@@ -1563,10 +1569,15 @@ if ($user_level >= 5) {
                                                             }
                                                         }
                                                         
-                                                        $delta = $detail['nilai_what'] - $previous_value;
+                                                        $delta = round($detail['nilai_what'] - $previous_value, 2);
+                                                        $delta = (abs($delta) < 0.02) ? 0 : $delta;
+                                                        // Gunakan $delta yang sudah di-threshold untuk hitung growth
                                                         $growth = $previous_value > 0 
-                                                            ? (($detail['nilai_what'] - $previous_value) / $previous_value) * 100 
+                                                            ? round(($delta / $previous_value) * 100, 2)
                                                             : 0;
+                                                        $is_zero = ($delta == 0);
+                                                        $is_up = ($delta > 0);
+                                                        $is_down = ($delta < 0);
                                                     ?>
                                                     <tr>
                                                         <td class="text-center"><?= $no++ ?></td>
@@ -1598,7 +1609,7 @@ if ($user_level >= 5) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <span class="badge bg-<?= $delta >= 0 ? 'success' : 'danger' ?>">
+                                                                <span class="badge bg-<?= $is_zero ? 'warning text-dark' : ($is_up ? 'success' : 'danger') ?>">
                                                                     <?= $delta >= 0 ? '+' : '' ?><?= number_format($delta, 2) ?>
                                                                 </span>
                                                             <?php } else { ?>
@@ -1616,12 +1627,13 @@ if ($user_level >= 5) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <?php if ($growth > 0) { ?>
-                                                                    <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
-                                                                <?php } elseif ($growth < -0    ) { ?>
-                                                                    <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
-                                                                <?php } else { ?>
+                                                                // Icon Trend
+                                                                <?php if ($is_zero) { ?>
                                                                     <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                                                                <?php } elseif ($is_up) { ?>
+                                                                    <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
+                                                                <?php } else { ?>
+                                                                    <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
                                                                 <?php } ?>
                                                             <?php } else { ?>
                                                                 <i class="bi bi-plus-circle-fill text-info fs-5"></i>
@@ -1689,10 +1701,15 @@ if ($user_level >= 5) {
                                                             }
                                                         }
                                                         
-                                                        $delta = $detail['nilai_how'] - $previous_value;
+                                                        $delta = round($detail['nilai_how'] - $previous_value, 2);
+                                                        $delta = (abs($delta) < 0.02) ? 0 : $delta;
+                                                        // Gunakan $delta yang sudah di-threshold untuk hitung growth
                                                         $growth = $previous_value > 0 
-                                                            ? (($detail['nilai_how'] - $previous_value) / $previous_value) * 100 
+                                                            ? round(($delta / $previous_value) * 100, 2)
                                                             : 0;
+                                                        $is_zero = ($delta == 0);
+                                                        $is_up = ($delta > 0);
+                                                        $is_down = ($delta < 0);
                                                     ?>
                                                     <tr>
                                                         <td class="text-center"><?= $no++ ?></td>
@@ -1724,7 +1741,7 @@ if ($user_level >= 5) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <span class="badge bg-<?= $delta >= 0 ? 'success' : 'danger' ?>">
+                                                                <span class="badge bg-<?= $is_zero ? 'warning text-dark' : ($is_up ? 'success' : 'danger') ?>">
                                                                     <?= $delta >= 0 ? '+' : '' ?><?= number_format($delta, 2) ?>
                                                                 </span>
                                                             <?php } else { ?>
@@ -1742,12 +1759,12 @@ if ($user_level >= 5) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <?php if ($growth > 0) { ?>
-                                                                    <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
-                                                                <?php } elseif ($growth < -0) { ?>
-                                                                    <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
-                                                                <?php } else { ?>
+                                                                <?php if ($is_zero) { ?>
                                                                     <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                                                                <?php } elseif ($is_up) { ?>
+                                                                    <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
+                                                                <?php } else { ?>
+                                                                    <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
                                                                 <?php } ?>
                                                             <?php } else { ?>
                                                                 <i class="bi bi-plus-circle-fill text-info fs-5"></i>

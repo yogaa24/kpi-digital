@@ -279,12 +279,12 @@ if (isset($_POST['deleteevi'])) {
                                                                 <?php $fileExtension = pathinfo($row['namafoto'], PATHINFO_EXTENSION);
                                                                 $fileExtension = strtolower($fileExtension);
                                                                 if ($fileExtension === 'xlsx' || $fileExtension === 'csv' || $fileExtension === 'xls' || $fileExtension === 'xlsm' || $fileExtension === 'xltx' || $fileExtension === 'xltm') { ?>
-                                                                    <p>This browser does not support Excel. Please download the Excel to view it: <a href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
+                                                                    <p>This browser does not support Excel. Please download the Excel to view it: <a download href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
                                                                 <?php } else { ?>
                                                                     <embed src="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>" width="100%" height="650px">
 
                                                                     </embed>
-                                                                    <p><a href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
+                                                                    <p><a download href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
                                                                 <?php } ?>
                                                         </div> 
                                                     </div>
