@@ -113,9 +113,9 @@ function getPreviousMonth() {
     $currentYear = date('Y');
     
     if ($currentMonth == 1) {
-        return ['month' => 12, 'year' => $currentYear - 1];
+        return ['month' => 12, 'year' => $currentYear - 2];
     } else {
-        return ['month' => $currentMonth - 1, 'year' => $currentYear];
+        return ['month' => $currentMonth - 2, 'year' => $currentYear];
     }
 }
 

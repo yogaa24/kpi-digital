@@ -542,6 +542,11 @@ function getkpi($nilair)
                                                         title="Lihat KPI">
                                                             <i class="bi bi-eye"></i>
                                                         </a>
+
+                                                        <a type="button" href="export_kpi_detail.php?id=<?= $hasilsfa['id']; ?>"
+                                                            class="btn btn-success btn-sm" title="Export Excel Detail">
+                                                            <i class="bi bi-file-earmark-excel fs-8"></i>
+                                                        </a>
                                                         
                                                         <!-- Tombol Tambah SP -->
                                                         <button type="button" 
