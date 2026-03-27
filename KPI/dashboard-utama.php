@@ -1627,7 +1627,6 @@ if ($user_level >= 5) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                // Icon Trend
                                                                 <?php if ($is_zero) { ?>
                                                                     <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
                                                                 <?php } elseif ($is_up) { ?>

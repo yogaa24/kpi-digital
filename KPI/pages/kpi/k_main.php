@@ -4,25 +4,41 @@
         <div class="d-flex">
             <!-- CARD WHAT -->
             <div class="card mb-4 w-50" style="margin-right:7px;">
+                <!-- CARD WHAT - Header -->
                 <div style="height: 50px; margin-top: -3px;" class="card-header bg-primary">
                     <h5 style="color:white;" class="card-title"><?= $poin; ?></h5>
                     <h5 style="color:white; margin-left: 15px;" class="badge text-bg-warning fs-7 fw-bolder">Bobot :
                         <?= $bobot ?>%
                     </h5>
                     <div class="card-tools">
-                        <!-- Tombol Edit What -->
+                        <!-- Tombol Edit What - CEK $can_edit -->
+                        <?php if ($can_edit): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
                             data-bs-toggle="modal" data-bs-target="#EditModal<?= $idKPI ?>" class="btn btn-tool" title="Edit Goals What">
                             <i class="bi bi-pencil fs-6"></i>
                         </button>
+                        <?php else: ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            class="btn btn-tool" title="Edit dikunci" disabled>
+                            <i class="bi bi-pencil fs-6" style="opacity:0.4;"></i>
+                        </button>
+                        <?php endif; ?>
                         
-                        <!-- Tombol Hapus KPI - STYLE SAMA DENGAN EDIT -->
+                        <!-- Tombol Hapus KPI - CEK $can_delete -->
+                        <?php if ($can_delete): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
                             data-bs-toggle="modal" data-bs-target="#modalHapusKPI<?= $idKPI ?>" class="btn btn-tool" title="Hapus KPI">
                             <i class="bi bi-trash fs-6"></i>
                         </button>
+                        <?php else: ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            class="btn btn-tool" title="Hapus dikunci" disabled>
+                            <i class="bi bi-trash fs-6" style="opacity:0.4;"></i>
+                        </button>
+                        <?php endif; ?>
 
-                        <!-- Tombol Tambah What -->
+                        <!-- Tombol Tambah What - CEK $can_add -->
+                        <?php if ($can_add): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
                             data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
                             <i class="bi bi-plus-circle fs-6"></i>
@@ -31,8 +47,14 @@
                             <a href="#" class="dropdown-item" data-bs-toggle="modal"
                                 data-bs-target="#WhatModal<?= $idKPI ?>">Tambah What </a>
                         </div>
+                        <?php else: ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            class="btn btn-tool" title="Tambah dikunci" disabled>
+                            <i class="bi bi-plus-circle fs-6" style="opacity:0.4;"></i>
+                        </button>
+                        <?php endif; ?>
                         
-                        <!-- Tombol Collapse -->
+                        <!-- Tombol Collapse (selalu tampil) -->
                         <button style="color: white;" type="button" class="btn btn-tool"
                             data-lte-toggle="card-collapse">
                             <i data-lte-icon="expand" class="bi bi-caret-down-fill"></i>
@@ -162,14 +184,29 @@
                                         <i class="bi bi-eye fs-8"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end" role="menu">
+                                        <?php if ($can_edit): ?>
                                         <a value="<?php echo $res['id_what']; ?>" name="what_edit" class="dropdown-item"
                                             data-bs-toggle="modal"
                                             data-bs-target="#EditWhatModal<?= $res['id_what'] ?>">Edit</a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item text-muted" style="cursor:not-allowed;">Edit (dikunci)</a>
+                                        <?php endif; ?>
+
+                                        <?php if ($can_delete): ?>
                                         <a class="dropdown-item" data-bs-toggle="modal"
                                             data-bs-target="#HapusWhatModal<?= $res['id_what'] ?>">Hapus</a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item text-muted" style="cursor:not-allowed;">Hapus (dikunci)</a>
+                                        <?php endif; ?>
+
                                         <div class="dropdown-divider"></div>
+
+                                        <?php if ($can_edit): ?>
                                         <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
                                             data-bs-target="#NilaiWhatModal<?= $res['id_what'] ?>">Nilai</a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item fw-bolder text-muted" style="cursor:not-allowed;">Nilai (dikunci)</a>
+                                        <?php endif; ?>
                                     </div>
                                     
                                     <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>
@@ -290,13 +327,21 @@
                         Bobot : <?= $bobot2 ?>%
                     </h5>
                     <div class="card-tools">
-                        <!-- Tombol Edit How -->
+                        <!-- Tombol Edit How - CEK $can_edit -->
+                        <?php if ($can_edit): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
                             data-bs-toggle="modal" data-bs-target="#EditModal2<?= $idKPI ?>" class="btn btn-tool" title="Edit Goals How">
                             <i class="bi bi-pencil fs-6"></i>
                         </button>
-                        
-                        <!-- Tombol Tambah How -->
+                        <?php else: ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            class="btn btn-tool" title="Edit dikunci" disabled>
+                            <i class="bi bi-pencil fs-6" style="opacity:0.4;"></i>
+                        </button>
+                        <?php endif; ?>
+
+                        <!-- Tombol Tambah How - CEK $can_add -->
+                        <?php if ($can_add): ?>
                         <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
                             data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
                             <i class="bi bi-plus-circle fs-6"></i>
@@ -305,8 +350,14 @@
                             <a href="#" class="dropdown-item" data-bs-toggle="modal"
                                 data-bs-target="#HowModal<?= $idKPI ?>">Tambah How </a>
                         </div>
-                        
-                        <!-- Tombol Collapse -->
+                        <?php else: ?>
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            class="btn btn-tool" title="Tambah dikunci" disabled>
+                            <i class="bi bi-plus-circle fs-6" style="opacity:0.4;"></i>
+                        </button>
+                        <?php endif; ?>
+
+                        <!-- Tombol Collapse (selalu tampil) -->
                         <button style="color: white;" type="button" class="btn btn-tool"
                             data-lte-toggle="card-collapse">
                             <i data-lte-icon="expand" class="bi bi-caret-down-fill"></i>
@@ -314,6 +365,7 @@
                         </button>
                     </div>
                 </div>
+
                 <div class="card-body p-0">
                     <table class="table table-striped table-bordered">
                         <thead>
@@ -331,10 +383,9 @@
                             $sql1 = "SELECT * FROM tb_hows WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
                             $ql = mysqli_query($conn, $sql1);
                             while ($res = mysqli_fetch_assoc($ql)) {
-                                // CEK: Hanya tampilkan jika DIUBAH ATASAN
                                 $is_edited_by_superior = ($res['is_edited'] && $res['edited_by'] != $id_user && !empty($res['edited_by']));
                                 $row_class = $is_edited_by_superior ? 'edited-row' : '';
-                            ?>
+                        ?>
                             <tr class="align-middle <?= $row_class ?>">
                                 <!-- KOLOM HOWS -->
                                 <td>
@@ -355,8 +406,6 @@
                                         <br><small class="text-muted fw-semibold fs-7" style="font-size: 10px;">
                                             Target: <?=number_format($res['target_omset'], 0, ',', '.')?>
                                         </small>
-                                        
-                                        <!-- ===== TAMBAHAN BARU: TAMPILKAN PERUBAHAN TARGET OMSET HOW B ===== -->
                                         <?php if ($is_edited_by_superior && isset($res['original_target_omset']) && $res['original_target_omset'] > 0 && $res['original_target_omset'] != $res['target_omset']) { ?>
                                             <span class="edited-badge"><i class="bi bi-pencil-fill"></i></span>
                                             <div class="change-info">
@@ -367,10 +416,9 @@
                                                 <span class="new-val"><?= number_format($res['target_omset'], 2) ?></span>
                                             </div>
                                         <?php } ?>
-                                        <!-- ===== AKHIR TAMBAHAN ===== -->
                                     <?php } ?>
                                 </td>
-                                
+
                                 <!-- KOLOM HASIL -->
                                 <td>
                                     <?= $res['hasil']; ?>
@@ -385,7 +433,7 @@
                                         </div>
                                     <?php } ?>
                                 </td>
-                                
+
                                 <!-- KOLOM NILAI -->
                                 <td>
                                     <center>
@@ -400,7 +448,7 @@
                                         <?php } ?>
                                     </center>
                                 </td>
-                                
+
                                 <!-- KOLOM BOBOT -->
                                 <td>
                                     <center>
@@ -411,12 +459,11 @@
                                                 <span class="old-val"><?= $res['original_bobot'] ?>%</span> 
                                                 → 
                                                 <span class="new-val"><?= $res['bobot'] ?>%</span>
-
                                             </div>
                                         <?php } ?>
                                     </center>
                                 </td>
-                                
+
                                 <!-- KOLOM TOTAL -->
                                 <td>
                                     <center>
@@ -431,23 +478,44 @@
                                         <?php } ?>
                                     </center>
                                 </td>
-                                
-                                <!-- ACTION -->
+
+                                <!-- KOLOM ACTION - CEK $can_edit dan $can_delete -->
                                 <td class="text-center">
                                     <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
                                         <i class="bi bi-eye fs-8"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end" role="menu">
+                                        <?php if ($can_edit): ?>
                                         <a value="<?php echo $res['id_how']; ?>" name="how_edit" class="dropdown-item"
                                             data-bs-toggle="modal"
                                             data-bs-target="#EditHowModal<?= $res['id_how'] ?>">Edit</a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item text-muted" style="cursor:not-allowed;">
+                                            Edit (dikunci)
+                                        </a>
+                                        <?php endif; ?>
+
+                                        <?php if ($can_delete): ?>
                                         <a class="dropdown-item" data-bs-toggle="modal"
                                             data-bs-target="#HapusHowModal<?= $res['id_how'] ?>">Hapus</a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item text-muted" style="cursor:not-allowed;">
+                                            Hapus (dikunci)
+                                        </a>
+                                        <?php endif; ?>
+
                                         <div class="dropdown-divider"></div>
+
+                                        <?php if ($can_edit): ?>
                                         <a class="dropdown-item fw-bolder" data-bs-toggle="modal"
                                             data-bs-target="#NilaiHowModal<?= $res['id_how'] ?>">Nilai</a>
+                                        <?php else: ?>
+                                        <a class="dropdown-item fw-bolder text-muted" style="cursor:not-allowed;">
+                                            Nilai (dikunci)
+                                        </a>
+                                        <?php endif; ?>
                                     </div>
-                                    
+
                                     <?php if ($is_edited_by_superior && !empty($res['edited_at'])) { ?>
                                         <div class="change-timestamp mt-1">
                                             <i class="bi bi-clock"></i> <?= date('d/m H:i', strtotime($res['edited_at'])) ?>
@@ -455,7 +523,7 @@
                                     <?php } ?>
                                 </td>
                             </tr>
-                            
+
                             <?php
                             $tipe_how = $res['tipe_how'];
                             $target_omset = $res['target_omset'];
@@ -481,7 +549,6 @@
                                                 </div>
                                                 
                                                 <?php if ($tipe_how == 'A') { ?>
-                                                    <!-- HOW A: Pilih dari indikator -->
                                                     <div class="mb-3">
                                                         <label class="form-label fw-bold">Pilih Nilai Penilaian:</label>
                                                         <select required class="form-select" name="nilaisi" id="nilaisi<?=$res['id_how']?>">
@@ -507,7 +574,6 @@
                                                         <small class="text-muted">Hover pada pilihan untuk melihat keterangan lengkap</small>
                                                     </div>
                                                 <?php } else { ?>
-                                                    <!-- HOW B: Input target omset dan hasil -->
                                                     <div class="input-group mb-3">
                                                         <span style="color: #343A40;" class="input-group-text fw-bold">Target :</span>
                                                         <input type="number" step="0.01" class="form-control" name="target_omset" 
@@ -533,14 +599,14 @@
 
                             <?php include('pages/kpi/k_modalEdithow.php'); ?>
                             <?php include('pages/kpi/k_modalHapushow.php'); ?>
-                            <?php } ?>
+                        <?php } ?>
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+                    </div>
+                </div>
+            </div>
 
 <!-- MODAL HAPUS KPI - LETAKKAN DI SINI (DI LUAR LOOP) -->
 <div class="modal fade" id="modalHapusKPI<?= $idKPI ?>" tabindex="-1" aria-labelledby="modalHapusKPILabel<?= $idKPI ?>" aria-hidden="true">
