@@ -15,6 +15,11 @@
                             <i class="bi bi-pencil fs-6"></i>
                         </button>
 
+                        <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                            data-bs-toggle="modal" data-bs-target="#modalHapusKPI<?= $idKPI ?>" class="btn btn-tool" title="Hapus KPI">
+                            <i class="bi bi-trash fs-6"></i>
+                        </button>
+
                         <button style="color: white; margin-top: -20px; margin-right: 5px; " type="button"
                             data-bs-toggle="dropdown" class="btn btn-tool dropdown-toggle">
                             <i class="bi bi-plus-circle fs-6"></i>
@@ -718,6 +723,57 @@
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL HAPUS KPI - LETAKKAN DI SINI (DI LUAR LOOP) -->
+<div class="modal fade" id="modalHapusKPI<?= $idKPI ?>" tabindex="-1" aria-labelledby="modalHapusKPILabel<?= $idKPI ?>" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="modalHapusKPILabel<?= $idKPI ?>">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Konfirmasi Hapus KPI
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="">
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-3" role="alert">
+                        <strong><i class="bi bi-exclamation-circle"></i> Peringatan!</strong> Tindakan ini tidak dapat dibatalkan.
+                    </div>
+                    
+                    <p class="mb-2">Apakah Anda yakin ingin menghapus poin KPI berikut?</p>
+                    
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Goals What:</strong> <?= htmlspecialchars($poin) ?></p>
+                            <p class="mb-1"><strong>Bobot What:</strong> <?= $bobot ?>%</p>
+                            <p class="mb-1"><strong>Goals How:</strong> <?= htmlspecialchars($poin2) ?></p>
+                            <p class="mb-0"><strong>Bobot How:</strong> <?= $bobot2 ?>%</p>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-danger mb-0" role="alert">
+                        <strong><i class="bi bi-trash"></i> Data yang akan terhapus:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Poin KPI utama</li>
+                            <li>Semua data <strong>What</strong> dan indikatornya</li>
+                            <li>Semua data <strong>How</strong> dan indikatornya</li>
+                        </ul>
+                    </div>
+                    
+                    <input type="hidden" name="idkpi_hapus" value="<?= $idKPI ?>">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Batal
+                    </button>
+                    <button type="submit" name="kpi_hapus" class="btn btn-danger">
+                        <i class="bi bi-trash-fill"></i> Ya, Hapus Semua
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

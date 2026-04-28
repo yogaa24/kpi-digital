@@ -228,8 +228,8 @@ function getHoww($conn, $id)
                                         <th rowspan="2"><center>Nama Anggota</center></th>
                                         <th width="15%" rowspan="2"><center>Jabatan</center></th>
                                         <th width="15%" rowspan="2"><center>Bagian</center></th>
-                                        <th colspan="3"><center>Bulan Ini</center></th>
-                                        <th colspan="3"><center>Bulan Lalu</center></th>
+                                        <th colspan="3"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
+                                        <th colspan="3"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
                                         <th width="8%" rowspan="2"><center>Trend</center></th>
                                         <th width="10%" rowspan="2"><center>#</center></th>
                                     </tr>

@@ -109,18 +109,31 @@ function getHoww($conn, $id)
     return number_format($zboth, 2);
 }
 
-// Fungsi untuk mendapatkan bulan dan tahun sebelumnya
+// Bulan "ini" di sistem = mundur 1 bulan dari sekarang
+function getCurrentSystemMonth() {
+    $currentMonth = date('n');
+    $currentYear = date('Y');
+    
+    if ($currentMonth == 1) {
+        return ['month' => 12, 'year' => $currentYear - 1];
+    } else {
+        return ['month' => $currentMonth - 1, 'year' => $currentYear];
+    }
+}
+
+// Bulan "lalu" di sistem = mundur 2 bulan dari sekarang
 function getPreviousMonth() {
     $currentMonth = date('n');
     $currentYear = date('Y');
     
     if ($currentMonth == 1) {
-        return ['month' => 12, 'year' => $currentYear - 2];
+        return ['month' => 11, 'year' => $currentYear - 1];
+    } elseif ($currentMonth == 2) {
+        return ['month' => 12, 'year' => $currentYear - 1];
     } else {
         return ['month' => $currentMonth - 2, 'year' => $currentYear];
     }
 }
-
 // Fungsi untuk mendapatkan nama bulan
 function getNamaBulan($bulan) {
     $namaBulan = [
@@ -240,14 +253,18 @@ function getkpi($nilair)
                                 <tbody>
                                     <?php 
                                     $no = 1;
-                                    // Dapatkan bulan dan tahun sebelumnya
+                                    
+                                    // Bulan "ini" di sistem = mundur 1 bulan dari sekarang (April → Maret)
+                                    $systemCurrentMonth = getCurrentSystemMonth();
+                                    $bulanIni = $systemCurrentMonth['month'];
+                                    $tahunIni = $systemCurrentMonth['year'];
+                                    $namaBulanIni = getNamaBulan($bulanIni) . ' ' . $tahunIni;
+                                    
+                                    // Bulan "lalu" di sistem = mundur 2 bulan dari sekarang (April → Februari)
                                     $prevMonth = getPreviousMonth();
                                     $bulanSebelumnya = $prevMonth['month'];
                                     $tahunSebelumnya = $prevMonth['year'];
-                                    $namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
-                                    $bulanIni = date('n');
-                                    $tahunIni = date('Y');
-                                    $namaBulanIni = getNamaBulan($bulanIni);
+                                    $namaBulanSebelumnya = getNamaBulan($bulanSebelumnya) . ' ' . $tahunSebelumnya;
                                     
                                     $sqlhd = "SELECT *
                                         FROM tb_users
@@ -263,12 +280,12 @@ function getkpi($nilair)
                                             nama_lngkp";
                                     $sgdah = mysqli_query($conn, $sqlhd);
                                     while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { 
-                                        // Nilai bulan ini (dari fungsi existing)
+                                        // Nilai bulan ini (dari fungsi existing / data live)
                                         $nilair = getnilai($conn, $hasilsfa['id']);
                                         $whatIni = getWhatt($conn, $hasilsfa['id']);
                                         $howIni = getHoww($conn, $hasilsfa['id']);
                                         
-                                        // Nilai bulan lalu (dari tb_kpi_history)
+                                        // Nilai bulan lalu = ambil dari history bulan sekarang-2 (Februari jika sekarang April)
                                         $dataHistoryBulanLalu = getKPIFromHistory($conn, $hasilsfa['id'], $bulanSebelumnya, $tahunSebelumnya);
                                         $nilaiBulanLalu = $dataHistoryBulanLalu['total_kpi'];
                                         $whatBulanLalu = $dataHistoryBulanLalu['nilai_what'];

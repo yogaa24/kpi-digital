@@ -1423,8 +1423,8 @@ if ($user_level >= 5) {
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h5 class="mb-0"><i class="bi bi-table me-2"></i>Detailed KPI Analysis - Month over Month Comparison</h5>
                                         <div>
-                                            <span class="badge bg-primary me-2"><?= date('M Y') ?> (Current)</span>
-                                            <span class="badge bg-secondary"><?= date('M Y', strtotime('-1 month')) ?> (Previous)</span>
+                                            <span class="badge bg-primary me-2"><?= date('M Y', strtotime('-1 month')) ?> (Current)</span>
+                                            <span class="badge bg-secondary"><?= date('M Y', strtotime('-2 month')) ?> (Previous)</span>
                                         </div>
                                     </div>
                                 </div>
