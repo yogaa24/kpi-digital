@@ -18,6 +18,13 @@
         <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
                 
         <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->
+            <li class="nav-item d-flex align-items-center">
+                <a href="export_kpisim_detail.php?id=<?= $id_user ?>" 
+                class="btn btn-success btn-sm py-1 px-2">
+                    <i class="bi bi-file-earmark-excel"></i> Export
+                </a>
+            </li>
+
             <li class="nav-item d-flex align-items-center ms-2">
                 <span class="badge bg-success">KPI SIMULASI</span>
             </li>
