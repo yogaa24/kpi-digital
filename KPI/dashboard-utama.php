@@ -11,30 +11,24 @@ require 'helper/getUser.php';
 
 $id_user = $_SESSION['id_user'];
 
-$user_level = $_SESSION['level'] ?? 1; // Assume level dari session
+$user_level = $_SESSION['level'] ?? 1;
 
 // ==================== FILTER PARAMETERS ====================
 $filter_user = isset($_GET['filter_user']) ? $_GET['filter_user'] : $id_user;
-// $filter_periode = isset($_GET['filter_periode']) ? $_GET['filter_periode'] : date('Y-m');
 $filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departemen'] : '';
-// $filter_comparison = isset($_GET['filter_comparison']) ? $_GET['filter_comparison'] : 'current'; // current, last_month, last_year
 
-/// ==================== FETCH FILTER OPTIONS ====================
-// Get all users based on level
+// ==================== FETCH FILTER OPTIONS ====================
 if ($user_level >= 2) {
     $sql_users = "SELECT id, nama_lngkp, departement, jabatan FROM tb_users WHERE 1=1";
     $sql_users .= " AND username NOT IN ('itboy', 'adminhrd')";
     
-    if ($user_level == 2) {         // KOORDINATOR - team sendiri
+    if ($user_level == 2) {
         $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
-    
-    } elseif ($user_level == 3) {   // MANAGER - team yang di-supervisi
+    } elseif ($user_level == 3) {
         $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
-        
-    } elseif ($user_level == 4) {   // KADEP - seluruh departemen
+    } elseif ($user_level == 4) {
         $sql_users .= " AND departement = (SELECT departement FROM tb_users WHERE id='$id_user')";
-        
-    } elseif ($user_level >= 5) {   // DIREKTUR - semua atau filter departemen
+    } elseif ($user_level >= 5) {
         if (!empty($filter_departemen)) {
             $sql_users .= " AND departement = '" . mysqli_real_escape_string($conn, $filter_departemen) . "'";
         }
@@ -49,10 +43,8 @@ $result_departments = mysqli_query($conn, $sql_departments);
 
 // ==================== KPI CALCULATION FUNCTION ====================
 function calculateKPI($conn, $user_id, $is_simulation = false) {
-    // Tentukan prefix tabel berdasarkan mode
     $prefix = $is_simulation ? 'tbsim_' : 'tb_';
     
-    // Ambil semua KPI
     $sql_kpi = "SELECT * FROM {$prefix}kpi WHERE id_user='$user_id'";
     $result_kpi = mysqli_query($conn, $sql_kpi);
     
@@ -61,7 +53,6 @@ function calculateKPI($conn, $user_id, $is_simulation = false) {
     $kpi_details = [];
     
     while ($kpi = mysqli_fetch_assoc($result_kpi)) {
-        // Hitung WHAT
         $sql_what = "SELECT SUM(total) as total FROM {$prefix}whats WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'";
         $result_what = mysqli_query($conn, $sql_what);
         $row_what = mysqli_fetch_assoc($result_what);
@@ -69,7 +60,6 @@ function calculateKPI($conn, $user_id, $is_simulation = false) {
         $nilai_what = ($total_nilai_what * $kpi['bobot']) / 100;
         $total_what += $nilai_what;
         
-        // Hitung HOW
         $sql_how = "SELECT SUM(total) as total FROM {$prefix}hows WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'";
         $result_how = mysqli_query($conn, $sql_how);
         $row_how = mysqli_fetch_assoc($result_how);
@@ -90,14 +80,12 @@ function calculateKPI($conn, $user_id, $is_simulation = false) {
         ];
     }
     
-    // Ambil bobot WHAT dan HOW
     $sql_bobot = "SELECT bobotwhat, bobothow FROM {$prefix}bobotkpi WHERE id_user='$user_id' LIMIT 1";
     $result_bobot = mysqli_query($conn, $sql_bobot);
     $bobot = mysqli_fetch_assoc($result_bobot);
     $bobot_what = $bobot['bobotwhat'] ?? 0;
     $bobot_how = $bobot['bobothow'] ?? 0;
     
-    // Hitung final score
     $final_what = ($total_what * $bobot_what) / 100;
     $final_how = ($total_how * $bobot_how) / 100;
     $total_kpi = $final_what + $final_how;
@@ -114,142 +102,10 @@ function calculateKPI($conn, $user_id, $is_simulation = false) {
     ];
 }
 
-// ==================== SAVE KPI HISTORY FUNCTION ====================
-function saveKPIHistory($conn, $user_id, $kpi_real, $kpi_sim) {
-    // ✅ Bulan berjalan disimpan sebagai bulan-1 (mundur 1 bulan)
-    $bulan_simpan = date('Y-m', strtotime('-1 month')); // Maret → simpan sebagai Februari
-    $bulan_sekarang = date('Y-m'); // Maret
-
-    // Validasi owner
-    if (!empty($kpi_real['kpi_details'])) {
-        $first_kpi_id = $kpi_real['kpi_details'][0]['id'];
-        $check_owner = mysqli_query($conn, "SELECT id_user FROM tb_kpi WHERE id='$first_kpi_id' LIMIT 1");
-        if ($check_owner && mysqli_num_rows($check_owner) > 0) {
-            $owner = mysqli_fetch_assoc($check_owner);
-            if ($owner['id_user'] != $user_id) return false;
-        }
-    }
-
-    // Check table exists
-    $check_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_history'");
-    if (mysqli_num_rows($check_table) == 0) return false;
-
-    // ✅ CEK: Apakah sudah ada data bulan SEKARANG yang tersimpan?
-    // Jika ada, berarti bulan sudah berganti dan bulan_simpan sudah terkunci
-    $check_next_month = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
-                                             WHERE id_user='$user_id' 
-                                             AND bulan='$bulan_sekarang'
-                                             AND is_summary=1");
-
-    // Jika sudah ada data bulan sekarang (sebagai bulan_simpan di iterasi berikutnya),
-    // berarti bulan_simpan sebelumnya sudah terkunci, jangan update lagi
-    if (mysqli_num_rows($check_next_month) > 0) {
-        return true; // Data bulan_simpan sudah terkunci
-    }
-
-    // ========== SIMPAN/UPDATE summary untuk bulan_simpan ==========
-    $final_what     = mysqli_real_escape_string($conn, $kpi_real['final_what']);
-    $final_how      = mysqli_real_escape_string($conn, $kpi_real['final_how']);
-    $total_what     = mysqli_real_escape_string($conn, $kpi_real['total_what']);
-    $total_how      = mysqli_real_escape_string($conn, $kpi_real['total_how']);
-    $total_kpi_real = mysqli_real_escape_string($conn, $kpi_real['total_kpi']);
-    $total_kpi_target = mysqli_real_escape_string($conn, $kpi_sim['total_kpi']);
-    $bobot_what     = mysqli_real_escape_string($conn, $kpi_real['bobot_what']);
-    $bobot_how      = mysqli_real_escape_string($conn, $kpi_real['bobot_how']);
-
-    $check_summary = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
-                                          WHERE id_user='$user_id' 
-                                          AND bulan='$bulan_simpan' 
-                                          AND is_summary=1");
-
-    if (mysqli_num_rows($check_summary) > 0) {
-        // Update - karena masih bulan yang sama, data boleh di-update
-        $sql_summary = "UPDATE tb_kpi_history SET 
-                       total_kpi_real    = '$total_kpi_real',
-                       total_kpi_target  = '$total_kpi_target',
-                       total_what        = '$total_what',
-                       total_how         = '$total_how',
-                       bobot_what        = '$bobot_what',
-                       bobot_how         = '$bobot_how',
-                       nilai_what        = '$final_what',
-                       nilai_how         = '$final_how'
-                       WHERE id_user='$user_id' 
-                       AND bulan='$bulan_simpan' 
-                       AND is_summary=1";
-    } else {
-        // Insert baru
-        $sql_summary = "INSERT INTO tb_kpi_history 
-                       (id_user, id_kpi, bulan, is_summary, 
-                        total_kpi_real, total_kpi_target, 
-                        total_what, total_how,
-                        bobot_what, bobot_how,
-                        nilai_what, nilai_how) 
-                       VALUES 
-                       ('$user_id', NULL, '$bulan_simpan', 1, 
-                        '$total_kpi_real', '$total_kpi_target', 
-                        '$total_what', '$total_how',
-                        '$bobot_what', '$bobot_how',
-                        '$final_what', '$final_how')";
-    }
-
-    if (!mysqli_query($conn, $sql_summary)) return false;
-
-    // ========== SIMPAN/UPDATE detail rows ==========
-    foreach ($kpi_real['kpi_details'] as $detail) {
-        $id_kpi        = mysqli_real_escape_string($conn, $detail['id']);
-        $poin_what     = mysqli_real_escape_string($conn, $detail['poin_what']);
-        $poin_how      = mysqli_real_escape_string($conn, $detail['poin_how']);
-        $bobot_what    = mysqli_real_escape_string($conn, $detail['bobot_what']);
-        $bobot_how     = mysqli_real_escape_string($conn, $detail['bobot_how']);
-        $total_what_raw = mysqli_real_escape_string($conn, $detail['total_what_raw']);
-        $total_how_raw = mysqli_real_escape_string($conn, $detail['total_how_raw']);
-        $nilai_what    = mysqli_real_escape_string($conn, $detail['nilai_what']);
-        $nilai_how     = mysqli_real_escape_string($conn, $detail['nilai_how']);
-
-        $check_detail = mysqli_query($conn, "SELECT id FROM tb_kpi_history 
-                                             WHERE id_user='$user_id' 
-                                             AND id_kpi='$id_kpi' 
-                                             AND bulan='$bulan_simpan'
-                                             AND is_summary=0");
-
-        if (mysqli_num_rows($check_detail) > 0) {
-            // Update detail
-            $sql_detail = "UPDATE tb_kpi_history SET 
-                          poin_what       = '$poin_what',
-                          poin_how        = '$poin_how',
-                          bobot_what      = '$bobot_what',
-                          bobot_how       = '$bobot_how',
-                          total_what_raw  = '$total_what_raw',
-                          total_how_raw   = '$total_how_raw',
-                          nilai_what      = '$nilai_what',
-                          nilai_how       = '$nilai_how'
-                          WHERE id_user='$user_id' 
-                          AND id_kpi='$id_kpi' 
-                          AND bulan='$bulan_simpan'
-                          AND is_summary=0";
-        } else {
-            // Insert detail baru
-            $sql_detail = "INSERT INTO tb_kpi_history 
-                          (id_user, id_kpi, bulan, is_summary, poin_what, poin_how, 
-                           bobot_what, bobot_how, total_what_raw, total_how_raw, 
-                           nilai_what, nilai_how) 
-                          VALUES 
-                          ('$user_id', '$id_kpi', '$bulan_simpan', 0, '$poin_what', '$poin_how', 
-                           '$bobot_what', '$bobot_how', '$total_what_raw', '$total_how_raw', 
-                           '$nilai_what', '$nilai_how')";
-        }
-
-        mysqli_query($conn, $sql_detail);
-    }
-
-    return true;
-}
-
 // ==================== GET DETAILED KPI FROM HISTORY ====================
 function getDetailedKPIFromHistory($conn, $user_id, $bulan) {
     $details = [];
     
-    // Ambil detail rows (is_summary = 0)
     $sql = "SELECT * FROM tb_kpi_history 
             WHERE id_user='$user_id' 
             AND bulan='$bulan'
@@ -281,16 +137,11 @@ function getDetailedKPIFromHistory($conn, $user_id, $bulan) {
 
 // Calculate KPI for filtered user
 if ($user_level == 1) {
-    $filter_user = $id_user; // Paksa filter_user = diri sendiri
+    $filter_user = $id_user;
 }
 
 $kpi_real = calculateKPI($conn, $filter_user, false);
 $kpi_sim = calculateKPI($conn, $filter_user, true);
-
-// ✅ HANYA SIMPAN HISTORY JIKA USER MELIHAT DATA DIRINYA SENDIRI
-if ($filter_user == $id_user) {
-    saveKPIHistory($conn, $id_user, $kpi_real, $kpi_sim);
-}
 
 // Get user info
 $sql_user_info = "SELECT * FROM tb_users WHERE id='$filter_user'";
@@ -301,7 +152,6 @@ $user_info = mysqli_fetch_assoc($result_user_info);
 $bulan_ini = date('Y-m');
 $bulan_kemarin = date('Y-m', strtotime('-2 month'));
 
-// Ambil data summary bulan ini (is_summary = 1)
 $sql_current = "SELECT * FROM tb_kpi_history 
                 WHERE id_user='$filter_user' 
                 AND bulan='$bulan_ini'
@@ -309,7 +159,6 @@ $sql_current = "SELECT * FROM tb_kpi_history
 $result_current = mysqli_query($conn, $sql_current);
 $data_current = mysqli_fetch_assoc($result_current);
 
-// Ambil data summary bulan kemarin (is_summary = 1)
 $sql_previous = "SELECT * FROM tb_kpi_history 
                  WHERE id_user='$filter_user' 
                  AND bulan='$bulan_kemarin'
@@ -317,7 +166,6 @@ $sql_previous = "SELECT * FROM tb_kpi_history
 $result_previous = mysqli_query($conn, $sql_previous);
 $data_previous = mysqli_fetch_assoc($result_previous);
 
-// Jika tidak ada data bulan kemarin, set default 0
 if (!$data_previous) {
     $data_previous = [
         'total_kpi_real' => 0,
@@ -326,7 +174,6 @@ if (!$data_previous) {
     ];
 }
 
-// Jika tidak ada data bulan ini, gunakan perhitungan real-time
 if (!$data_current) {
     $data_current = [
         'total_kpi_real' => $kpi_real['total_kpi'],
@@ -335,18 +182,14 @@ if (!$data_current) {
     ];
 }
 
-// Ambil detail KPI bulan ini (gunakan data real-time)
 $kpi_current_detail = $kpi_real['kpi_details'];
-
-// Ambil detail KPI bulan kemarin dari history
 $kpi_previous_detail = getDetailedKPIFromHistory($conn, $filter_user, $bulan_kemarin);
 
-// Jika tidak ada detail bulan kemarin, set null
 if (!$kpi_previous_detail) {
     $kpi_previous_detail = [];
 }
 
-// ==================== TREND DATA (Last 6 months) - REAL DATA ====================
+// ==================== TREND DATA (Last 6 months) ====================
 $trend_data = [];
 
 $sql_trend = "SELECT 
@@ -372,7 +215,6 @@ if (mysqli_num_rows($result_trend) > 0) {
     foreach ($trend_data as &$item) {
         $item['month'] = date('M Y', strtotime($item['bulan'] . '-01'));
     }
-
 } else {
     $trend_data[] = [
         'month'  => date('M Y'),
@@ -412,9 +254,7 @@ if ($user_level >= 2) {
         $comparison_title = "Department Team - " . $target_dept;
 
     } elseif ($user_level >= 5) {
-        // DIREKTUR - Cek apakah filter departemen kosong (All Departments)
         if (!empty($filter_departemen)) {
-            // Filter berdasarkan departemen tertentu
             $target_dept = $filter_departemen;
             $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                               WHERE departement='$target_dept' 
@@ -422,7 +262,6 @@ if ($user_level >= 2) {
                               ORDER BY nama_lngkp";
             $comparison_title = "Department Team - " . $target_dept;
         } else {
-            // TAMPILKAN SEMUA EMPLOYEE dari semua departemen
             $sql_dept_users = "SELECT id, nama_lngkp, departement FROM tb_users 
                               WHERE username NOT IN ('itboy', 'adminhrd')
                               AND departement IS NOT NULL 
@@ -440,7 +279,6 @@ if ($user_level >= 2) {
 
             $name_display = $dept_user['nama_lngkp'];
             
-            // Tambahkan nama departemen jika All Departments (untuk direktur)
             if ($user_level >= 5 && empty($filter_departemen)) {
                 $name_display .= ' (' . $dept_user['departement'] . ')';
             }
@@ -458,16 +296,15 @@ if ($user_level >= 2) {
             ];
         }
 
-        // Sort berdasarkan skor tertinggi
         usort($dept_comparison, function ($a, $b) {
             return $b['score'] <=> $a['score'];
         });
     }
 }
+
 $dept_performance_analysis = [];
 
 if ($user_level >= 5) {
-    // Ambil semua departemen
     $sql_all_depts = "SELECT DISTINCT departement FROM tb_users 
                       WHERE departement IS NOT NULL AND departement != '' 
                       AND username NOT IN ('itboy', 'adminhrd')
@@ -477,14 +314,12 @@ if ($user_level >= 5) {
     while ($dept_row = mysqli_fetch_assoc($result_all_depts)) {
         $dept_name = $dept_row['departement'];
         
-        // Hitung performance untuk setiap kategori di departemen ini
         $excellent_count = 0;
         $very_good_count = 0;
         $good_count = 0;
         $poor_count = 0;
         $total_members = 0;
         
-        // Ambil semua user di departemen ini
         $sql_dept_members = "SELECT id FROM tb_users 
                             WHERE departement='$dept_name' 
                             AND username NOT IN ('itboy', 'adminhrd')";
@@ -494,7 +329,6 @@ if ($user_level >= 5) {
             $member_kpi = calculateKPI($conn, $member['id'], false);
             $score = $member_kpi['total_kpi'];
             
-            // Kategorikan berdasarkan score
             if ($score > 110) {
                 $excellent_count++;
             } elseif ($score > 100) {
@@ -524,7 +358,6 @@ if ($user_level >= 5) {
         }
     }
     
-    // Sort by excellent count descending
     usort($dept_performance_analysis, function($a, $b) {
         return $b['excellent'] <=> $a['excellent'];
     });
@@ -534,7 +367,6 @@ if ($user_level >= 5) {
 <html lang="en">
 <?php include("pages/part/p_header.php"); ?>
 
-<!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
 <style>
@@ -565,8 +397,6 @@ if ($user_level >= 5) {
         height: 150px;
         margin: 0 auto;
     }
-    
-    /* ==================== TAMBAHKAN CSS INI ==================== */
     .hover-card-analytics {
         transition: all 0.3s ease;
     }
@@ -574,8 +404,6 @@ if ($user_level >= 5) {
         transform: translateY(-5px);
         box-shadow: 0 12px 28px rgba(0,0,0,0.2) !important;
     }
-    /* ==================== AKHIR CSS BARU ==================== */
-    
     @media print {
         .no-print { display: none; }
     }
@@ -602,18 +430,13 @@ if ($user_level >= 5) {
                                             </h3>
                                             <p class="mb-0 opacity-90">Advanced Performance Monitoring & Analysis</p>
                                         </div>
-                                        <!-- <div class="col-md-6 text-md-end">
-                                            <button class="btn btn-light btn-sm no-print" onclick="window.print()">
-                                                <i class="bi bi-printer me-1"></i>Print
-                                            </button>
-                                        </div> -->
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                   <!-- ==================== QUICK ACTIONS ==================== -->
+                    <!-- ==================== QUICK ACTIONS ==================== -->
                     <div class="row mb-4 no-print">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
@@ -632,16 +455,15 @@ if ($user_level >= 5) {
                                         
                                         <?php 
                                         if ($user_level >= 2) {
-
-                                            $kpi_anggota_url = 'kpikabag'; // default level 2 (Koordinator)
+                                            $kpi_anggota_url = 'kpikabag';
                                             $kpi_label = 'KPI Anggota';
 
                                             if ($user_level == 3) {
-                                                $kpi_anggota_url = 'kpikabag';   // Kabag
+                                                $kpi_anggota_url = 'kpikabag';
                                             } elseif ($user_level == 4) {
-                                                $kpi_anggota_url = 'kpikadep';   // Kadep
+                                                $kpi_anggota_url = 'kpikadep';
                                             } elseif ($user_level >= 5) {
-                                                $kpi_anggota_url = 'kpidirektur'; // Direktur
+                                                $kpi_anggota_url = 'kpidirektur';
                                             }
                                         ?>
                                         <div class="col">
@@ -661,15 +483,11 @@ if ($user_level >= 5) {
                                                 <i class="bi bi-folder me-2"></i>Evidence
                                             </a>
                                         </div>
-
-                                        <!-- 🔥 TAMBAHAN ARCHIVE (TANPA MENGUBAH KODE LAIN) -->
                                         <div class="col">
                                             <a href="archive" class="btn btn-outline-dark w-100">
                                                 <i class="bi bi-archive me-2"></i>Archive KPI
                                             </a>
                                         </div>
-
-                                        <!-- KPI Departemen: hanya untuk Kadep (4) dan Direktur (5) -->
                                         <?php if ($user_level == 4 || $user_level >= 5 || $user_level >= 6) { ?>
                                         <div class="col">
                                             <a href="kpidepartemen" class="btn btn-outline-success w-100">
@@ -677,7 +495,6 @@ if ($user_level >= 5) {
                                             </a>
                                         </div>
                                         <?php } ?>
-
                                     </div>
                                 </div>
                             </div>
@@ -685,7 +502,7 @@ if ($user_level >= 5) {
                     </div>
 
                     <!-- ==================== FILTER SECTION ==================== -->
-                    <?php if ($user_level >= 2) { ?>  <!-- UBAH INI -->
+                    <?php if ($user_level >= 2) { ?>
                     <div class="row mb-4 no-print">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
@@ -696,8 +513,7 @@ if ($user_level >= 5) {
                                     <form method="GET" action="" id="filterForm">
                                         <div class="row g-3">
                                             
-                                            <?php if ($user_level >= 5) { ?>  <!-- DIREKTUR: Dropdown Department -->
-                                            <!-- Department Filter - Tampil duluan untuk level 5 -->
+                                            <?php if ($user_level >= 5) { ?>
                                             <div class="col-md-3">
                                                 <label class="form-label fw-bold">
                                                     Department 
@@ -726,7 +542,6 @@ if ($user_level >= 5) {
                                             </div>
                                             <?php } ?>
                                             
-                                            <!-- User Filter - Tampil untuk level 2 ke atas -->
                                             <div class="col-md-<?= $user_level >= 5 ? '3' : ($user_level == 4 ? '4' : '6') ?>">
                                                 <label class="form-label fw-bold">
                                                     Select Employee
@@ -738,12 +553,10 @@ if ($user_level >= 5) {
                                                     <option value="<?= $id_user ?>" <?= $filter_user == $id_user ? 'selected' : '' ?>>My KPI</option>
                                                     <?php 
                                                     if (isset($result_users) && mysqli_num_rows($result_users) > 0) {
-                                                        // Reset pointer result_users
                                                         mysqli_data_seek($result_users, 0);
                                                         
                                                         $current_dept = '';
                                                         while ($user = mysqli_fetch_assoc($result_users)) {
-                                                            // Untuk level 5, tampilkan grouping by department
                                                             if ($user_level >= 5 && empty($filter_departemen)) {
                                                                 if ($current_dept != $user['departement']) {
                                                                     if ($current_dept != '') echo '</optgroup>';
@@ -757,7 +570,6 @@ if ($user_level >= 5) {
                                                             </option>
                                                     <?php 
                                                         }
-                                                        // Close last optgroup if exists
                                                         if ($user_level >= 5 && empty($filter_departemen) && $current_dept != '') {
                                                             echo '</optgroup>';
                                                         }
@@ -772,7 +584,6 @@ if ($user_level >= 5) {
                                             </div>
 
                                             <?php if ($user_level == 4) { ?>
-                                            <!-- Department (Read-only for Kadep) -->
                                             <div class="col-md-4">
                                                 <label class="form-label fw-bold">Department</label>
                                                 <input type="text" class="form-control" value="<?= $user_info['departement'] ?>" readonly>
@@ -781,7 +592,6 @@ if ($user_level >= 5) {
                                             </div>
                                             <?php } ?>
 
-                                            <!-- Reset Button -->
                                             <div class="col-md-<?= $user_level >= 5 ? '3' : ($user_level == 4 ? '4' : '6') ?>">
                                                 <label class="form-label fw-bold">&nbsp;</label>
                                                 <a href="dashboard-utama" class="btn btn-outline-secondary w-100">
@@ -796,7 +606,6 @@ if ($user_level >= 5) {
                         </div>
                     </div>
 
-                    <!-- JavaScript untuk Clear Department -->
                     <script>
                     function clearDepartment() {
                         const form = document.getElementById('filterForm');
@@ -809,7 +618,6 @@ if ($user_level >= 5) {
                     </script>
 
                     <?php } ?>
-                    <!-- AKHIR FILTER SECTION -->
 
                     <!-- ==================== DEPARTMENT/TEAM COMPARISON ==================== -->
                     <?php if (!empty($dept_comparison) && $user_level >= 2) { ?>
@@ -821,7 +629,6 @@ if ($user_level >= 5) {
                                         <h5 class="mb-0">
                                             <i class="bi bi-people me-2"></i>
                                             <?php 
-                                            // Tentukan judul berdasarkan level
                                             if ($user_level == 2) {
                                                 echo "My Team Performance";
                                             } elseif ($user_level == 3) {
@@ -846,7 +653,6 @@ if ($user_level >= 5) {
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <!-- Container dengan scroll -->
                                     <div style="max-height: 500px; overflow-y: auto; overflow-x: hidden;">
                                         <div class="chart-container" style="height: <?= max(300, count($dept_comparison) * 30) ?>px;">
                                             <canvas id="deptComparisonChart"></canvas>
@@ -861,7 +667,6 @@ if ($user_level >= 5) {
                     <!-- ==================== DEPARTMENT PERFORMANCE ANALYSIS (DIREKTUR ONLY) ==================== -->
                     <?php if ($user_level >= 5 && !empty($dept_performance_analysis)) { ?>
                     <div class="row mb-4">
-                        <!-- Pie Chart - Excellent Performance by Department -->
                         <div class="col-lg-6 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
@@ -888,7 +693,6 @@ if ($user_level >= 5) {
                             </div>
                         </div>
 
-                        <!-- Department Performance Summary Table -->
                         <div class="col-lg-6 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
@@ -902,18 +706,10 @@ if ($user_level >= 5) {
                                             <thead class="table-light sticky-top">
                                                 <tr>
                                                     <th style="width: 30%;">Department</th>
-                                                    <th class="text-center" style="width: 15%;">
-                                                        <span class="badge bg-success">Excellent</span>
-                                                    </th>
-                                                    <th class="text-center" style="width: 15%;">
-                                                        <span class="badge bg-primary">Very Good</span>
-                                                    </th>
-                                                    <th class="text-center" style="width: 15%;">
-                                                        <span class="badge bg-warning">Good</span>
-                                                    </th>
-                                                    <th class="text-center" style="width: 15%;">
-                                                        <span class="badge bg-danger">Poor</span>
-                                                    </th>
+                                                    <th class="text-center" style="width: 15%;"><span class="badge bg-success">Excellent</span></th>
+                                                    <th class="text-center" style="width: 15%;"><span class="badge bg-primary">Very Good</span></th>
+                                                    <th class="text-center" style="width: 15%;"><span class="badge bg-warning">Good</span></th>
+                                                    <th class="text-center" style="width: 15%;"><span class="badge bg-danger">Poor</span></th>
                                                     <th class="text-center" style="width: 10%;">Total</th>
                                                 </tr>
                                             </thead>
@@ -921,26 +717,10 @@ if ($user_level >= 5) {
                                                 <?php foreach ($dept_performance_analysis as $dept) { ?>
                                                 <tr>
                                                     <td class="fw-bold"><?= htmlspecialchars($dept['department']) ?></td>
-                                                    <td class="text-center">
-                                                        <span class="badge bg-success">
-                                                            <?= $dept['excellent'] ?> (<?= number_format($dept['excellent_percentage'], 1) ?>%)
-                                                        </span>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <span class="badge bg-primary">
-                                                            <?= $dept['very_good'] ?> (<?= number_format($dept['very_good_percentage'], 1) ?>%)
-                                                        </span>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <span class="badge bg-warning text-dark">
-                                                            <?= $dept['good'] ?> (<?= number_format($dept['good_percentage'], 1) ?>%)
-                                                        </span>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <span class="badge bg-danger">
-                                                            <?= $dept['poor'] ?> (<?= number_format($dept['poor_percentage'], 1) ?>%)
-                                                        </span>
-                                                    </td>
+                                                    <td class="text-center"><span class="badge bg-success"><?= $dept['excellent'] ?> (<?= number_format($dept['excellent_percentage'], 1) ?>%)</span></td>
+                                                    <td class="text-center"><span class="badge bg-primary"><?= $dept['very_good'] ?> (<?= number_format($dept['very_good_percentage'], 1) ?>%)</span></td>
+                                                    <td class="text-center"><span class="badge bg-warning text-dark"><?= $dept['good'] ?> (<?= number_format($dept['good_percentage'], 1) ?>%)</span></td>
+                                                    <td class="text-center"><span class="badge bg-danger"><?= $dept['poor'] ?> (<?= number_format($dept['poor_percentage'], 1) ?>%)</span></td>
                                                     <td class="text-center fw-bold"><?= $dept['total'] ?></td>
                                                 </tr>
                                                 <?php } ?>
@@ -948,21 +728,11 @@ if ($user_level >= 5) {
                                             <tfoot class="table-light">
                                                 <tr class="fw-bold">
                                                     <td>TOTAL</td>
-                                                    <td class="text-center">
-                                                        <?= array_sum(array_column($dept_performance_analysis, 'excellent')) ?>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <?= array_sum(array_column($dept_performance_analysis, 'very_good')) ?>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <?= array_sum(array_column($dept_performance_analysis, 'good')) ?>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <?= array_sum(array_column($dept_performance_analysis, 'poor')) ?>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <?= array_sum(array_column($dept_performance_analysis, 'total')) ?>
-                                                    </td>
+                                                    <td class="text-center"><?= array_sum(array_column($dept_performance_analysis, 'excellent')) ?></td>
+                                                    <td class="text-center"><?= array_sum(array_column($dept_performance_analysis, 'very_good')) ?></td>
+                                                    <td class="text-center"><?= array_sum(array_column($dept_performance_analysis, 'good')) ?></td>
+                                                    <td class="text-center"><?= array_sum(array_column($dept_performance_analysis, 'poor')) ?></td>
+                                                    <td class="text-center"><?= array_sum(array_column($dept_performance_analysis, 'total')) ?></td>
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -972,7 +742,6 @@ if ($user_level >= 5) {
                         </div>
                     </div>
 
-                    <!-- All Departments Performance Overview -->
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
@@ -993,7 +762,6 @@ if ($user_level >= 5) {
 
                     <!-- ==================== KEY METRICS ==================== -->
                     <div class="row mb-4">
-                        <!-- Total Score Real -->
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card shadow-sm border-0 stat-card" style="border-left-color: #0d6efd !important;">
                                 <div class="card-body">
@@ -1016,7 +784,6 @@ if ($user_level >= 5) {
                             </div>
                         </div>
 
-                        <!-- Total Score Simulation -->
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card shadow-sm border-0 stat-card" style="border-left-color: #198754 !important;">
                                 <div class="card-body">
@@ -1036,7 +803,6 @@ if ($user_level >= 5) {
                             </div>
                         </div>
 
-                        <!-- Achievement Percentage -->
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card shadow-sm border-0 stat-card" style="border-left-color: #ffc107 !important;">
                                 <div class="card-body">
@@ -1061,7 +827,6 @@ if ($user_level >= 5) {
                             </div>
                         </div>
 
-                        <!-- Gap Analysis -->
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card shadow-sm border-0 stat-card" style="border-left-color: <?= $kpi_real['total_kpi'] >= $kpi_sim['total_kpi'] ? '#198754' : '#dc3545' ?> !important;">
                                 <div class="card-body">
@@ -1092,8 +857,6 @@ if ($user_level >= 5) {
                         <!-- KPI REAL Card -->
                         <div class="col-lg-6 mb-3">
                             <div class="card shadow-sm border-0 h-100 hover-card-analytics" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='dashboard'">
-                                
-                                <!-- Header Card Real -->
                                 <div class="card-header bg-primary text-white">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
@@ -1106,18 +869,12 @@ if ($user_level >= 5) {
                                         </div>
                                     </div>
                                 </div>
-
                                 <div class="card-body">
-                                    
-                                    <!-- WHAT Section -->
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <h6 class="fw-bold text-primary mb-0">
-                                                <i class="bi bi-bullseye me-1"></i>WHAT (Target/Objective)
-                                            </h6>
+                                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-bullseye me-1"></i>WHAT (Target/Objective)</h6>
                                             <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">Weight: <?= $kpi_real['bobot_what'] ?>%</span>
                                         </div>
-                                        
                                         <div class="table-responsive">
                                             <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
                                                 <thead class="table-light">
@@ -1129,19 +886,11 @@ if ($user_level >= 5) {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <?php 
-                                                    $no = 1;
-                                                    foreach ($kpi_real['kpi_details'] as $detail) {
-                                                    ?>
+                                                    <?php $no = 1; foreach ($kpi_real['kpi_details'] as $detail) { ?>
                                                     <tr>
-                                                        <td>
-                                                            <small class="text-muted"><?= $no++ ?>.</small>
-                                                            <span class="ms-1"><?= substr($detail['poin_what'], 0, 30) ?><?= strlen($detail['poin_what']) > 30 ? '...' : '' ?></span>
-                                                        </td>
+                                                        <td><small class="text-muted"><?= $no++ ?>.</small><span class="ms-1"><?= substr($detail['poin_what'], 0, 30) ?><?= strlen($detail['poin_what']) > 30 ? '...' : '' ?></span></td>
                                                         <td class="text-center"><small><?= $detail['bobot_what'] ?>%</small></td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-info" style="font-size: 0.7rem;"><?= number_format($detail['total_what_raw'], 2) ?></span>
-                                                        </td>
+                                                        <td class="text-center"><span class="badge bg-info" style="font-size: 0.7rem;"><?= number_format($detail['total_what_raw'], 2) ?></span></td>
                                                         <td class="text-center fw-bold text-primary"><small><?= number_format($detail['nilai_what'], 2) ?></small></td>
                                                     </tr>
                                                     <?php } ?>
@@ -1155,18 +904,12 @@ if ($user_level >= 5) {
                                             </table>
                                         </div>
                                     </div>
-
                                     <hr class="my-3">
-
-                                    <!-- HOW Section -->
                                     <div>
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <h6 class="fw-bold text-success mb-0">
-                                                <i class="bi bi-gear-fill me-1"></i>HOW (Method/Process)
-                                            </h6>
+                                            <h6 class="fw-bold text-success mb-0"><i class="bi bi-gear-fill me-1"></i>HOW (Method/Process)</h6>
                                             <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">Weight: <?= $kpi_real['bobot_how'] ?>%</span>
                                         </div>
-                                        
                                         <div class="table-responsive">
                                             <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
                                                 <thead class="table-light">
@@ -1178,19 +921,11 @@ if ($user_level >= 5) {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <?php 
-                                                    $no = 1;
-                                                    foreach ($kpi_real['kpi_details'] as $detail) {
-                                                    ?>
+                                                    <?php $no = 1; foreach ($kpi_real['kpi_details'] as $detail) { ?>
                                                     <tr>
-                                                        <td>
-                                                            <small class="text-muted"><?= $no++ ?>.</small>
-                                                            <span class="ms-1"><?= substr($detail['poin_how'], 0, 30) ?><?= strlen($detail['poin_how']) > 30 ? '...' : '' ?></span>
-                                                        </td>
+                                                        <td><small class="text-muted"><?= $no++ ?>.</small><span class="ms-1"><?= substr($detail['poin_how'], 0, 30) ?><?= strlen($detail['poin_how']) > 30 ? '...' : '' ?></span></td>
                                                         <td class="text-center"><small><?= $detail['bobot_how'] ?>%</small></td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-info" style="font-size: 0.7rem;"><?= number_format($detail['total_how_raw'], 2) ?></span>
-                                                        </td>
+                                                        <td class="text-center"><span class="badge bg-info" style="font-size: 0.7rem;"><?= number_format($detail['total_how_raw'], 2) ?></span></td>
                                                         <td class="text-center fw-bold text-success"><small><?= number_format($detail['nilai_how'], 2) ?></small></td>
                                                     </tr>
                                                     <?php } ?>
@@ -1204,25 +939,19 @@ if ($user_level >= 5) {
                                             </table>
                                         </div>
                                     </div>
-
                                 </div>
-
-                                <!-- Footer Total -->
                                 <div class="card-footer bg-light">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="fw-bold text-uppercase">Total KPI Real</span>
                                         <h4 class="mb-0 fw-bold text-primary"><?= number_format($kpi_real['total_kpi'], 2) ?></h4>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
 
                         <!-- KPI SIMULATION Card -->
                         <div class="col-lg-6 mb-3">
                             <div class="card shadow-sm border-0 h-100 hover-card-analytics" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='dashboard-simulasi'">
-                                
-                                <!-- Header Card Simulation -->
                                 <div class="card-header bg-success text-white">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
@@ -1235,18 +964,12 @@ if ($user_level >= 5) {
                                         </div>
                                     </div>
                                 </div>
-
                                 <div class="card-body">
-                                    
-                                    <!-- WHAT Section -->
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <h6 class="fw-bold text-primary mb-0">
-                                                <i class="bi bi-bullseye me-1"></i>WHAT (Target/Objective)
-                                            </h6>
+                                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-bullseye me-1"></i>WHAT (Target/Objective)</h6>
                                             <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">Weight: <?= $kpi_sim['bobot_what'] ?>%</span>
                                         </div>
-                                        
                                         <div class="table-responsive">
                                             <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
                                                 <thead class="table-light">
@@ -1258,19 +981,11 @@ if ($user_level >= 5) {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <?php 
-                                                    $no = 1;
-                                                    foreach ($kpi_sim['kpi_details'] as $detail) {
-                                                    ?>
+                                                    <?php $no = 1; foreach ($kpi_sim['kpi_details'] as $detail) { ?>
                                                     <tr>
-                                                        <td>
-                                                            <small class="text-muted"><?= $no++ ?>.</small>
-                                                            <span class="ms-1"><?= substr($detail['poin_what'], 0, 30) ?><?= strlen($detail['poin_what']) > 30 ? '...' : '' ?></span>
-                                                        </td>
+                                                        <td><small class="text-muted"><?= $no++ ?>.</small><span class="ms-1"><?= substr($detail['poin_what'], 0, 30) ?><?= strlen($detail['poin_what']) > 30 ? '...' : '' ?></span></td>
                                                         <td class="text-center"><small><?= $detail['bobot_what'] ?>%</small></td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-info" style="font-size: 0.7rem;"><?= number_format($detail['total_what_raw'], 2) ?></span>
-                                                        </td>
+                                                        <td class="text-center"><span class="badge bg-info" style="font-size: 0.7rem;"><?= number_format($detail['total_what_raw'], 2) ?></span></td>
                                                         <td class="text-center fw-bold text-primary"><small><?= number_format($detail['nilai_what'], 2) ?></small></td>
                                                     </tr>
                                                     <?php } ?>
@@ -1284,18 +999,12 @@ if ($user_level >= 5) {
                                             </table>
                                         </div>
                                     </div>
-
                                     <hr class="my-3">
-
-                                    <!-- HOW Section -->
                                     <div>
                                         <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <h6 class="fw-bold text-success mb-0">
-                                                <i class="bi bi-gear-fill me-1"></i>HOW (Method/Process)
-                                            </h6>
+                                            <h6 class="fw-bold text-success mb-0"><i class="bi bi-gear-fill me-1"></i>HOW (Method/Process)</h6>
                                             <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">Weight: <?= $kpi_sim['bobot_how'] ?>%</span>
                                         </div>
-                                        
                                         <div class="table-responsive">
                                             <table class="table table-sm table-hover mb-0" style="font-size: 0.85rem;">
                                                 <thead class="table-light">
@@ -1307,19 +1016,11 @@ if ($user_level >= 5) {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <?php 
-                                                    $no = 1;
-                                                    foreach ($kpi_sim['kpi_details'] as $detail) {
-                                                    ?>
+                                                    <?php $no = 1; foreach ($kpi_sim['kpi_details'] as $detail) { ?>
                                                     <tr>
-                                                        <td>
-                                                            <small class="text-muted"><?= $no++ ?>.</small>
-                                                            <span class="ms-1"><?= substr($detail['poin_how'], 0, 30) ?><?= strlen($detail['poin_how']) > 30 ? '...' : '' ?></span>
-                                                        </td>
+                                                        <td><small class="text-muted"><?= $no++ ?>.</small><span class="ms-1"><?= substr($detail['poin_how'], 0, 30) ?><?= strlen($detail['poin_how']) > 30 ? '...' : '' ?></span></td>
                                                         <td class="text-center"><small><?= $detail['bobot_how'] ?>%</small></td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-info" style="font-size: 0.7rem;"><?= number_format($detail['total_how_raw'], 2) ?></span>
-                                                        </td>
+                                                        <td class="text-center"><span class="badge bg-info" style="font-size: 0.7rem;"><?= number_format($detail['total_how_raw'], 2) ?></span></td>
                                                         <td class="text-center fw-bold text-success"><small><?= number_format($detail['nilai_how'], 2) ?></small></td>
                                                     </tr>
                                                     <?php } ?>
@@ -1333,28 +1034,20 @@ if ($user_level >= 5) {
                                             </table>
                                         </div>
                                     </div>
-
                                 </div>
-
-                                <!-- Footer Total -->
                                 <div class="card-footer bg-light">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="fw-bold text-uppercase">Total KPI Simulation</span>
                                         <h4 class="mb-0 fw-bold text-success"><?= number_format($kpi_sim['total_kpi'], 2) ?></h4>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
 
                     </div>
-                    <!-- ==================== AKHIR COMPARISON CARDS ==================== -->
-
 
                     <!-- ==================== CHARTS ROW ==================== -->
                     <div class="row mb-4">
-                        
-                        <!-- Trend Analysis Chart -->
                         <div class="col-lg-8 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
@@ -1367,8 +1060,6 @@ if ($user_level >= 5) {
                                 </div>
                             </div>
                         </div>
-
-                        <!-- KPI Real vs Target Comparison -->
                         <div class="col-lg-4 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
@@ -1381,35 +1072,27 @@ if ($user_level >= 5) {
                                 </div>
                             </div>
                         </div>
-
                     </div>
 
                     <!-- ==================== KPI BREAKDOWN ==================== -->
                     <div class="row mb-4">
-                        <!-- WHAT Comparison: Real vs Simulasi -->
                         <div class="col-lg-6 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
                                     <h5 class="mb-0"><i class="bi bi-bullseye me-2"></i>WHAT Breakdown - Real vs Simulasi</h5>
                                 </div>
                                 <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="kpiBreakdownWhat"></canvas>
-                                    </div>
+                                    <div class="chart-container"><canvas id="kpiBreakdownWhat"></canvas></div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- HOW Comparison: Real vs Simulasi -->
                         <div class="col-lg-6 mb-3">
                             <div class="card shadow-sm border-0">
                                 <div class="card-header bg-light">
                                     <h5 class="mb-0"><i class="bi bi-gear-fill me-2"></i>HOW Breakdown - Real vs Simulasi</h5>
                                 </div>
                                 <div class="card-body">
-                                    <div class="chart-container">
-                                        <canvas id="kpiBreakdownHow"></canvas>
-                                    </div>
+                                    <div class="chart-container"><canvas id="kpiBreakdownHow"></canvas></div>
                                 </div>
                             </div>
                         </div>
@@ -1429,114 +1112,10 @@ if ($user_level >= 5) {
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    
-                                    <!-- Summary Comparison -->
-                                    <!-- <div class="row mb-4">
-                                        <div class="col-md-4">
-                                            <div class="card border-primary">
-                                                <div class="card-body text-center">
-                                                    <h6 class="text-muted mb-2">Total KPI</h6>
-                                                    <div class="d-flex justify-content-around align-items-center">
-                                                        <div>
-                                                            <small class="text-muted">Current</small>
-                                                            <h4 class="text-primary mb-0"><?= number_format($data_current['total_kpi_real'], 2) ?></h4>
-                                                        </div>
-                                                        <div>
-                                                            <i class="bi bi-arrow-right text-muted fs-4"></i>
-                                                        </div>
-                                                        <div>
-                                                            <small class="text-muted">Previous</small>
-                                                            <h4 class="text-secondary mb-0"><?= number_format($data_previous['total_kpi_real'], 2) ?></h4>
-                                                        </div>
-                                                    </div>
-                                                    <?php 
-                                                    $delta_total = $data_current['total_kpi_real'] - $data_previous['total_kpi_real'];
-                                                    $growth_total = $data_previous['total_kpi_real'] > 0 
-                                                        ? (($data_current['total_kpi_real'] - $data_previous['total_kpi_real']) / $data_previous['total_kpi_real']) * 100 
-                                                        : 0;
-                                                    ?>
-                                                    <div class="mt-2">
-                                                        <span class="badge bg-<?= $delta_total >= 0 ? 'success' : 'danger' ?> fs-6">
-                                                            <?= $delta_total >= 0 ? '▲' : '▼' ?> <?= number_format(abs($delta_total), 2) ?> 
-                                                            (<?= number_format(abs($growth_total), 1) ?>%)
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-4">
-                                            <div class="card border-info">
-                                                <div class="card-body text-center">
-                                                    <h6 class="text-muted mb-2">WHAT Score</h6>
-                                                    <div class="d-flex justify-content-around align-items-center">
-                                                        <div>
-                                                            <small class="text-muted">Current</small>
-                                                            <h4 class="text-primary mb-0"><?= number_format($data_current['total_what'], 2) ?></h4>
-                                                        </div>
-                                                        <div>
-                                                            <i class="bi bi-arrow-right text-muted fs-4"></i>
-                                                        </div>
-                                                        <div>
-                                                            <small class="text-muted">Previous</small>
-                                                            <h4 class="text-secondary mb-0"><?= number_format($data_previous['total_what'], 2) ?></h4>
-                                                        </div>
-                                                    </div>
-                                                    <?php 
-                                                    $delta_what = $data_current['total_what'] - $data_previous['total_what'];
-                                                    $growth_what = $data_previous['total_what'] > 0 
-                                                        ? (($data_current['total_what'] - $data_previous['total_what']) / $data_previous['total_what']) * 100 
-                                                        : 0;
-                                                    ?>
-                                                    <div class="mt-2">
-                                                        <span class="badge bg-<?= $delta_what >= 0 ? 'success' : 'danger' ?> fs-6">
-                                                            <?= $delta_what >= 0 ? '▲' : '▼' ?> <?= number_format(abs($delta_what), 2) ?> 
-                                                            (<?= number_format(abs($growth_what), 1) ?>%)
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-4">
-                                            <div class="card border-success">
-                                                <div class="card-body text-center">
-                                                    <h6 class="text-muted mb-2">HOW Score</h6>
-                                                    <div class="d-flex justify-content-around align-items-center">
-                                                        <div>
-                                                            <small class="text-muted">Current</small>
-                                                            <h4 class="text-primary mb-0"><?= number_format($data_current['total_how'], 2) ?></h4>
-                                                        </div>
-                                                        <div>
-                                                            <i class="bi bi-arrow-right text-muted fs-4"></i>
-                                                        </div>
-                                                        <div>
-                                                            <small class="text-muted">Previous</small>
-                                                            <h4 class="text-secondary mb-0"><?= number_format($data_previous['total_how'], 2) ?></h4>
-                                                        </div>
-                                                    </div>
-                                                    <?php 
-                                                    $delta_how = $data_current['total_how'] - $data_previous['total_how'];
-                                                    $growth_how = $data_previous['total_how'] > 0 
-                                                        ? (($data_current['total_how'] - $data_previous['total_how']) / $data_previous['total_how']) * 100 
-                                                        : 0;
-                                                    ?>
-                                                    <div class="mt-2">
-                                                        <span class="badge bg-<?= $delta_how >= 0 ? 'success' : 'danger' ?> fs-6">
-                                                            <?= $delta_how >= 0 ? '▲' : '▼' ?> <?= number_format(abs($delta_how), 2) ?> 
-                                                            (<?= number_format(abs($growth_how), 1) ?>%)
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div> -->
 
                                     <!-- Detailed WHAT Comparison -->
                                     <div class="mb-4">
-                                        <h6 class="fw-bold text-primary mb-3">
-                                            <i class="bi bi-bullseye me-2"></i>WHAT (Objective) - Detailed Comparison
-                                        </h6>
+                                        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-bullseye me-2"></i>WHAT (Objective) - Detailed Comparison</h6>
                                         <div class="table-responsive">
                                             <table class="table table-hover table-bordered table-sm">
                                                 <thead class="table-primary">
@@ -1555,7 +1134,6 @@ if ($user_level >= 5) {
                                                     <?php 
                                                     $no = 1;
                                                     foreach ($kpi_current_detail as $idx => $detail) { 
-                                                        // Cari data bulan lalu berdasarkan id_kpi yang sama
                                                         $previous_value = 0;
                                                         $previous_raw = 0;
                                                         
@@ -1571,37 +1149,19 @@ if ($user_level >= 5) {
                                                         
                                                         $delta = round($detail['nilai_what'] - $previous_value, 2);
                                                         $delta = (abs($delta) < 0.02) ? 0 : $delta;
-                                                        // Gunakan $delta yang sudah di-threshold untuk hitung growth
-                                                        $growth = $previous_value > 0 
-                                                            ? round(($delta / $previous_value) * 100, 2)
-                                                            : 0;
+                                                        $growth = $previous_value > 0 ? round(($delta / $previous_value) * 100, 2) : 0;
                                                         $is_zero = ($delta == 0);
                                                         $is_up = ($delta > 0);
                                                         $is_down = ($delta < 0);
                                                     ?>
                                                     <tr>
                                                         <td class="text-center"><?= $no++ ?></td>
-                                                        <td>
-                                                            <div class="fw-semibold text-dark fs-6">
-                                                                <?= htmlspecialchars($detail['poin_what']) ?>
-                                                            </div>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-warning text-dark"><?= $detail['bobot_what'] ?>%</span>
-                                                        </td>
-                                                        <td class="text-center align-middle">
-                                                            <strong class="text-primary fw-semibold fs-6">
-                                                                <?= number_format($detail['nilai_what'], 2) ?>
-                                                            </strong>
-                                                        </td>
+                                                        <td><div class="fw-semibold text-dark fs-6"><?= htmlspecialchars($detail['poin_what']) ?></div></td>
+                                                        <td class="text-center"><span class="badge bg-warning text-dark"><?= $detail['bobot_what'] ?>%</span></td>
+                                                        <td class="text-center align-middle"><strong class="text-primary fw-semibold fs-6"><?= number_format($detail['nilai_what'], 2) ?></strong></td>
                                                         <td class="text-center align-middle">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <div class="fw-semibold text-dark fs-6">
-                                                                    <?= number_format($previous_value, 2) ?>
-                                                                </div>
-                                                                <!-- <div class="text-body-secondary fs-7">
-                                                                    (Total: <?= number_format($previous_raw, 2) ?>)
-                                                                </div> -->
+                                                                <div class="fw-semibold text-dark fs-6"><?= number_format($previous_value, 2) ?></div>
                                                             <?php } else { ?>
                                                                 <div class="fw-semibold text-secondary fs-6">-</div>
                                                                 <div class="text-body-secondary fs-7">No data</div>
@@ -1609,51 +1169,33 @@ if ($user_level >= 5) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <span class="badge bg-<?= $is_zero ? 'warning text-dark' : ($is_up ? 'success' : 'danger') ?>">
-                                                                    <?= $delta >= 0 ? '+' : '' ?><?= number_format($delta, 2) ?>
-                                                                </span>
-                                                            <?php } else { ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php } ?>
+                                                                <span class="badge bg-<?= $is_zero ? 'warning text-dark' : ($is_up ? 'success' : 'danger') ?>"><?= $delta >= 0 ? '+' : '' ?><?= number_format($delta, 2) ?></span>
+                                                            <?php } else { ?><span class="text-muted">-</span><?php } ?>
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <span class="badge bg-<?= $growth >= 0 ? 'success' : 'danger' ?>">
-                                                                    <?= number_format(abs($growth), 1) ?>%
-                                                                </span>
-                                                            <?php } else { ?>
-                                                                <span class="badge bg-secondary">New</span>
-                                                            <?php } ?>
+                                                                <span class="badge bg-<?= $growth >= 0 ? 'success' : 'danger' ?>"><?= number_format(abs($growth), 1) ?>%</span>
+                                                            <?php } else { ?><span class="badge bg-secondary">New</span><?php } ?>
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <?php if ($is_zero) { ?>
-                                                                    <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
-                                                                <?php } elseif ($is_up) { ?>
-                                                                    <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
-                                                                <?php } else { ?>
-                                                                    <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
-                                                                <?php } ?>
-                                                            <?php } else { ?>
-                                                                <i class="bi bi-plus-circle-fill text-info fs-5"></i>
-                                                            <?php } ?>
+                                                                <?php if ($is_zero) { ?><i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                                                                <?php } elseif ($is_up) { ?><i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
+                                                                <?php } else { ?><i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i><?php } ?>
+                                                            <?php } else { ?><i class="bi bi-plus-circle-fill text-info fs-5"></i><?php } ?>
                                                         </td>
                                                     </tr>
                                                     <?php } ?>
+                                                    <?php
+                                                    $delta_what = $data_current['total_what'] - $data_previous['total_what'];
+                                                    $growth_what = $data_previous['total_what'] > 0 ? (($data_current['total_what'] - $data_previous['total_what']) / $data_previous['total_what']) * 100 : 0;
+                                                    ?>
                                                     <tr class="table-light fw-bold">
                                                         <td colspan="3" class="text-end">TOTAL WHAT:</td>
                                                         <td class="text-center text-primary"><?= number_format($data_current['total_what'], 2) ?></td>
                                                         <td class="text-center text-secondary"><?= number_format($data_previous['total_what'], 2) ?></td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-<?= $delta_what >= 0 ? 'success' : 'danger' ?> fs-8">
-                                                                <?= $delta_what >= 0 ? '+' : '' ?><?= number_format($delta_what, 2) ?>
-                                                            </span>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-<?= $growth_what >= 0 ? 'success' : 'danger' ?> fs-8">
-                                                                <?= number_format(abs($growth_what), 1) ?>%
-                                                            </span>
-                                                        </td>
+                                                        <td class="text-center"><span class="badge bg-<?= $delta_what >= 0 ? 'success' : 'danger' ?> fs-8"><?= $delta_what >= 0 ? '+' : '' ?><?= number_format($delta_what, 2) ?></span></td>
+                                                        <td class="text-center"><span class="badge bg-<?= $growth_what >= 0 ? 'success' : 'danger' ?> fs-8"><?= number_format(abs($growth_what), 1) ?>%</span></td>
                                                         <td></td>
                                                     </tr>
                                                 </tbody>
@@ -1665,9 +1207,7 @@ if ($user_level >= 5) {
 
                                     <!-- Detailed HOW Comparison -->
                                     <div class="mb-4">
-                                        <h6 class="fw-bold text-success mb-3">
-                                            <i class="bi bi-gear-fill me-2"></i>HOW (Method) - Detailed Comparison
-                                        </h6>
+                                        <h6 class="fw-bold text-success mb-3"><i class="bi bi-gear-fill me-2"></i>HOW (Method) - Detailed Comparison</h6>
                                         <div class="table-responsive">
                                             <table class="table table-hover table-bordered table-sm">
                                                 <thead class="table-success">
@@ -1686,7 +1226,6 @@ if ($user_level >= 5) {
                                                     <?php 
                                                     $no = 1;
                                                     foreach ($kpi_current_detail as $idx => $detail) { 
-                                                        // Cari data bulan lalu berdasarkan id_kpi yang sama
                                                         $previous_value = 0;
                                                         $previous_raw = 0;
                                                         
@@ -1702,37 +1241,19 @@ if ($user_level >= 5) {
                                                         
                                                         $delta = round($detail['nilai_how'] - $previous_value, 2);
                                                         $delta = (abs($delta) < 0.02) ? 0 : $delta;
-                                                        // Gunakan $delta yang sudah di-threshold untuk hitung growth
-                                                        $growth = $previous_value > 0 
-                                                            ? round(($delta / $previous_value) * 100, 2)
-                                                            : 0;
+                                                        $growth = $previous_value > 0 ? round(($delta / $previous_value) * 100, 2) : 0;
                                                         $is_zero = ($delta == 0);
                                                         $is_up = ($delta > 0);
                                                         $is_down = ($delta < 0);
                                                     ?>
                                                     <tr>
                                                         <td class="text-center"><?= $no++ ?></td>
-                                                        <td>
-                                                           <div class="fw-semibold text-dark fs-6">
-                                                                <?= htmlspecialchars($detail['poin_how']) ?>
-                                                           </div>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-warning text-dark"><?= $detail['bobot_how'] ?>%</span>
-                                                        </td>
-                                                        <td class="text-center align-middle">
-                                                            <strong class="text-success fw-semibold fs-6">
-                                                                <?= number_format($detail['nilai_how'], 2) ?>
-                                                            </strong>
-                                                        </td>
+                                                        <td><div class="fw-semibold text-dark fs-6"><?= htmlspecialchars($detail['poin_how']) ?></div></td>
+                                                        <td class="text-center"><span class="badge bg-warning text-dark"><?= $detail['bobot_how'] ?>%</span></td>
+                                                        <td class="text-center align-middle"><strong class="text-success fw-semibold fs-6"><?= number_format($detail['nilai_how'], 2) ?></strong></td>
                                                         <td class="text-center align-middle">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <div class="fw-semibold text-dark fs-6">
-                                                                    <?= number_format($previous_value, 2) ?>
-                                                                </div>
-                                                                <!-- <div class="text-body-secondary fs-7">
-                                                                    (Total: <?= number_format($previous_raw, 2) ?>)
-                                                                </div> -->
+                                                                <div class="fw-semibold text-dark fs-6"><?= number_format($previous_value, 2) ?></div>
                                                             <?php } else { ?>
                                                                 <div class="fw-semibold text-secondary fs-6">-</div>
                                                                 <div class="text-body-secondary fs-7">No data</div>
@@ -1740,51 +1261,33 @@ if ($user_level >= 5) {
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <span class="badge bg-<?= $is_zero ? 'warning text-dark' : ($is_up ? 'success' : 'danger') ?>">
-                                                                    <?= $delta >= 0 ? '+' : '' ?><?= number_format($delta, 2) ?>
-                                                                </span>
-                                                            <?php } else { ?>
-                                                                <span class="text-muted">-</span>
-                                                            <?php } ?>
+                                                                <span class="badge bg-<?= $is_zero ? 'warning text-dark' : ($is_up ? 'success' : 'danger') ?>"><?= $delta >= 0 ? '+' : '' ?><?= number_format($delta, 2) ?></span>
+                                                            <?php } else { ?><span class="text-muted">-</span><?php } ?>
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <span class="badge bg-<?= $growth >= 0 ? 'success' : 'danger' ?>">
-                                                                    <?= number_format(abs($growth), 1) ?>%
-                                                                </span>
-                                                            <?php } else { ?>
-                                                                <span class="badge bg-secondary">New</span>
-                                                            <?php } ?>
+                                                                <span class="badge bg-<?= $growth >= 0 ? 'success' : 'danger' ?>"><?= number_format(abs($growth), 1) ?>%</span>
+                                                            <?php } else { ?><span class="badge bg-secondary">New</span><?php } ?>
                                                         </td>
                                                         <td class="text-center">
                                                             <?php if ($previous_value > 0) { ?>
-                                                                <?php if ($is_zero) { ?>
-                                                                    <i class="bi bi-dash-circle-fill text-warning fs-5"></i>
-                                                                <?php } elseif ($is_up) { ?>
-                                                                    <i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
-                                                                <?php } else { ?>
-                                                                    <i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i>
-                                                                <?php } ?>
-                                                            <?php } else { ?>
-                                                                <i class="bi bi-plus-circle-fill text-info fs-5"></i>
-                                                            <?php } ?>
+                                                                <?php if ($is_zero) { ?><i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                                                                <?php } elseif ($is_up) { ?><i class="bi bi-arrow-up-circle-fill text-success fs-5"></i>
+                                                                <?php } else { ?><i class="bi bi-arrow-down-circle-fill text-danger fs-5"></i><?php } ?>
+                                                            <?php } else { ?><i class="bi bi-plus-circle-fill text-info fs-5"></i><?php } ?>
                                                         </td>
                                                     </tr>
                                                     <?php } ?>
+                                                    <?php
+                                                    $delta_how = $data_current['total_how'] - $data_previous['total_how'];
+                                                    $growth_how = $data_previous['total_how'] > 0 ? (($data_current['total_how'] - $data_previous['total_how']) / $data_previous['total_how']) * 100 : 0;
+                                                    ?>
                                                     <tr class="table-light fw-bold">
                                                         <td colspan="3" class="text-end">TOTAL HOW:</td>
                                                         <td class="text-center text-success"><?= number_format($data_current['total_how'], 2) ?></td>
                                                         <td class="text-center text-secondary"><?= number_format($data_previous['total_how'], 2) ?></td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-<?= $delta_how >= 0 ? 'success' : 'danger' ?> fs-8">
-                                                                <?= $delta_how >= 0 ? '+' : '' ?><?= number_format($delta_how, 2) ?>
-                                                            </span>
-                                                        </td>
-                                                        <td class="text-center">
-                                                            <span class="badge bg-<?= $growth_how >= 0 ? 'success' : 'danger' ?> fs-8">
-                                                                <?= number_format(abs($growth_how), 1) ?>%
-                                                            </span>
-                                                        </td>
+                                                        <td class="text-center"><span class="badge bg-<?= $delta_how >= 0 ? 'success' : 'danger' ?> fs-8"><?= $delta_how >= 0 ? '+' : '' ?><?= number_format($delta_how, 2) ?></span></td>
+                                                        <td class="text-center"><span class="badge bg-<?= $growth_how >= 0 ? 'success' : 'danger' ?> fs-8"><?= number_format(abs($growth_how), 1) ?>%</span></td>
                                                         <td></td>
                                                     </tr>
                                                 </tbody>
@@ -1796,6 +1299,8 @@ if ($user_level >= 5) {
                             </div>
                         </div>
                     </div>
+
+                </div>
             </div>
         </main>
 
@@ -1806,13 +1311,10 @@ if ($user_level >= 5) {
     <script>
         // Trend Chart
         const trendCtx = document.getElementById('trendChart').getContext('2d');
-
-        // Data dari PHP
         const trendLabels = <?= json_encode(array_column($trend_data, 'month')) ?>;
         const trendRealData = <?= json_encode(array_column($trend_data, 'real')) ?>;
         const trendTargetData = <?= json_encode(array_column($trend_data, 'target')) ?>;
 
-        // Validasi data tidak kosong
         if (trendLabels.length > 0) {
             const trendChart = new Chart(trendCtx, {
                 type: 'line',
@@ -1838,472 +1340,134 @@ if ($user_level >= 5) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: true, position: 'top' },
-                        tooltip: { mode: 'index', intersect: false }
-                    },
-                    scales: {
-                        y: { 
-                            beginAtZero: false,
-                            ticks: {
-                                callback: function(value) {
-                                    return value.toFixed(2);
-                                }
-                            }
-                        }
-                    }
+                    plugins: { legend: { display: true, position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+                    scales: { y: { beginAtZero: false, ticks: { callback: function(value) { return value.toFixed(2); } } } }
                 }
             });
         } else {
-            // Jika tidak ada data, tampilkan pesan
             document.getElementById('trendChart').parentElement.innerHTML = 
                 '<p class="text-center text-muted">Belum ada data history. Data akan tersimpan setiap bulan.</p>';
         }
 
         // Real vs Target Chart
         const realVsTargetCtx = document.getElementById('realVsTargetChart').getContext('2d');
-
-        // Hitung persentase pencapaian
         const realValue = <?= $kpi_real['total_kpi'] ?>;
         const targetValue = <?= $kpi_sim['total_kpi'] ?>;
         const achievementPercentage = (realValue / targetValue) * 100;
 
-        // Tentukan data dan warna berdasarkan pencapaian
         let chartData, chartColors, chartLabels;
-
         if (realValue >= targetValue) {
-            // Jika real sudah mencapai atau melebihi target, tampilkan biru penuh
-            chartData = [100];
-            chartColors = ['#0d6efd'];
-            chartLabels = ['Target Tercapai ✓'];
+            chartData = [100]; chartColors = ['#0d6efd']; chartLabels = ['Target Tercapai ✓'];
         } else {
-            // Jika belum mencapai target, tampilkan perbandingan
-            chartData = [realValue, targetValue - realValue];
-            chartColors = ['#0d6efd', '#198754'];
-            chartLabels = ['Real Performance', 'Gap to Target'];
+            chartData = [realValue, targetValue - realValue]; chartColors = ['#0d6efd', '#198754']; chartLabels = ['Real Performance', 'Gap to Target'];
         }
 
-        const realVsTargetChart = new Chart(realVsTargetCtx, {
+        new Chart(realVsTargetCtx, {
             type: 'doughnut',
-            data: {
-                labels: chartLabels,
-                datasets: [{
-                    data: chartData,
-                    backgroundColor: chartColors,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
+            data: { labels: chartLabels, datasets: [{ data: chartData, backgroundColor: chartColors, borderWidth: 2, borderColor: '#fff' }] },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 plugins: {
-                    legend: { 
-                        position: 'bottom',
-                        labels: {
-                            padding: 15,
-                            font: { size: 12 }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                if (realValue >= targetValue) {
-                                    return 'Real: ' + realValue.toFixed(2) + ' / Target: ' + targetValue.toFixed(2) + ' (100%)';
-                                } else {
-                                    let label = context.label || '';
-                                    if (label === 'Real Performance') {
-                                        return 'Real: ' + realValue.toFixed(2) + ' (' + achievementPercentage.toFixed(1) + '%)';
-                                    } else {
-                                        let gap = targetValue - realValue;
-                                        return 'Gap: ' + gap.toFixed(2) + ' (' + (100 - achievementPercentage).toFixed(1) + '%)';
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 } } },
+                    tooltip: { callbacks: { label: function(context) {
+                        if (realValue >= targetValue) return 'Real: ' + realValue.toFixed(2) + ' / Target: ' + targetValue.toFixed(2) + ' (100%)';
+                        let label = context.label || '';
+                        if (label === 'Real Performance') return 'Real: ' + realValue.toFixed(2) + ' (' + achievementPercentage.toFixed(1) + '%)';
+                        return 'Gap: ' + (targetValue - realValue).toFixed(2) + ' (' + (100 - achievementPercentage).toFixed(1) + '%)';
+                    }}}
                 }
             }
         });
 
-        // KPI Breakdown WHAT - Real vs Simulasi
-        const breakdownWhatCtx = document.getElementById('kpiBreakdownWhat').getContext('2d');
-        const breakdownWhatChart = new Chart(breakdownWhatCtx, {
+        // WHAT Breakdown Chart
+        new Chart(document.getElementById('kpiBreakdownWhat').getContext('2d'), {
             type: 'bar',
             data: {
-                labels: <?= json_encode(array_map(function($detail) {
-                    return substr($detail['poin_what'], 0, 20) . (strlen($detail['poin_what']) > 20 ? '...' : '');
-                }, $kpi_real['kpi_details'])) ?>,
-                datasets: [{
-                    label: 'Real WHAT',
-                    data: <?= json_encode(array_column($kpi_real['kpi_details'], 'nilai_what')) ?>,
-                    backgroundColor: '#0d6efd',
-                    borderRadius: 5,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }, {
-                    label: 'Simulasi WHAT',
-                    data: <?= json_encode(array_column($kpi_sim['kpi_details'], 'nilai_what')) ?>,
-                    backgroundColor: '#198754',
-                    borderRadius: 5,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
+                labels: <?= json_encode(array_map(function($d) { return substr($d['poin_what'], 0, 20) . (strlen($d['poin_what']) > 20 ? '...' : ''); }, $kpi_real['kpi_details'])) ?>,
+                datasets: [
+                    { label: 'Real WHAT', data: <?= json_encode(array_column($kpi_real['kpi_details'], 'nilai_what')) ?>, backgroundColor: '#0d6efd', borderRadius: 5 },
+                    { label: 'Simulasi WHAT', data: <?= json_encode(array_column($kpi_sim['kpi_details'], 'nilai_what')) ?>, backgroundColor: '#198754', borderRadius: 5 }
+                ]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { 
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.parsed.y.toFixed(2);
-                            }
-                        }
-                    }
-                },
-                scales: { 
-                    x: { 
-                        display: true,
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 45,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-                    y: { 
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Score'
-                        }
-                    }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top' } }, scales: { x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 10 } } }, y: { beginAtZero: true } } }
         });
 
-        // KPI Breakdown HOW - Real vs Simulasi
-        const breakdownHowCtx = document.getElementById('kpiBreakdownHow').getContext('2d');
-        const breakdownHowChart = new Chart(breakdownHowCtx, {
+        // HOW Breakdown Chart
+        new Chart(document.getElementById('kpiBreakdownHow').getContext('2d'), {
             type: 'bar',
             data: {
-                labels: <?= json_encode(array_map(function($detail) {
-                    return substr($detail['poin_how'], 0, 20) . (strlen($detail['poin_how']) > 20 ? '...' : '');
-                }, $kpi_real['kpi_details'])) ?>,
-                datasets: [{
-                    label: 'Real HOW',
-                    data: <?= json_encode(array_column($kpi_real['kpi_details'], 'nilai_how')) ?>,
-                    backgroundColor: '#0d6efd',
-                    borderRadius: 5,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }, {
-                    label: 'Simulasi HOW',
-                    data: <?= json_encode(array_column($kpi_sim['kpi_details'], 'nilai_how')) ?>,
-                    backgroundColor: '#198754',
-                    borderRadius: 5,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
+                labels: <?= json_encode(array_map(function($d) { return substr($d['poin_how'], 0, 20) . (strlen($d['poin_how']) > 20 ? '...' : ''); }, $kpi_real['kpi_details'])) ?>,
+                datasets: [
+                    { label: 'Real HOW', data: <?= json_encode(array_column($kpi_real['kpi_details'], 'nilai_how')) ?>, backgroundColor: '#0d6efd', borderRadius: 5 },
+                    { label: 'Simulasi HOW', data: <?= json_encode(array_column($kpi_sim['kpi_details'], 'nilai_how')) ?>, backgroundColor: '#198754', borderRadius: 5 }
+                ]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { 
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.parsed.y.toFixed(2);
-                            }
-                        }
-                    }
-                },
-                scales: { 
-                    x: { 
-                        display: true,
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 45,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-                    y: { 
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Score'
-                        }
-                    }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top' } }, scales: { x: { ticks: { maxRotation: 45, minRotation: 45, font: { size: 10 } } }, y: { beginAtZero: true } } }
         });
 
         <?php if (!empty($dept_comparison) && count($dept_comparison) > 0) { ?>
-        // Department/Team Comparison Chart
-        const deptCompCtx = document.getElementById('deptComparisonChart').getContext('2d');
-
-        // Generate colors dynamically based on score status
-        const deptColors = <?= json_encode(array_map(function($member) {
-            $score = $member['score'];
-            
-            // Tentukan warna berdasarkan nilai
-            if ($score < 90) {
-                return '#dc3545'; // Merah untuk POOR
-            } elseif ($score <= 100) {
-                return '#ffc107'; // Kuning untuk GOOD
-            } elseif ($score <= 110) {
-                return '#0d6efd'; // Biru untuk VERY GOOD
-            } else {
-                return '#28a745'; // Hijau untuk EXCELLENT
-            }
+        const deptColors = <?= json_encode(array_map(function($m) {
+            $s = $m['score'];
+            if ($s < 90) return '#dc3545';
+            elseif ($s <= 100) return '#ffc107';
+            elseif ($s <= 110) return '#0d6efd';
+            else return '#28a745';
         }, $dept_comparison)) ?>;
 
-        const deptCompChart = new Chart(deptCompCtx, {
+        new Chart(document.getElementById('deptComparisonChart').getContext('2d'), {
             type: 'bar',
             data: {
                 labels: <?= json_encode(array_column($dept_comparison, 'name')) ?>,
-                datasets: [{
-                    label: 'KPI Score',
-                    data: <?= json_encode(array_column($dept_comparison, 'score')) ?>,
-                    backgroundColor: deptColors,
-                    borderRadius: 5,
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
+                datasets: [{ label: 'KPI Score', data: <?= json_encode(array_column($dept_comparison, 'score')) ?>, backgroundColor: deptColors, borderRadius: 5 }]
             },
             options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const score = context.parsed.x;
-                                let status = '';
-                                
-                                // Tampilkan status di tooltip
-                                if (score < 90) {
-                                    status = 'POOR';
-                                } else if (score <= 100) {
-                                    status = 'GOOD';
-                                } else if (score <= 110) {
-                                    status = 'VERY GOOD';
-                                } else {
-                                    status = 'EXCELLENT';
-                                }
-                                
-                                return 'Score: ' + score.toFixed(2) + ' (' + status + ')';
-                            }
-                        }
-                    }
-                },
-                scales: { 
-                    x: { 
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'KPI Score'
-                        }
-                    },
-                    y: {
-                        ticks: {
-                            autoSkip: false
-                        }
-                    }
-                }
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(context) {
+                    const score = context.parsed.x;
+                    let status = score < 90 ? 'POOR' : score <= 100 ? 'GOOD' : score <= 110 ? 'VERY GOOD' : 'EXCELLENT';
+                    return 'Score: ' + score.toFixed(2) + ' (' + status + ')';
+                }}}},
+                scales: { x: { beginAtZero: true, title: { display: true, text: 'KPI Score' } }, y: { ticks: { autoSkip: false } } }
             }
         });
         <?php } ?>
 
         <?php if ($user_level >= 5 && !empty($dept_performance_analysis)) { ?>
-        // Excellent Performance by Department - Pie Chart
-        const excellentByDeptCtx = document.getElementById('excellentByDeptChart').getContext('2d');
-
-        const deptExcellentData = {
-            labels: <?= json_encode(array_column($dept_performance_analysis, 'department')) ?>,
-            datasets: [{
-                data: <?= json_encode(array_column($dept_performance_analysis, 'excellent')) ?>,
-                backgroundColor: [
-                    '#198754', // Green
-                    '#0d6efd', // Blue
-                    '#ffc107', // Yellow
-                    '#dc3545', // Red
-                    '#6f42c1', // Purple
-                    '#fd7e14', // Orange
-                    '#20c997', // Teal
-                    '#e83e8c', // Pink
-                    '#6c757d', // Gray
-                    '#17a2b8'  // Cyan
-                ],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        };
-
-        const excellentByDeptChart = new Chart(excellentByDeptCtx, {
+        new Chart(document.getElementById('excellentByDeptChart').getContext('2d'), {
             type: 'pie',
-            data: deptExcellentData,
+            data: {
+                labels: <?= json_encode(array_column($dept_performance_analysis, 'department')) ?>,
+                datasets: [{ data: <?= json_encode(array_column($dept_performance_analysis, 'excellent')) ?>, backgroundColor: ['#198754','#0d6efd','#ffc107','#dc3545','#6f42c1','#fd7e14','#20c997','#e83e8c','#6c757d','#17a2b8'], borderWidth: 2, borderColor: '#fff' }]
+            },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            padding: 15,
-                            font: { size: 11 },
-                            generateLabels: function(chart) {
-                                const data = chart.data;
-                                if (data.labels.length && data.datasets.length) {
-                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                    return data.labels.map((label, i) => {
-                                        const value = data.datasets[0].data[i];
-                                        const percentage = ((value / total) * 100).toFixed(1);
-                                        const meta = chart.getDatasetMeta(0);
-                                        const hidden = meta.data[i].hidden;
-                                        
-                                        return {
-                                            text: `${label}: ${value} (${percentage}%)`,
-                                            fillStyle: data.datasets[0].backgroundColor[i],
-                                            hidden: hidden,
-                                            index: i,
-                                            // Tambahkan style untuk strikethrough
-                                            fontColor: hidden ? '#999' : '#666',
-                                            lineWidth: hidden ? 0 : 1
-                                        };
-                                    });
-                                }
-                                return [];
-                            }
-                        },
-                        // Tambahkan onClick handler
-                        onClick: function(e, legendItem, legend) {
-                            const index = legendItem.index;
-                            const chart = legend.chart;
-                            const meta = chart.getDatasetMeta(0);
-                            
-                            // Toggle visibility
-                            meta.data[index].hidden = !meta.data[index].hidden;
-                            
-                            chart.update();
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return label + ': ' + value + ' employees (' + percentage + '%)';
-                            }
-                        }
-                    }
+                    legend: { position: 'right', labels: { padding: 15, font: { size: 11 } } },
+                    tooltip: { callbacks: { label: function(context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        return context.label + ': ' + context.parsed + ' employees (' + ((context.parsed / total) * 100).toFixed(1) + '%)';
+                    }}}
                 }
             }
         });
 
-        // All Department Performance - Stacked Bar Chart
-        const allDeptPerfCtx = document.getElementById('allDeptPerformanceChart').getContext('2d');
-
-        const allDeptPerfChart = new Chart(allDeptPerfCtx, {
+        new Chart(document.getElementById('allDeptPerformanceChart').getContext('2d'), {
             type: 'bar',
             data: {
                 labels: <?= json_encode(array_column($dept_performance_analysis, 'department')) ?>,
                 datasets: [
-                    {
-                        label: 'Excellent (>110)',
-                        data: <?= json_encode(array_column($dept_performance_analysis, 'excellent')) ?>,
-                        backgroundColor: '#198754',
-                        borderRadius: 5,
-                        borderWidth: 1,
-                        borderColor: '#fff'
-                    },
-                    {
-                        label: 'Very Good (100-110)',
-                        data: <?= json_encode(array_column($dept_performance_analysis, 'very_good')) ?>,
-                        backgroundColor: '#0d6efd',
-                        borderRadius: 5,
-                        borderWidth: 1,
-                        borderColor: '#fff'
-                    },
-                    {
-                        label: 'Good (90-100)',
-                        data: <?= json_encode(array_column($dept_performance_analysis, 'good')) ?>,
-                        backgroundColor: '#FFFF00',
-                        borderRadius: 5,
-                        borderWidth: 1,
-                        borderColor: '#fff'
-                    },
-                    {
-                        label: 'Poor (<90)',
-                        data: <?= json_encode(array_column($dept_performance_analysis, 'poor')) ?>,
-                        backgroundColor: '#dc3545',
-                        borderRadius: 5,
-                        borderWidth: 1,
-                        borderColor: '#fff'
-                    }
+                    { label: 'Excellent (>110)', data: <?= json_encode(array_column($dept_performance_analysis, 'excellent')) ?>, backgroundColor: '#198754', borderRadius: 5 },
+                    { label: 'Very Good (100-110)', data: <?= json_encode(array_column($dept_performance_analysis, 'very_good')) ?>, backgroundColor: '#0d6efd', borderRadius: 5 },
+                    { label: 'Good (90-100)', data: <?= json_encode(array_column($dept_performance_analysis, 'good')) ?>, backgroundColor: '#FFFF00', borderRadius: 5 },
+                    { label: 'Poor (<90)', data: <?= json_encode(array_column($dept_performance_analysis, 'poor')) ?>, backgroundColor: '#dc3545', borderRadius: 5 }
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            padding: 15,
-                            font: { size: 12 }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.dataset.label || '';
-                                const value = context.parsed.y || 0;
-                                return label + ': ' + value + ' employees';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        stacked: true,
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 45,
-                            font: { size: 10 }
-                        }
-                    },
-                    y: {
-                        stacked: true,
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Number of Employees'
-                        },
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                }
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { padding: 15, font: { size: 12 } } } },
+                scales: { x: { stacked: true, ticks: { maxRotation: 45, minRotation: 45, font: { size: 10 } } }, y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Number of Employees' }, ticks: { stepSize: 1 } } }
             }
         });
-        // grafikanggota
         <?php } ?>
     </script>
 
