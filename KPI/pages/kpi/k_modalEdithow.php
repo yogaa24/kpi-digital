@@ -23,21 +23,21 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
-      <!-- BODY -->
-      <div class="modal-body">
-        <form method="POST" action="" class="how_edit">
-          <input type="hidden" name="idkh" value="<?=$res['id_how']?>">
+      <form method="POST" action="" class="how_edit" id="editHowForm<?=$res['id_how']?>">
+        <!-- BODY -->
+        <div class="modal-body">
+          <input type="hidden" name="idkh" value="<?=$res['id_how']?>" form="editHowForm<?=$res['id_how']?>">
 
           <!-- Tujuan -->
           <div class="input-group mb-3">
             <span class="input-group-text fw-bold">Tujuan</span>
-            <textarea class="form-control" name="tujuanh" required placeholder="Tujuan KPI"><?=$res['p_how']?></textarea>
+            <textarea class="form-control" name="tujuanh" form="editHowForm<?=$res['id_how']?>" required placeholder="Tujuan KPI"><?=$res['p_how']?></textarea>
           </div>
 
           <!-- Bobot -->
           <div class="input-group mb-3">
             <span class="input-group-text fw-bold">Bobot</span>
-            <input type="number" step="0.01" class="form-control" name="boboth" required value="<?=$res['bobot']?>" placeholder="Tanpa %">
+            <input type="number" step="0.01" class="form-control" name="boboth" form="editHowForm<?=$res['id_how']?>" required value="<?=$res['bobot']?>" placeholder="Tanpa %">
           </div>
 
           <?php if ($tipe_how == 'A') { ?>
@@ -66,10 +66,11 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
                 <div class="col-md-8">
                   <textarea class="form-control form-control-sm"
                             name="indikator_keterangan[]"
+                            form="editHowForm<?=$res['id_how']?>"
                             rows="1"
                             required
                             placeholder="Keterangan indikator"><?=$indikator['keterangan']?></textarea>
-                  <input type="hidden" name="indikator_id[]" value="<?=$indikator['id_indikator']?>">
+                  <input type="hidden" name="indikator_id[]" value="<?=$indikator['id_indikator']?>" form="editHowForm<?=$res['id_how']?>">
                 </div>
 
                 <div class="col-md-3">
@@ -77,6 +78,7 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
                         step="0.01"
                         class="form-control form-control-sm"
                         name="indikator_nilai[]"
+                        form="editHowForm<?=$res['id_how']?>"
                         required
                         value="<?=$indikator['nilai']?>"
                         placeholder="Nilai">
@@ -101,10 +103,11 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
                 <div class="col-md-8">
                   <textarea class="form-control form-control-sm"
                             name="indikator_keterangan[]"
+                            form="editHowForm<?=$res['id_how']?>"
                             rows="1"
                             required
                             placeholder="Keterangan indikator"></textarea>
-                  <input type="hidden" name="indikator_id[]" value="0">
+                  <input type="hidden" name="indikator_id[]" value="0" form="editHowForm<?=$res['id_how']?>">
                 </div>
 
                 <div class="col-md-3">
@@ -112,6 +115,7 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
                         step="0.01"
                         class="form-control form-control-sm"
                         name="indikator_nilai[]"
+                        form="editHowForm<?=$res['id_how']?>"
                         required
                         placeholder="Nilai">
                 </div>
@@ -131,15 +135,15 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
           </div>
           <?php } ?>
 
-      </div>
+        </div>
 
-      <!-- FOOTER -->
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="submit" name="how_edit" class="btn btn-success">Simpan</button>
-      </div>
+        <!-- FOOTER -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" name="how_edit" form="editHowForm<?=$res['id_how']?>" class="btn btn-success">Simpan</button>
+        </div>
 
-        </form>
+      </form>
     </div>
   </div>
 </div>
@@ -160,10 +164,11 @@ function tambahIndikatorEditHow<?=$res['id_how']?>() {
         <div class="col-md-8">
           <textarea class="form-control form-control-sm"
                     name="indikator_keterangan[]"
+                    form="editHowForm<?=$res['id_how']?>"
                     rows="1"
                     required
                     placeholder="Keterangan indikator"></textarea>
-          <input type="hidden" name="indikator_id[]" value="0">
+          <input type="hidden" name="indikator_id[]" value="0" form="editHowForm<?=$res['id_how']?>">
         </div>
 
         <div class="col-md-3">
@@ -171,6 +176,7 @@ function tambahIndikatorEditHow<?=$res['id_how']?>() {
                 step="0.01"
                 class="form-control form-control-sm"
                 name="indikator_nilai[]"
+                form="editHowForm<?=$res['id_how']?>"
                 required
                 placeholder="Nilai">
         </div>
@@ -199,6 +205,7 @@ function hapusIndikatorEditHow<?=$res['id_how']?>(btn) {
         deleteInput.type = 'hidden';
         deleteInput.name = 'indikator_hapus[]';
         deleteInput.value = idIndikator;
+        deleteInput.setAttribute('form', 'editHowForm<?=$res['id_how']?>');
         document.querySelector('#EditHowModal<?=$res['id_how']?> form').appendChild(deleteInput);
     }
     
@@ -215,9 +222,49 @@ function updateHapusButtonsEditHow<?=$res['id_how']?>() {
     });
 }
 
+function syncIndikatorFormEditHow<?=$res['id_how']?>() {
+    const form = document.getElementById('editHowForm<?=$res['id_how']?>');
+    if (!form) {
+        return;
+    }
+
+    form.querySelectorAll('[data-indikator-mirror="how-<?=$res['id_how']?>"]').forEach(input => input.remove());
+
+    document
+        .querySelectorAll('#EditHowModal<?=$res['id_how']?> [name="indikator_id[]"], #EditHowModal<?=$res['id_how']?> [name="indikator_keterangan[]"], #EditHowModal<?=$res['id_how']?> [name="indikator_nilai[]"]')
+        .forEach(input => input.setAttribute('form', 'editHowForm<?=$res['id_how']?>'));
+
+    document.querySelectorAll('#indikatorContainerEditHow<?=$res['id_how']?> .indikator-item').forEach(item => {
+        const idInput = item.querySelector('[name="indikator_id[]"]');
+        const ketInput = item.querySelector('[name="indikator_keterangan[]"]');
+        const nilaiInput = item.querySelector('[name="indikator_nilai[]"]');
+        const values = [
+            ['indikator_id_submit[]', idInput ? idInput.value : '0'],
+            ['indikator_keterangan_submit[]', ketInput ? ketInput.value : ''],
+            ['indikator_nilai_submit[]', nilaiInput ? nilaiInput.value : '']
+        ];
+
+        values.forEach(([name, value]) => {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = name;
+            hidden.value = value;
+            hidden.setAttribute('form', 'editHowForm<?=$res['id_how']?>');
+            hidden.setAttribute('data-indikator-mirror', 'how-<?=$res['id_how']?>');
+            form.appendChild(hidden);
+        });
+    });
+}
+
 // Jalankan saat modal dibuka
 document.addEventListener('DOMContentLoaded', function() {
     updateHapusButtonsEditHow<?=$res['id_how']?>();
+    syncIndikatorFormEditHow<?=$res['id_how']?>();
+
+    const form = document.getElementById('editHowForm<?=$res['id_how']?>');
+    if (form) {
+        form.addEventListener('submit', syncIndikatorFormEditHow<?=$res['id_how']?>);
+    }
 });
 </script>
 <?php } ?>

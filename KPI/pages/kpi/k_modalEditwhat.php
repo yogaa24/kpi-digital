@@ -23,21 +23,21 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
-      <!-- BODY -->
-      <div class="modal-body">
-        <form method="POST" action="" class="what_edit">
-          <input type="hidden" name="idkw" value="<?=$res['id_what']?>">
+      <form method="POST" action="" class="what_edit" id="editWhatForm<?=$res['id_what']?>">
+        <!-- BODY -->
+        <div class="modal-body">
+          <input type="hidden" name="idkw" value="<?=$res['id_what']?>" form="editWhatForm<?=$res['id_what']?>">
 
           <!-- Tujuan -->
           <div class="input-group mb-3">
             <span class="input-group-text fw-bold">Tujuan</span>
-            <textarea class="form-control" name="tujuanw" required placeholder="Tujuan KPI"><?=$res['p_what']?></textarea>
+            <textarea class="form-control" name="tujuanw" form="editWhatForm<?=$res['id_what']?>" required placeholder="Tujuan KPI"><?=$res['p_what']?></textarea>
           </div>
 
           <!-- Bobot -->
           <div class="input-group mb-3">
             <span class="input-group-text fw-bold">Bobot</span>
-            <input type="number" step="0.01" class="form-control" name="bobotw" required value="<?=$res['bobot']?>" placeholder="Tanpa %">
+            <input type="number" step="0.01" class="form-control" name="bobotw" form="editWhatForm<?=$res['id_what']?>" required value="<?=$res['bobot']?>" placeholder="Tanpa %">
           </div>
 
           <?php if ($tipe_what == 'A') { ?>
@@ -47,9 +47,9 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
           <!-- HEADER INDIKATOR -->
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h6 class="fw-bold mb-0">Indikator Penilaian</h6>
-            <!-- <button type="button" class="btn btn-sm btn-primary" onclick="tambahIndikatorEdit<?=$res['id_what']?>()">
+            <button type="button" class="btn btn-sm btn-primary" onclick="tambahIndikatorEdit<?=$res['id_what']?>()">
               <i class="bi bi-plus-circle"></i> Tambah
-            </button> -->
+            </button>
           </div>
 
           <!-- INDIKATOR CONTAINER -->
@@ -66,10 +66,11 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
                 <div class="col-md-8">
                   <textarea class="form-control form-control-sm"
                             name="indikator_keterangan[]"
+                            form="editWhatForm<?=$res['id_what']?>"
                             rows="1"
                             required
                             placeholder="Keterangan indikator"><?=$indikator['keterangan']?></textarea>
-                  <input type="hidden" name="indikator_id[]" value="<?=$indikator['id_indikator']?>">
+                  <input type="hidden" name="indikator_id[]" value="<?=$indikator['id_indikator']?>" form="editWhatForm<?=$res['id_what']?>">
                 </div>
 
                 <div class="col-md-3">
@@ -77,6 +78,7 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
                         step="0.01"
                         class="form-control form-control-sm"
                         name="indikator_nilai[]"
+                        form="editWhatForm<?=$res['id_what']?>"
                         required
                         value="<?=$indikator['nilai']?>"
                         placeholder="Nilai">
@@ -101,10 +103,11 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
                 <div class="col-md-8">
                   <textarea class="form-control form-control-sm"
                             name="indikator_keterangan[]"
+                            form="editWhatForm<?=$res['id_what']?>"
                             rows="1"
                             required
                             placeholder="Keterangan indikator"></textarea>
-                  <input type="hidden" name="indikator_id[]" value="0">
+                  <input type="hidden" name="indikator_id[]" value="0" form="editWhatForm<?=$res['id_what']?>">
                 </div>
 
                 <div class="col-md-3">
@@ -112,6 +115,7 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
                         step="0.01"
                         class="form-control form-control-sm"
                         name="indikator_nilai[]"
+                        form="editWhatForm<?=$res['id_what']?>"
                         required
                         placeholder="Nilai">
                 </div>
@@ -130,15 +134,15 @@ $result_indikator = mysqli_query($conn, $sql_indikator);
 
           </div>
           <?php } ?> 
-      </div>
+        </div>
 
-      <!-- FOOTER -->
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="submit" name="what_edit" class="btn btn-primary">Simpan</button>
-      </div>
+        <!-- FOOTER -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" name="what_edit" form="editWhatForm<?=$res['id_what']?>" class="btn btn-primary">Simpan</button>
+        </div>
 
-        </form>
+      </form>
     </div>
   </div>
 </div>
@@ -157,9 +161,10 @@ function tambahIndikatorEdit<?=$res['id_what']?>() {
     div.innerHTML = `
       <div class="row g-2 align-items-center">
         <div class="col-md-8">
-          <input type="hidden" name="indikator_id[]" value="0">
+          <input type="hidden" name="indikator_id[]" value="0" form="editWhatForm<?=$res['id_what']?>">
           <textarea class="form-control form-control-sm"
                     name="indikator_keterangan[]"
+                    form="editWhatForm<?=$res['id_what']?>"
                     rows="1"
                     required
                     placeholder="Keterangan indikator"></textarea>
@@ -170,6 +175,7 @@ function tambahIndikatorEdit<?=$res['id_what']?>() {
                 step="0.01"
                 class="form-control form-control-sm"
                 name="indikator_nilai[]"
+                form="editWhatForm<?=$res['id_what']?>"
                 required
                 placeholder="Nilai">
         </div>
@@ -199,6 +205,7 @@ function hapusIndikatorEdit<?=$res['id_what']?>(btn) {
         deleteInput.type = 'hidden';
         deleteInput.name = 'indikator_hapus[]';
         deleteInput.value = idIndikator;
+        deleteInput.setAttribute('form', 'editWhatForm<?=$res['id_what']?>');
         document.querySelector('#EditWhatModal<?=$res['id_what']?> form').appendChild(deleteInput);
     }
     
@@ -215,9 +222,49 @@ function updateHapusButtonsEdit<?=$res['id_what']?>() {
     });
 }
 
+function syncIndikatorFormEdit<?=$res['id_what']?>() {
+    const form = document.getElementById('editWhatForm<?=$res['id_what']?>');
+    if (!form) {
+        return;
+    }
+
+    form.querySelectorAll('[data-indikator-mirror="what-<?=$res['id_what']?>"]').forEach(input => input.remove());
+
+    document
+        .querySelectorAll('#EditWhatModal<?=$res['id_what']?> [name="indikator_id[]"], #EditWhatModal<?=$res['id_what']?> [name="indikator_keterangan[]"], #EditWhatModal<?=$res['id_what']?> [name="indikator_nilai[]"]')
+        .forEach(input => input.setAttribute('form', 'editWhatForm<?=$res['id_what']?>'));
+
+    document.querySelectorAll('#indikatorContainerEdit<?=$res['id_what']?> .indikator-item').forEach(item => {
+        const idInput = item.querySelector('[name="indikator_id[]"]');
+        const ketInput = item.querySelector('[name="indikator_keterangan[]"]');
+        const nilaiInput = item.querySelector('[name="indikator_nilai[]"]');
+        const values = [
+            ['indikator_id_submit[]', idInput ? idInput.value : '0'],
+            ['indikator_keterangan_submit[]', ketInput ? ketInput.value : ''],
+            ['indikator_nilai_submit[]', nilaiInput ? nilaiInput.value : '']
+        ];
+
+        values.forEach(([name, value]) => {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = name;
+            hidden.value = value;
+            hidden.setAttribute('form', 'editWhatForm<?=$res['id_what']?>');
+            hidden.setAttribute('data-indikator-mirror', 'what-<?=$res['id_what']?>');
+            form.appendChild(hidden);
+        });
+    });
+}
+
 // Jalankan saat modal dibuka
 document.addEventListener('DOMContentLoaded', function() {
     updateHapusButtonsEdit<?=$res['id_what']?>();
+    syncIndikatorFormEdit<?=$res['id_what']?>();
+
+    const form = document.getElementById('editWhatForm<?=$res['id_what']?>');
+    if (form) {
+        form.addEventListener('submit', syncIndikatorFormEdit<?=$res['id_what']?>);
+    }
 });
 </script>
 <?php } ?>

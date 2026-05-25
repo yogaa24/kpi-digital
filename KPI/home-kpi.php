@@ -138,11 +138,22 @@ if (isset($_POST['nilai_what'])) {
     
     if ($tipe_what == 'A') {
         // WHAT A: Ambil nilai dari indikator yang dipilih
+        if (empty($_POST['nilaisi'])) {
+            echo "<script>alert('Silakan pilih indikator penilaian terlebih dahulu.'); window.location.href='home-kpi';</script>";
+            exit();
+        }
+
         $id_indikator = intval($_POST['nilaisi']);
         
         $sql_get = "SELECT nilai, keterangan FROM tb_indikator_whats WHERE id_indikator = $id_indikator";
         $result_get = mysqli_query($conn, $sql_get);
         $data = mysqli_fetch_assoc($result_get);
+
+        if (!$data) {
+            echo "<script>alert('Indikator penilaian tidak ditemukan. Silakan pilih indikator yang valid.'); window.location.href='home-kpi';</script>";
+            exit();
+        }
+
         $nilai = $data['nilai'];
         $keterangan = mysqli_real_escape_string($conn, $data['keterangan']);
         
@@ -280,18 +291,29 @@ if (isset($_POST['what_edit'])) {
                 }
             }
             
-            if (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai']) && isset($_POST['indikator_id'])) {
+            if (isset($_POST['indikator_keterangan_submit']) && isset($_POST['indikator_nilai_submit'])) {
+                $keterangans = $_POST['indikator_keterangan_submit'];
+                $nilais = $_POST['indikator_nilai_submit'];
+                $ids_indikator = isset($_POST['indikator_id_submit']) ? $_POST['indikator_id_submit'] : [];
+            } elseif (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai'])) {
                 $keterangans = $_POST['indikator_keterangan'];
                 $nilais = $_POST['indikator_nilai'];
-                $ids_indikator = $_POST['indikator_id'];
+                $ids_indikator = isset($_POST['indikator_id']) ? $_POST['indikator_id'] : [];
+            } else {
+                $keterangans = [];
+                $nilais = [];
+                $ids_indikator = [];
+            }
+
+            if (!empty($keterangans) && !empty($nilais)) {
                 
-                $count = min(count($keterangans), count($nilais), count($ids_indikator));
+                $count = min(count($keterangans), count($nilais));
                 
                 for ($i = 0; $i < $count; $i++) {
                     if (!empty(trim($keterangans[$i])) && $nilais[$i] !== '') {
                         $ket = mysqli_real_escape_string($conn, trim($keterangans[$i]));
                         $nil = floatval($nilais[$i]);
-                        $id_indi = intval($ids_indikator[$i]);
+                        $id_indi = isset($ids_indikator[$i]) ? intval($ids_indikator[$i]) : 0;
                         $urutan = $i + 1;
                         
                         if ($id_indi > 0) {
@@ -382,11 +404,22 @@ if (isset($_POST['nilai_how'])) {
     
     if ($tipe_how == 'A') {
         // HOW A: Ambil nilai dari indikator yang dipilih
+        if (empty($_POST['nilaisi'])) {
+            echo "<script>alert('Silakan pilih indikator penilaian terlebih dahulu.'); window.location.href='home-kpi';</script>";
+            exit();
+        }
+
         $id_indikator = intval($_POST['nilaisi']);
         
         $sql_get = "SELECT nilai, keterangan FROM tb_indikator_hows WHERE id_indikator = $id_indikator";
         $result_get = mysqli_query($conn, $sql_get);
         $data = mysqli_fetch_assoc($result_get);
+
+        if (!$data) {
+            echo "<script>alert('Indikator penilaian tidak ditemukan. Silakan pilih indikator yang valid.'); window.location.href='home-kpi';</script>";
+            exit();
+        }
+
         $nilai = $data['nilai'];
         $keterangan = mysqli_real_escape_string($conn, $data['keterangan']);
         
@@ -525,16 +558,27 @@ if (isset($_POST['how_edit'])) {
                 }
             }
             
-            if (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai'])) {
+            if (isset($_POST['indikator_keterangan_submit']) && isset($_POST['indikator_nilai_submit'])) {
+                $keterangans = $_POST['indikator_keterangan_submit'];
+                $nilais = $_POST['indikator_nilai_submit'];
+                $ids_indikator = isset($_POST['indikator_id_submit']) ? $_POST['indikator_id_submit'] : [];
+            } elseif (isset($_POST['indikator_keterangan']) && isset($_POST['indikator_nilai'])) {
                 $keterangans = $_POST['indikator_keterangan'];
                 $nilais = $_POST['indikator_nilai'];
-                $ids_indikator = $_POST['indikator_id'];
+                $ids_indikator = isset($_POST['indikator_id']) ? $_POST['indikator_id'] : [];
+            } else {
+                $keterangans = [];
+                $nilais = [];
+                $ids_indikator = [];
+            }
+            
+            if (!empty($keterangans) && !empty($nilais)) {
                 
                 for ($i = 0; $i < count($keterangans); $i++) {
                     if (!empty($keterangans[$i])) {
                         $ket = mysqli_real_escape_string($conn, $keterangans[$i]);
                         $nil = floatval($nilais[$i]);
-                        $id_indi = intval($ids_indikator[$i]);
+                        $id_indi = isset($ids_indikator[$i]) ? intval($ids_indikator[$i]) : 0;
                         $urutan = $i + 1;
                         
                         if ($id_indi > 0) {
