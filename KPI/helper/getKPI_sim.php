@@ -1,6 +1,6 @@
 <?php
 require 'config.php';
-$id_user = $_SESSION['id_user'];
+$id_user = isset($id_user) ? intval($id_user) : intval($_SESSION['id_user']);
 
 $sql= "SELECT * FROM tbsim_kpi WHERE id_user='$id_user'";
 $result = mysqli_query($conn, $sql);

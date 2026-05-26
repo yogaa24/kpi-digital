@@ -267,6 +267,30 @@ if ($leveel == 5 || $leveel == 6) {
         integrity="sha256-4MX+61mt9NVvvuPjUWdUdyfZfxSB1/Rf9WtqRHgG5S0=" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/css/jsvectormap.min.css"
         integrity="sha256-+uGLJmmTKOqBr+2E6KDYs/NRsHxSkONXFHUL0fy2O/4=" crossorigin="anonymous">
+    <style>
+        #datatablenya_filter {
+            text-align: right;
+        }
+
+        .dataTables_wrapper .row:first-child .col-md-6:last-child {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        #datatablenya_filter label {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        #datatablenya_filter input {
+            width: 240px;
+            max-width: 100%;
+            margin-left: 0;
+        }
+    </style>
 </head>
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
@@ -326,7 +350,7 @@ if ($leveel == 5 || $leveel == 6) {
                                     <th colspan="3"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
                                     <th colspan="3"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
                                     <th width="8%" rowspan="2"><center>Trend</center></th>
-                                    <th width="5%" rowspan="2"><center>#</center></th>
+                                    <th width="7%" rowspan="2"><center>#</center></th>
                                 </tr>
                                 <tr>
                                     <th width="7%"><center>What</center></th>
@@ -475,6 +499,10 @@ if ($leveel == 5 || $leveel == 6) {
                                                    class="btn btn-success btn-sm" title="Lihat Detail">
                                                     <i class="bi bi-eye fs-8"></i>
                                                 </a>
+                                                <a href="dashboard-simulasi?id=<?= $hasilsfa['id'] ?>&from=kpidepartemen"
+                                                   class="btn btn-warning btn-sm" title="Lihat/Edit KPI Simulasi">
+                                                    <i class="bi bi-clipboard-data fs-8"></i>
+                                                </a>
                                             </center>
                                         <?php endif; ?>
                                     </td>
@@ -583,6 +611,27 @@ if ($leveel == 5 || $leveel == 6) {
         <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.min.js"></script>
         <script>
         document.addEventListener('DOMContentLoaded', function () {
+            $('#datatablenya').DataTable({
+                searching: true,
+                pageLength: 10,
+                language: {
+                    search: "Cari:",
+                    lengthMenu: "Tampilkan _MENU_ data per halaman",
+                    info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
+                    infoEmpty: "Menampilkan 0 sampai 0 dari 0 data",
+                    infoFiltered: "(difilter dari _MAX_ total data)",
+                    zeroRecords: "Data tidak ditemukan",
+                    paginate: {
+                        first: "Pertama",
+                        last: "Terakhir",
+                        next: "Selanjutnya",
+                        previous: "Sebelumnya"
+                    }
+                },
+                columnDefs: [
+                    { orderable: false, targets: -1 }
+                ]
+            });
 
             // ===== PIE CHART =====
             var pieOptions = {

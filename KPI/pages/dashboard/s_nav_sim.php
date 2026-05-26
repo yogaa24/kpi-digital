@@ -12,7 +12,7 @@
             </li>
 
             <li class="nav-item d-none d-md-block">
-                <a href="detailkpi-sl" class="nav-link">Detail KPI</a>
+                <a href="<?= isset($detailUrl) ? $detailUrl : 'detailkpi-sl' ?>" class="nav-link">Detail KPI</a>
             </li>
         </ul>
         <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->

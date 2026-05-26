@@ -8,10 +8,42 @@ if (!isset($_SESSION['id_user'])) {
 
 require 'helper/config.php';
 require 'helper/getUser.php';
+
+$current_user_id = intval($_SESSION['id_user']);
+$target_user_id = isset($_GET['id']) ? intval($_GET['id']) : $current_user_id;
+$allowedPages = ['kpidirektur', 'kpidepartemen', 'kpikadep', 'kpikabag'];
+$from = $_GET['from'] ?? '';
+$backUrl = in_array($from, $allowedPages) ? $from : 'dashboard-simulasi';
+
+if ($target_user_id <= 0) {
+    header("Location: noaccess");
+    exit();
+}
+
+$targetQuery = mysqli_query($conn, "SELECT * FROM tb_users WHERE id = $target_user_id");
+$targetUser = mysqli_fetch_assoc($targetQuery);
+if (!$targetUser) {
+    header("Location: noaccess");
+    exit();
+}
+
+$currentNama = stripslashes($nama_lngkp);
+$canAccessTarget = $target_user_id === $current_user_id
+    || $targetUser['atasan'] === $currentNama
+    || ((int)$leveel === 4 && $targetUser['departement'] === $departement)
+    || in_array((int)$leveel, [5, 6, 7]);
+
+if (!$canAccessTarget) {
+    header("Location: noaccess");
+    exit();
+}
+
+$id_user = $target_user_id;
+$detailUrl = 'detailkpi-sl' . ($target_user_id !== $current_user_id ? '?id=' . $target_user_id . '&from=' . urlencode($backUrl) : '');
 require 'helper/getKPI_sim.php';
 
 if (isset($_POST['submit'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $poin = $_POST['poin'];
     $bobot = $_POST['bobot'];
     $poin2 = $_POST['poin2'];
@@ -21,7 +53,7 @@ if (isset($_POST['submit'])) {
                     VALUES ('$ids', '$poin','$bobot','$poin2','$bobot2')";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin')</script>";
@@ -29,7 +61,7 @@ if (isset($_POST['submit'])) {
 }
 
 if (isset($_POST['update'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $poin = $_POST['poin'];
     $bobot = $_POST['bobot'];
     $idk = $_POST['idk'];
@@ -37,14 +69,14 @@ if (isset($_POST['update'])) {
     $sql = "UPDATE tbsim_kpi SET poin='$poin' ,bobot=$bobot  WHERE id=$idk AND id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin" . $result . "')</script>";
     }
 }
 if (isset($_POST['update2'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $poin2 = $_POST['poin2'];
     $bobot2 = $_POST['bobot2'];
     $idk = $_POST['idk'];
@@ -52,7 +84,7 @@ if (isset($_POST['update2'])) {
     $sql = "UPDATE tbsim_kpi SET poin2='$poin2', bobot2=$bobot2 WHERE id=$idk AND id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin" . $result . "')</script>";
@@ -61,7 +93,7 @@ if (isset($_POST['update2'])) {
 
 // Handler untuk tambah what dengan indikator (WHAT A dan WHAT B)
 if (isset($_POST['what_add'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuan']);
     $bobot = floatval($_POST['bobot']);
     $idkpi = intval($_POST['idkpi']);
@@ -93,7 +125,7 @@ if (isset($_POST['what_add'])) {
             }
         }
         
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         exit();
     } else {
         echo "<script>alert('Gagal menambah What: " . mysqli_error($conn) . "')</script>";
@@ -102,7 +134,7 @@ if (isset($_POST['what_add'])) {
 
 // Handler untuk penilaian what (WHAT A dan WHAT B)
 if (isset($_POST['nilai_what'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $id_what = intval($_POST['idkpi']);
     
     // Ambil data what untuk cek tipe
@@ -160,7 +192,7 @@ if (isset($_POST['nilai_what'])) {
     }
     
     if (mysqli_query($conn, $sql_update)) {
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         exit();
     } else {
         echo "<script>alert('Gagal menyimpan penilaian: " . mysqli_error($conn) . "')</script>";
@@ -169,7 +201,7 @@ if (isset($_POST['nilai_what'])) {
 
 // Handler untuk edit what (WHAT A dan WHAT B)
 if (isset($_POST['what_edit'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $idw = intval($_POST['idkw']);
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanw']);
     $bobot = floatval($_POST['bobotw']);
@@ -224,7 +256,7 @@ if (isset($_POST['what_edit'])) {
             }
         }
         
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         exit();
     } else {
         echo "<script>alert('Gagal mengupdate What')</script>";
@@ -232,7 +264,7 @@ if (isset($_POST['what_edit'])) {
 }
 // Handler untuk tambah how dengan indikator
 if (isset($_POST['how_add'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuan']);
     $bobot = floatval($_POST['bobot']);
     $idkpi = intval($_POST['idkpi']);
@@ -264,7 +296,7 @@ if (isset($_POST['how_add'])) {
             }
         }
         
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         exit();
     } else {
         echo "<script>alert('Gagal menambah How: " . mysqli_error($conn) . "')</script>";
@@ -273,7 +305,7 @@ if (isset($_POST['how_add'])) {
 
 // Handler untuk penilaian how (HOW A dan HOW B)
 if (isset($_POST['nilai_how'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $id_how = intval($_POST['idkpi']);
     
     // Ambil data how untuk cek tipe
@@ -331,7 +363,7 @@ if (isset($_POST['nilai_how'])) {
     }
     
     if (mysqli_query($conn, $sql_update)) {
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         exit();
     } else {
         echo "<script>alert('Gagal menyimpan penilaian: " . mysqli_error($conn) . "')</script>";
@@ -340,7 +372,7 @@ if (isset($_POST['nilai_how'])) {
 
 // Handler untuk edit how (HOW A dan HOW B)
 if (isset($_POST['how_edit'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $idh = intval($_POST['idkh']);
     $tujuan = mysqli_real_escape_string($conn, $_POST['tujuanh']);
     $bobot = floatval($_POST['boboth']);
@@ -395,40 +427,40 @@ if (isset($_POST['how_edit'])) {
             }
         }
         
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         exit();
     } else {
         echo "<script>alert('Gagal mengupdate How')</script>";
     }
 }
 if (isset($_POST['how_hapus'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $idkpi = $_POST['idkhd'];
 
     $sql = "delete from tbsim_hows where id_how=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin')</script>";
     }
 }
 if (isset($_POST['what_hapus'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $idkpi = $_POST['idkwd'];
 
     $sql = "delete from tbsim_whats where id_what=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin')</script>";
     }
 }
 if (isset($_POST['update'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $idkpi = $_POST['idk'];
     $poinn = $_POST['poin'];
     $bobott = $_POST['bobot'];
@@ -436,14 +468,14 @@ if (isset($_POST['update'])) {
     $sql = "UPDATE `tbsim_kpi` set poin = '$poinn', bobot = $bobott where id=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         echo "<script>alert('Berhasil, Edit Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Edit Poin')</script>";
     }
 }
 if (isset($_POST['update2'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $idkpi = $_POST['idk'];
     $poinn = $_POST['poin2'];
     $bobott = $_POST['bobot2'];
@@ -451,14 +483,14 @@ if (isset($_POST['update2'])) {
     $sql = "UPDATE `tbsim_kpi` set poin2 = '$poinn', bobot2 = $bobott where id=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: detailkpi-sl');
+        header('Location: ' . $detailUrl);
         echo "<script>alert('Berhasil, Edit Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Edit Poin')</script>";
     }
 }
 if (isset($_POST['kpi_hapus'])) {
-    $ids = $_SESSION['id_user'];
+    $ids = $id_user;
     $idkpi = intval($_POST['idkpi_hapus']);
 
     mysqli_query($conn, "DELETE iw FROM tbsim_indikator_whats iw 
@@ -477,7 +509,7 @@ if (isset($_POST['kpi_hapus'])) {
     $result = mysqli_query($conn, $sql);
     
     if ($result) {
-        header('Location: home-kpi');
+        header('Location: ' . $detailUrl);
         echo "<script>alert('Berhasil menghapus KPI')</script>";
         exit();
     } else {

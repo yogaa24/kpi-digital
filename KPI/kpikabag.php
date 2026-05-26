@@ -144,6 +144,16 @@ function getNamaBulan($bulan) {
     return $namaBulan[$bulan];
 }
 
+$systemCurrentMonth = getCurrentSystemMonth();
+$bulanIni = $systemCurrentMonth['month'];
+$tahunIni = $systemCurrentMonth['year'];
+$namaBulanIni = getNamaBulan($bulanIni) . ' ' . $tahunIni;
+
+$prevMonth = getPreviousMonth();
+$bulanSebelumnya = $prevMonth['month'];
+$tahunSebelumnya = $prevMonth['year'];
+$namaBulanSebelumnya = getNamaBulan($bulanSebelumnya) . ' ' . $tahunSebelumnya;
+
 // Fungsi untuk mendapatkan nilai KPI dari tb_kpi_history berdasarkan bulan
 function getKPIFromHistory($conn, $id_user, $bulan, $tahun) {
     // Format bulan: YYYY-MM
@@ -225,6 +235,15 @@ function getkpi($nilair)
             <div class="app-content">
                 <div class="container-fluid">
                     <div class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h4 class="mb-0"><i class="bi bi-bar-chart-line-fill text-primary me-2"></i> KPI Bagian</h4>
+                                <small class="text-muted">
+                                    Bulan Ini: <strong><?= $namaBulanIni ?></strong> &nbsp;|&nbsp;
+                                    Bulan Lalu: <strong><?= $namaBulanSebelumnya ?></strong>
+                                </small>
+                            </div>
+                        </div>
                         
                         <div class="table-responsive">
                             <table id="datatablenya" class="table align-midle table-hover table-bordered">
@@ -234,8 +253,8 @@ function getkpi($nilair)
                                         <th rowspan="2"><center>Nama Anggota</center></th>
                                         <th width="15%" rowspan="2"><center>Jabatan</center></th>
                                         <th width="15%" rowspan="2"><center>Bagian</center></th>
-                                        <th colspan="3"><center>Bulan Ini</center></th>
-                                        <th colspan="3"><center>Bulan Lalu</center></th>
+                                        <th colspan="3"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
+                                        <th colspan="3"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
                                         <th width="8%" rowspan="2"><center>Trend</center></th>
                                         <th width="10%" rowspan="2"><center>#</center></th>
                                     </tr>
@@ -392,6 +411,10 @@ function getkpi($nilair)
                                                         <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>&from=kpikabag"
                                                             class="btn btn-success btn-sm" title="Lihat Detail">
                                                             <i class="bi bi-eye fs-8"></i>
+                                                        </a>
+                                                        <a type="button" href="dashboard-simulasi?id=<?= $hasilsfa['id']; ?>&from=kpikabag"
+                                                            class="btn btn-warning btn-sm" title="Lihat/Edit KPI Simulasi">
+                                                            <i class="bi bi-clipboard-data fs-8"></i>
                                                         </a>
                                                         <a type="button" href="export_kpi_detail.php?id=<?= $hasilsfa['id']; ?>"
                                                             class="btn btn-primary btn-sm" title="Export Excel Detail">

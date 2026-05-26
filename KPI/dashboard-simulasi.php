@@ -7,6 +7,47 @@ if (!isset($_SESSION['id_user'])) {
 } else {
     require 'helper/config.php';
     require 'helper/getUser.php';
+
+    $current_user_id = intval($_SESSION['id_user']);
+    $currentNama = stripslashes($nama_lngkp);
+    $currentDepartement = $departement;
+    $target_user_id = isset($_GET['id']) ? intval($_GET['id']) : $current_user_id;
+    $allowedPages = ['kpidirektur', 'kpidepartemen', 'kpikadep', 'kpikabag'];
+    $from = $_GET['from'] ?? '';
+    $backUrl = in_array($from, $allowedPages) ? $from : 'dashboard-simulasi';
+
+    if ($target_user_id <= 0) {
+        header("Location: noaccess");
+        exit();
+    }
+
+    $targetQuery = mysqli_query($conn, "SELECT * FROM tb_users WHERE id = $target_user_id");
+    $targetUser = mysqli_fetch_assoc($targetQuery);
+    if (!$targetUser) {
+        header("Location: noaccess");
+        exit();
+    }
+
+    $canAccessTarget = $target_user_id === $current_user_id
+        || $targetUser['atasan'] === $currentNama
+        || ((int)$leveel === 4 && $targetUser['departement'] === $currentDepartement)
+        || in_array((int)$leveel, [5, 6, 7]);
+
+    if (!$canAccessTarget) {
+        header("Location: noaccess");
+        exit();
+    }
+
+    $id_user = $target_user_id;
+    $nama_lngkp = $targetUser['nama_lngkp'];
+    $nik = $targetUser['nik'];
+    $bagian = $targetUser['bagian'];
+    $departement = $targetUser['departement'];
+    $jabatan = $targetUser['jabatan'];
+    $atasan = $targetUser['atasan'];
+    $penilai = $targetUser['penilai'];
+    $detailUrl = 'detailkpi-sl' . ($target_user_id !== $current_user_id ? '?id=' . $target_user_id . '&from=' . urlencode($backUrl) : '');
+
     require 'helper/getKPI_sim.php';
     require 'helper/getHow_sim.php';
 

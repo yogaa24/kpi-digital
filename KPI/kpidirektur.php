@@ -10,6 +10,16 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/getUser.php';
     require 'helper/getKPI.php';
 }
+
+// ===== BULAN & TAHUN — identik dengan kpikadep.php =====
+$prevMonth           = getPreviousMonth();
+$bulanSebelumnya     = $prevMonth['month'];
+$tahunSebelumnya     = $prevMonth['year'];
+$namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
+$bulanIni            = date('n', strtotime('-1 month'));
+$tahunIni            = date('Y', strtotime('-1 month'));
+$namaBulanIni        = getNamaBulan($bulanIni);
+
 function getnilai($conn, $id)
 {
     $sql = "SELECT * FROM tb_kpi WHERE id_user='$id'";
@@ -221,10 +231,10 @@ function getkpi($nilair)
                                         <th rowspan="2"><center>Nama Anggota</center></th>
                                         <th width="15%" rowspan="2"><center>Jabatan</center></th>
                                         <th width="15%" rowspan="2"><center>Bagian</center></th>
-                                        <th colspan="3"><center>Bulan Ini</center></th>
-                                        <th colspan="3"><center>Bulan Lalu</center></th>
+                                        <th colspan="3"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
+                                        <th colspan="3"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
                                         <th width="8%" rowspan="2"><center>Trend</center></th>
-                                        <th width="5%" rowspan="2"><center>#</center></th>
+                                        <th width="7%" rowspan="2"><center>#</center></th>
                                     </tr>
                                     <tr>
                                         <!-- Bulan Ini -->
@@ -362,6 +372,10 @@ function getkpi($nilair)
                                                         <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>&from=kpidirektur"
                                                             class="btn btn-success btn-sm">
                                                             <i class="bi bi-eye fs-8"></i>
+                                                        </a>
+                                                        <a type="button" href="dashboard-simulasi?id=<?= $hasilsfa['id']; ?>&from=kpidirektur"
+                                                            class="btn btn-warning btn-sm" title="Lihat/Edit KPI Simulasi">
+                                                            <i class="bi bi-clipboard-data fs-8"></i>
                                                         </a>
                                                     </center>
                                                 <?php } ?>

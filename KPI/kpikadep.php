@@ -92,6 +92,21 @@ function getNamaBulan($bulan) {
     return $namaBulan[$bulan];
 }
 
+// Samakan periode KPI dengan kpidepartemen:
+// "Bulan Ini" = bulan lalu dari kalender sistem, "Bulan Lalu" = 2 bulan mundur.
+$referensi = new DateTime('first day of last month');
+
+$bulanIni = $referensi->format('n');
+$tahunIni = $referensi->format('Y');
+$namaBulanIni = getNamaBulan($bulanIni);
+
+$bulanLaluDate = clone $referensi;
+$bulanLaluDate->modify('-1 month');
+
+$bulanSebelumnya = $bulanLaluDate->format('n');
+$tahunSebelumnya = $bulanLaluDate->format('Y');
+$namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
+
 // Fungsi untuk mendapatkan nilai KPI dari tb_kpi_history berdasarkan bulan
 function getKPIFromHistory($conn, $id_user, $bulan, $tahun) {
     // Format bulan: YYYY-MM
@@ -249,15 +264,6 @@ function getHoww($conn, $id)
                                 $no = 1;
                                 $nama_kadep = mysqli_real_escape_string($conn, $nama_lngkp);
 
-                                // Dapatkan bulan dan tahun sebelumnya
-                                $prevMonth = getPreviousMonth();
-                                $bulanSebelumnya = $prevMonth['month'];
-                                $tahunSebelumnya = $prevMonth['year'];
-                                $namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
-                                $bulanIni = date('n');
-                                $tahunIni = date('Y');
-                                $namaBulanIni = getNamaBulan($bulanIni);
-
                                 $sqlhd = "
                                     SELECT *
                                     FROM tb_users
@@ -320,9 +326,9 @@ function getHoww($conn, $id)
                                     } elseif ($nilair <= 100) {
                                         $wrabs = "orange";
                                     } elseif ($nilair <= 110) {
-                                        $wrabs = "green";
-                                    } else {
                                         $wrabs = "blue";
+                                    } else {
+                                        $wrabs = "green";
                                     }
                                     
                                     // Warna untuk nilai KPI bulan lalu
@@ -331,9 +337,9 @@ function getHoww($conn, $id)
                                     } elseif ($nilaiBulanLalu <= 100) {
                                         $wrabsLalu = "orange";
                                     } elseif ($nilaiBulanLalu <= 110) {
-                                        $wrabsLalu = "green";
-                                    } else {
                                         $wrabsLalu = "blue";
+                                    } else {
+                                        $wrabsLalu = "green";
                                     }
                                 ?>
                                     <tr>
@@ -393,6 +399,10 @@ function getHoww($conn, $id)
                                                 <a type="button" href="kpianggota?id=<?= $hasilsfa['id']; ?>&from=kpikadep"
                                                     class="btn btn-success btn-sm" title="Lihat Detail">
                                                     <i class="bi bi-eye fs-8"></i>
+                                                </a>
+                                                <a type="button" href="dashboard-simulasi?id=<?= $hasilsfa['id']; ?>&from=kpikadep"
+                                                    class="btn btn-warning btn-sm" title="Lihat/Edit KPI Simulasi">
+                                                    <i class="bi bi-clipboard-data fs-8"></i>
                                                 </a>
                                                 <a type="button" href="export_kpi_detail.php?id=<?= $hasilsfa['id']; ?>"
                                                     class="btn btn-primary btn-sm" title="Export Excel Detail">
