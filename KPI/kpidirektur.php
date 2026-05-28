@@ -167,6 +167,60 @@ function getKPIFromHistory($conn, $id_user, $bulan, $tahun) {
         'exists' => false
     ];
 }
+function getKPISimulasi($conn, $id)
+{
+    $sql = "SELECT * FROM tbsim_kpi WHERE id_user='$id'";
+    $result = mysqli_query($conn, $sql);
+    $exists = $result && mysqli_num_rows($result) > 0;
+
+    $totalws = 0;
+    if ($result) {
+        while ($hasils = mysqli_fetch_assoc($result)) {
+            $sql3s = "SELECT SUM(total) as total FROM tbsim_whats WHERE id_user=$id AND id_kpi=" . $hasils['id'];
+            $result3s = mysqli_query($conn, $sql3s);
+            $row3sd = mysqli_fetch_assoc($result3s);
+            $totalnilaisd = $row3sd['total'] ?? 0;
+            $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
+            $totalws += $nilaiws;
+        }
+    }
+
+    $bobotwhat = 0;
+    $sql5a = "SELECT bobotwhat as bw FROM tbsim_bobotkpi WHERE id_user=$id";
+    $result5a = mysqli_query($conn, $sql5a);
+    while ($row5a = mysqli_fetch_assoc($result5a)) {
+        $bobotwhat = $row5a['bw'];
+    }
+    $nilaiwhat = ($totalws * $bobotwhat) / 100;
+
+    $totalhfg = 0;
+    $resultfg = mysqli_query($conn, $sql);
+    if ($resultfg) {
+        while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
+            $sql7fg = "SELECT SUM(total) as totalh FROM tbsim_hows WHERE id_user=$id AND id_kpi=" . $hasilfg['id'];
+            $result7fg = mysqli_query($conn, $sql7fg);
+            $row7fg = mysqli_fetch_assoc($result7fg);
+            $totalnilaihfg = $row7fg['totalh'] ?? 0;
+            $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
+            $totalhfg += $nilaihfg;
+        }
+    }
+
+    $bobothow = 0;
+    $sql8a = "SELECT bobothow as bh FROM tbsim_bobotkpi WHERE id_user=$id";
+    $result8a = mysqli_query($conn, $sql8a);
+    while ($row8a = mysqli_fetch_assoc($result8a)) {
+        $bobothow = $row8a['bh'];
+    }
+    $nilaihow = ($totalhfg * $bobothow) / 100;
+
+    return [
+        'nilai_what' => number_format($nilaiwhat, 2),
+        'nilai_how' => number_format($nilaihow, 2),
+        'total_kpi' => number_format($nilaiwhat + $nilaihow, 2),
+        'exists' => $exists
+    ];
+}
 function getkpi($nilair)
 {
     if ($nilair < 90) {
@@ -231,17 +285,22 @@ function getkpi($nilair)
                                         <th rowspan="2"><center>Nama Anggota</center></th>
                                         <th width="15%" rowspan="2"><center>Jabatan</center></th>
                                         <th width="15%" rowspan="2"><center>Bagian</center></th>
-                                        <th colspan="3"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
                                         <th colspan="3"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
+                                        <th colspan="3"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
+                                        <th colspan="3"><center>Simulasi</center></th>
                                         <th width="8%" rowspan="2"><center>Trend</center></th>
                                         <th width="7%" rowspan="2"><center>#</center></th>
                                     </tr>
                                     <tr>
+                                        <!-- Bulan Lalu -->
+                                        <th width="8%"><center>What</center></th>
+                                        <th width="8%"><center>How</center></th>
+                                        <th width="8%"><center>Total</center></th>
                                         <!-- Bulan Ini -->
                                         <th width="8%"><center>What</center></th>
                                         <th width="8%"><center>How</center></th>
                                         <th width="8%"><center>Total</center></th>
-                                        <!-- Bulan Lalu -->
+                                        <!-- Simulasi -->
                                         <th width="8%"><center>What</center></th>
                                         <th width="8%"><center>How</center></th>
                                         <th width="8%"><center>Total</center></th>
@@ -280,6 +339,12 @@ function getkpi($nilair)
                                         $whatBulanLalu = $dataHistoryBulanLalu['nilai_what'];
                                         $howBulanLalu = $dataHistoryBulanLalu['nilai_how'];
                                         $adaDataBulanLalu = $dataHistoryBulanLalu['exists'];
+
+                                        $dataSimulasi = getKPISimulasi($conn, $hasilsfa['id']);
+                                        $nilaiSimulasi = $dataSimulasi['total_kpi'];
+                                        $whatSimulasi = $dataSimulasi['nilai_what'];
+                                        $howSimulasi = $dataSimulasi['nilai_how'];
+                                        $adaDataSimulasi = $dataSimulasi['exists'];
                                         
                                         // Hitung selisih dan trend
                                         $selisih = floatval($nilair) - floatval($nilaiBulanLalu);
@@ -327,22 +392,22 @@ function getkpi($nilair)
                                         } else {
                                             $wrabsLalu = "blue";
                                         }
+
+                                        if ($nilaiSimulasi < 90) {
+                                            $wrabsSimulasi = "red";
+                                        } elseif ($nilaiSimulasi <= 100) {
+                                            $wrabsSimulasi = "orange";
+                                        } elseif ($nilaiSimulasi <= 110) {
+                                            $wrabsSimulasi = "green";
+                                        } else {
+                                            $wrabsSimulasi = "blue";
+                                        }
                                     ?>
                                         <tr>
                                             <td><center><?= $no; ?></center></td>
                                             <td style="padding-left: 20px;"><?= $hasilsfa['nama_lngkp']; ?></td>
                                             <td><center><?= $hasilsfa['jabatan']; ?></center></td>
                                             <td><center><?= $hasilsfa['bagian']; ?></center></td>
-                                            
-                                            <!-- Nilai Bulan Ini -->
-                                            <td><center><?= $whatIni ?></center></td>
-                                            <td><center><?= $howIni ?></center></td>
-                                            <td style="color:<?= $wrabs ?>">
-                                                <center>
-                                                    <strong><?= $nilair ?></strong><br>
-                                                    <small class="text-muted"><?= getkpi($nilair) ?></small>
-                                                </center>
-                                            </td>
                                             
                                             <!-- Nilai Bulan Lalu -->
                                             <td><center><?= $adaDataBulanLalu ? $whatBulanLalu : '-' ?></center></td>
@@ -352,6 +417,30 @@ function getkpi($nilair)
                                                     <?php if ($adaDataBulanLalu): ?>
                                                         <strong><?= $nilaiBulanLalu ?></strong><br>
                                                         <small class="text-muted"><?= getkpi($nilaiBulanLalu) ?></small>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">-</span>
+                                                    <?php endif; ?>
+                                                </center>
+                                            </td>
+
+                                            <!-- Nilai Bulan Ini -->
+                                            <td><center><?= $whatIni ?></center></td>
+                                            <td><center><?= $howIni ?></center></td>
+                                            <td style="color:<?= $wrabs ?>">
+                                                <center>
+                                                    <strong><?= $nilair ?></strong><br>
+                                                    <small class="text-muted"><?= getkpi($nilair) ?></small>
+                                                </center>
+                                            </td>
+
+                                            <!-- Nilai Simulasi -->
+                                            <td><center><?= $adaDataSimulasi ? $whatSimulasi : '-' ?></center></td>
+                                            <td><center><?= $adaDataSimulasi ? $howSimulasi : '-' ?></center></td>
+                                            <td style="color:<?= $adaDataSimulasi ? $wrabsSimulasi : '#6c757d' ?>">
+                                                <center>
+                                                    <?php if ($adaDataSimulasi): ?>
+                                                        <strong><?= $nilaiSimulasi ?></strong><br>
+                                                        <small class="text-muted"><?= getkpi($nilaiSimulasi) ?></small>
                                                     <?php else: ?>
                                                         <span class="text-muted">-</span>
                                                     <?php endif; ?>
