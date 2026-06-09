@@ -312,7 +312,10 @@ function getkpi($nilair)
                                 </h3>
                                 <p class="mb-0 opacity-75">Monitoring dan evaluasi KPI seluruh karyawan</p>
                             </div>
-                            <div>
+                            <div class="text-end">
+                                <a href="export_kpi_all_adminhrd.php" class="btn btn-success me-2">
+                                    <i class="bi bi-file-earmark-excel me-2"></i>Export Semua KPI
+                                </a>
                                 <a href="dashboard-adminhrd" class="btn btn-light">
                                     <i class="bi bi-arrow-left me-2"></i>Kembali ke Dashboard
                                 </a>
