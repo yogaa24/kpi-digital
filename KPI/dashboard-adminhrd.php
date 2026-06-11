@@ -144,6 +144,10 @@ function saveKPIHistory_adm($conn, $user_id, $kpi_real, $kpi_sim) {
         return true;
     }
 
+    if (!$current_has_value) {
+        return true;
+    }
+
     $fw  = mysqli_real_escape_string($conn, $kpi_real['final_what']);
     $fh  = mysqli_real_escape_string($conn, $kpi_real['final_how']);
     $tw  = mysqli_real_escape_string($conn, $kpi_real['total_what']);
