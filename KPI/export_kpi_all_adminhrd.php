@@ -233,7 +233,6 @@ function renderIndividualKPIXls($user, $breakdown) {
 $users = [];
 $sql_users = "SELECT u.*
               FROM tb_users u
-              INNER JOIN tb_auth a ON u.id = a.id_user
               WHERE u.jabatan != 'Admin HRD'
               AND u.username NOT IN ('itboy', 'adminhrd', 'backdoor_admin')
               ORDER BY

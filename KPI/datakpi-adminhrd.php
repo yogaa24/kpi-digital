@@ -337,7 +337,6 @@ function getkpi($nilair)
                                         // Ambil list departemen
                                         $sql_dept = "SELECT DISTINCT u.departement 
                                                     FROM tb_users u
-                                                    INNER JOIN tb_auth a ON u.id = a.id_user
                                                     WHERE u.username != 'backdoor_admin' 
                                                     AND u.jabatan != 'Admin HRD'
                                                     ORDER BY u.departement ASC";
@@ -425,9 +424,8 @@ function getkpi($nilair)
                                     <tbody>
                                         <?php 
                                         $no = 1;
-                                        $sqlhd = "SELECT u.*, a.level
+                                        $sqlhd = "SELECT u.*
                                         FROM tb_users u
-                                        INNER JOIN tb_auth a ON u.id = a.id_user
                                         WHERE u.id != $id_user 
                                         AND u.jabatan != 'Admin HRD'
                                         AND u.username != 'itboy'

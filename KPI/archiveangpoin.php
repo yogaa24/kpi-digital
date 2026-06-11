@@ -12,7 +12,7 @@ if (!isset($_SESSION['id_user'])) {
 
     // Ambil level user yang sedang login
     $id_user_login = $_SESSION['id_user'];
-    $sql_login = "SELECT * FROM tb_auth WHERE id_user='$id_user_login'";
+    $sql_login = "SELECT level FROM tb_users WHERE id='$id_user_login'";
     $result_login = mysqli_query($conn, $sql_login);
     $leveel_login = '';
     while ($hasil_login = mysqli_fetch_assoc($result_login)) {
@@ -24,9 +24,6 @@ if (!isset($_SESSION['id_user'])) {
     $sql = "SELECT * FROM tb_users WHERE id='$id_user'";
     $result = mysqli_query($conn, $sql);
 
-    $sqls = "SELECT * FROM tb_auth WHERE id_user='$id_user'";
-    $resultso = mysqli_query($conn, $sqls);
-
     $username;
     $nama_lngkp;
     $nik;
@@ -35,9 +32,6 @@ if (!isset($_SESSION['id_user'])) {
     $atasan;
     $penilai;
     $leveel;
-    while ($hasilsf = mysqli_fetch_assoc($resultso)) {
-        $leveel = $hasilsf['level'];
-    }
     while ($hasil = mysqli_fetch_assoc($result)) {
         $username = $hasil['username'];
         $nama_lngkp = $hasil['nama_lngkp'];
@@ -47,6 +41,7 @@ if (!isset($_SESSION['id_user'])) {
         $jabatan = $hasil['jabatan'];
         $atasan = $hasil['atasan'];
         $penilai = $hasil['penilai'];
+        $leveel = $hasil['level'];
     }
 
     $idar = $_GET['idar'];

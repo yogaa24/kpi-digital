@@ -1,6 +1,7 @@
 <?php
 session_start();
 require 'config.php';
+require 'auth.php';
 
 if (!isset($_SESSION['id_user'])) {
     header("Location: ../index");
@@ -33,8 +34,8 @@ if (mysqli_num_rows($check_username) > 0) {
     exit();
 }
 
-// Ambil password dari tb_auth
-$sql_auth = "SELECT password FROM tb_auth WHERE id_user='$id_user'";
+// Ambil password dari tb_users
+$sql_auth = "SELECT password FROM tb_users WHERE id='$id_user'";
 $result = mysqli_query($conn, $sql_auth);
 $auth = mysqli_fetch_assoc($result);
 
@@ -44,8 +45,7 @@ if (!$auth) {
     exit();
 }
 
-// CEK LANGSUNG (PLAIN TEXT)
-if ($confirm_password !== $auth['password']) {
+if (!verifyUserPassword($confirm_password, $auth['password'])) {
     $_SESSION['error'] = "Current password is incorrect!";
     header("Location: ../profile-settings");
     exit();

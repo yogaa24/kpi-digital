@@ -1,6 +1,7 @@
 <?php
 session_start();
 require 'helper/config.php';
+require 'helper/auth.php';
 
 if (isset($_SESSION['id_user'])) {
     // Redirect berdasarkan level
@@ -16,28 +17,35 @@ if (isset($_SESSION['id_user'])) {
 }
  
 if (isset($_POST['submit'])) {
-    $username = $_POST["username"];
+    $username = mysqli_real_escape_string($conn, $_POST["username"]);
     $password = $_POST["password"];
-    $sql = "SELECT id_user, level FROM tb_auth INNER JOIN tb_users ON tb_users.id = tb_auth.id_user WHERE tb_users.username = '".$username."' AND tb_auth.password = '".$password."';";
+    $sql = "SELECT id, password, level FROM tb_users WHERE username = '$username' LIMIT 1";
     $result = mysqli_query($conn, $sql);
  
-    if ($result->num_rows > 0) {
+    if ($result && $result->num_rows > 0) {
         $row = mysqli_fetch_assoc($result);
-        $_SESSION['id_user'] = $row['id_user'];
-        $_SESSION['level'] = $row['level'];
-        
-        // Redirect berdasarkan level
-        if ($row['level'] == 7) {
-            // Admin HRD
-            header("Location: dashboard-adminhrd");
-        } else {
-            // User biasa
-            header("Location: dashboard-utama");
+        if (verifyUserPassword($password, $row['password'])) {
+            $_SESSION['id_user'] = $row['id'];
+            $_SESSION['level'] = $row['level'];
+
+            if (!isUserPasswordHash($row['password'])) {
+                $hashedPassword = mysqli_real_escape_string($conn, hashUserPassword($password));
+                mysqli_query($conn, "UPDATE tb_users SET password = '$hashedPassword' WHERE id = '{$row['id']}'");
+            }
+            
+            // Redirect berdasarkan level
+            if ($row['level'] == 7) {
+                // Admin HRD
+                header("Location: dashboard-adminhrd");
+            } else {
+                // User biasa
+                header("Location: dashboard-utama");
+            }
+            exit();
         }
-        exit();
-    } else {
-        echo "<script>alert('Email atau password Anda salah. Silakan coba lagi!')</script>";
     }
+
+    echo "<script>alert('Email atau password Anda salah. Silakan coba lagi!')</script>";
 }
 ?>
  

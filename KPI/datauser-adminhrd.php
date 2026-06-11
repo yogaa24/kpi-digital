@@ -7,11 +7,12 @@ if (!isset($_SESSION['id_user'])) {
 
 require 'helper/config.php';
 require 'helper/getUser.php';
+require 'helper/auth.php';
 
 // Koneksi ke database simulasi
 
 // Cek level Admin HRD
-$sql_check = "SELECT level FROM tb_auth WHERE id_user = '$id_user'";
+$sql_check = "SELECT level FROM tb_users WHERE id = '$id_user'";
 $result_check = mysqli_query($conn, $sql_check);
 $user_data = mysqli_fetch_assoc($result_check);
 
@@ -21,19 +22,15 @@ if ($user_data['level'] != 7) {
 }
 
 // Ambil semua data user
-$sql_users = "SELECT u.*, a.level FROM tb_users u 
-              INNER JOIN tb_auth a ON u.id = a.id_user 
-              WHERE u.username != 'itboy'
-              ORDER BY u.nama_lngkp ASC";
+$sql_users = "SELECT * FROM tb_users
+              WHERE username != 'itboy'
+              ORDER BY nama_lngkp ASC";
 $result_users = mysqli_query($conn, $sql_users);
 
 // Handle Delete
 if (isset($_GET['delete'])) {
     $id_delete = mysqli_real_escape_string($conn, $_GET['delete']);
-    
-    // Delete dari tb_auth
-    mysqli_query($conn, "DELETE FROM tb_auth WHERE id_user = '$id_delete'");
-    
+
     // Delete dari tb_users
     mysqli_query($conn, "DELETE FROM tb_users WHERE id = '$id_delete'");
     
@@ -58,17 +55,7 @@ if (isset($_POST['edit_user'])) {
     $atasan = mysqli_real_escape_string($conn, $_POST['atasan']);
     $penilai = mysqli_real_escape_string($conn, $_POST['penilai']);
     
-    // Tentukan level berdasarkan jabatan
-    $level = 1; // Default Karyawan
-    if ($jabatan == 'Koordinator') {
-        $level = 2;
-    } elseif ($jabatan == 'Manager') {
-        $level = 3;
-    } elseif ($jabatan == 'Kadep') {
-        $level = 4;
-    } elseif ($jabatan == 'Direktur') {
-        $level = 5;
-    }
+    $level = getLevelByJabatan($jabatan);
     
     // Update tb_users
     $sql_update = "UPDATE tb_users SET 
@@ -79,13 +66,11 @@ if (isset($_POST['edit_user'])) {
                    departement = '$departement',
                    jabatan = '$jabatan',
                    atasan = '$atasan',
-                   penilai = '$penilai'
+                   penilai = '$penilai',
+                   level = '$level'
                    WHERE id = '$id_edit'";
-    
-    // Update tb_auth (update level juga)
-    $sql_update_level = "UPDATE tb_auth SET level = '$level' WHERE id_user = '$id_edit'";
-    
-    if (mysqli_query($conn, $sql_update) && mysqli_query($conn, $sql_update_level)) {
+
+    if (mysqli_query($conn, $sql_update)) {
         echo "<script>alert('Data user dan level berhasil diupdate'); window.location.href='datauser-adminhrd';</script>";
     } else {
         echo "<script>alert('Gagal update data user');</script>";
@@ -98,7 +83,8 @@ if (isset($_POST['edit_password'])) {
     $confirm_password = mysqli_real_escape_string($conn, $_POST['confirm_password']);
     
     if ($new_password == $confirm_password) {
-        $sql_update_pass = "UPDATE tb_auth SET password = '$new_password' WHERE id_user = '$id_edit_pass'";
+        $hashedPassword = mysqli_real_escape_string($conn, hashUserPassword($new_password));
+        $sql_update_pass = "UPDATE tb_users SET password = '$hashedPassword' WHERE id = '$id_edit_pass'";
         
         if (mysqli_query($conn, $sql_update_pass)) {
             echo "<script>alert('Password berhasil diubah'); window.location.href='datauser-adminhrd';</script>";
@@ -129,28 +115,16 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
         $check_username = mysqli_query($conn, "SELECT * FROM tb_users WHERE username='$username'");
         
         if (mysqli_num_rows($check_username) == 0) {
+            $level = getLevelByJabatan($jabatan);
+            $hashedPassword = mysqli_real_escape_string($conn, hashUserPassword($password));
+
             // Insert ke tb_users
-            $sql_insert = "INSERT INTO tb_users (`username`, `nama_lngkp`, `nik`, `bagian`, `departement`, `jabatan`, `atasan`, `penilai`)
-                          VALUES ('$username','$namalengkap','$nik','$bagian','$departemen','$jabatan','$atasan','$penilai')";
+            $sql_insert = "INSERT INTO tb_users (`username`, `password`, `level`, `nama_lngkp`, `nik`, `bagian`, `departement`, `jabatan`, `atasan`, `penilai`)
+                          VALUES ('$username','$hashedPassword','$level','$namalengkap','$nik','$bagian','$departemen','$jabatan','$atasan','$penilai')";
             
             if (mysqli_query($conn, $sql_insert)) {
                 // Ambil ID user yang baru dibuat
                 $new_user_id = mysqli_insert_id($conn);
-                
-                // Tentukan level berdasarkan jabatan
-                $level = 1; // Default Karyawan
-                if ($jabatan == 'Koordinator') {
-                    $level = 2;
-                 } elseif ($jabatan == 'Manager') {
-                    $level = 3;
-                } elseif ($jabatan == 'Kadep') {
-                    $level = 4;
-                } elseif ($jabatan == 'Direktur') {
-                    $level = 5;
-                }
-                
-                // Insert ke tb_auth
-                $sql_auth = "INSERT INTO tb_auth (`id_user`, `password`, `level`) VALUES ('$new_user_id', '$password', '$level')";
                 
                 // Insert ke tb_bobotkpi
                 $sql_bobot = "INSERT INTO tb_bobotkpi (`id_user`, `bobotwhat`, `bobothow`) VALUES ('$new_user_id', 0, 0)";
@@ -160,11 +134,6 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                 
                 // Eksekusi semua query
                 $success = true;
-                
-                if (!mysqli_query($conn, $sql_auth)) {
-                    $success = false;
-                    $error_msg = "Gagal menambahkan data auth";
-                }
                 
                 if (!mysqli_query($conn, $sql_bobot)) {
                     $success = false;
@@ -391,8 +360,7 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                                                                                 <option value="HRD" <?= $user['departement'] == 'HRD' ? 'selected' : '' ?>>HRD</option>
                                                                                 <option value="LOGISTIC" <?= $user['departement'] == 'LOGISTIC' ? 'selected' : '' ?>>LOGISTIC</option>
                                                                                 <option value="GA" <?= $user['departement'] == 'GA' ? 'selected' : '' ?>>GA</option>
-                                                                                <option value="UNIT BISNIS SEED" <?= $user['departement'] == 'UNIT BISNIS SEED' ? 'selected' : '' ?>>UNIT BISNIS SEED</option>
-                                                                                <option value="UNIT BISNIS CP" <?= $user['departement'] == 'UNIT BISNIS CP' ? 'selected' : '' ?>>UNIT BISNIS CP</option>
+                                                                                <option value="UNIT BISNIS" <?= $user['departement'] == 'UNIT BISNIS' ? 'selected' : '' ?>>UNIT BISNIS</option>
                                                                             </select>
                                                                         </div>
                                                                         <div class="col-md-6 mb-3">

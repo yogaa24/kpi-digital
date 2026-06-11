@@ -1,6 +1,7 @@
 <?php
 session_start();
 require 'helper/config.php';
+require 'helper/auth.php';
 // require 'helper/simulasi-db/config.php';
 
 if (isset($_SESSION['id_user'])) {
@@ -26,8 +27,10 @@ if (isset($_POST['submit'])) {
             $sqls = "SELECT * FROM tb_users WHERE nama_lngkp='$namalengkap'";
             $results = mysqli_query($conn, $sqls);
             if (!$results->num_rows > 0) {
-                $sql = "INSERT INTO tb_users (`username`, `nama_lngkp`, `nik`, `bagian`, `departement`, `jabatan`, `atasan`,`penilai`)
-                        VALUES ('$username','$namalengkap','$nik','$bagian','$departemen','$jabatan','$atasan','$penilai')";
+                $level = getLevelByJabatan($jabatan);
+                $hashedPassword = mysqli_real_escape_string($conn, hashUserPassword($password));
+                $sql = "INSERT INTO tb_users (`username`, `password`, `level`, `nama_lngkp`, `nik`, `bagian`, `departement`, `jabatan`, `atasan`,`penilai`)
+                        VALUES ('$username','$hashedPassword','$level','$namalengkap','$nik','$bagian','$departemen','$jabatan','$atasan','$penilai')";
                 $result = mysqli_query($conn, $sql);
                 if ($result) {
                     $sqlasf = "Select id from tb_users where username='" . $username . "';";
@@ -36,26 +39,14 @@ if (isset($_POST['submit'])) {
                     while ($okko = mysqli_fetch_assoc($resultsg)) {
                         $okkosa = $okko['id'];
                     }
-                    $isiss=1;
-                    if($jabatan=='Kabag'){
-                        $isiss = 2;
-                    }else if($jabatan=='Karyawan'){
-                        $isiss = 1;
-                    }else if($jabatan=='Kadep'){
-                        $isiss = 3;
-                    }
-                    $sqlss = "INSERT INTO tb_auth (`id_user`, `password`, `level`)
-                        VALUES ($okkosa,'$password',1)";
-                    $resultss = mysqli_query($conn, $sqlss);
-
                     $sqasl = "INSERT INTO tb_bobotkpi (`id_user`, `bobotwhat`, `bobothow`)
                         VALUES ($okkosa,0,0)";
                     $resultsd = mysqli_query($conn, $sqasl);
 
-                    if ($resultss && $resultsd) {
+                    if ($resultsd) {
                         header("Location: index");
                     } else {
-                        echo "<script>alert('" . $resultss . $resultsd . "')</script>";
+                        echo "<script>alert('" . $resultsd . "')</script>";
                     }
                 } else {
                     echo "<script>alert('Woops! Terjadi kesalahan.')</script>";

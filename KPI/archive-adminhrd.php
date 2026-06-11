@@ -15,7 +15,7 @@ if (!isset($id_user)) {
 }
 
 // Cek level Admin HRD
-$sql_check = "SELECT level FROM tb_auth WHERE id_user = '$id_user'";
+$sql_check = "SELECT level FROM tb_users WHERE id = '$id_user'";
 $result_check = mysqli_query($conn, $sql_check);
 
 // Tambahkan error checking

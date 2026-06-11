@@ -22,7 +22,6 @@ if (!isset($_SESSION['id_user'])) {
     // Jika belum ada driver yang dipilih, ambil driver pertama sebagai default
     if ($selected_driver_id == 0) {
         $sql_first_driver = "SELECT u.id FROM tb_users u
-                             INNER JOIN tb_auth a ON u.id = a.id_user
                              WHERE u.bagian = 'Driver Distribusi'
                              ORDER BY u.nama_lngkp ASC
                              LIMIT 1";

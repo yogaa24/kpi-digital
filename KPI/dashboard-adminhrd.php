@@ -16,6 +16,7 @@ require 'helper/sp_functions.php';
 requireAdminHRD();
 
 function resetKPIData_adm($conn, $user_id) {
+    $user_id = intval($user_id);
     $sql_reset_whats = "UPDATE tb_whats 
                         SET hasil = '', nilai = 0, total = 0,
                             is_edited = 0,
@@ -25,7 +26,7 @@ function resetKPIData_adm($conn, $user_id) {
                             original_nilai = NULL,
                             original_total = NULL
                         WHERE id_user = '$user_id'";
-    mysqli_query($conn, $sql_reset_whats);
+    $reset_whats = mysqli_query($conn, $sql_reset_whats);
 
     $sql_reset_hows = "UPDATE tb_hows 
                        SET hasil = '', nilai = 0, total = 0,
@@ -36,31 +37,81 @@ function resetKPIData_adm($conn, $user_id) {
                            original_nilai = NULL,
                            original_total = NULL
                        WHERE id_user = '$user_id'";
-    mysqli_query($conn, $sql_reset_hows);
-    return true;
+    $reset_hows = mysqli_query($conn, $sql_reset_hows);
+    return $reset_whats && $reset_hows;
+}
+
+function kpiNumber_adm($value) {
+    return is_numeric($value) ? (float) $value : 0.0;
+}
+
+function kpiHasSavedValue_adm($data) {
+    $keys = ['total_kpi', 'final_what', 'final_how', 'total_what', 'total_how'];
+    foreach ($keys as $key) {
+        if (abs(kpiNumber_adm($data[$key] ?? 0)) > 0.00001) return true;
+    }
+
+    foreach (($data['kpi_details'] ?? []) as $detail) {
+        $detail_keys = ['nilai_what', 'nilai_how', 'total_what_raw', 'total_how_raw'];
+        foreach ($detail_keys as $key) {
+            if (abs(kpiNumber_adm($detail[$key] ?? 0)) > 0.00001) return true;
+        }
+    }
+
+    return false;
+}
+
+function historySummaryHasValue_adm($row) {
+    $keys = ['total_kpi_real', 'nilai_what', 'nilai_how', 'total_what', 'total_how'];
+    foreach ($keys as $key) {
+        if (abs(kpiNumber_adm($row[$key] ?? 0)) > 0.00001) return true;
+    }
+
+    return false;
+}
+
+function sumKPITotal_adm($conn, $table, $user_id, $id_kpi) {
+    $user_id = intval($user_id);
+    $id_kpi = intval($id_kpi);
+    $result = mysqli_query($conn, "SELECT COALESCE(SUM(total), 0) as total FROM {$table} WHERE id_user='$user_id' AND id_kpi='$id_kpi'");
+    if (!$result) return 0.0;
+
+    $row = mysqli_fetch_assoc($result);
+    return kpiNumber_adm($row['total'] ?? 0);
 }
 
 function calculateKPI_adm($conn, $user_id, $is_simulation = false) {
+    $user_id = intval($user_id);
     $prefix = $is_simulation ? 'tbsim_' : 'tb_';
     $sql_kpi = "SELECT * FROM {$prefix}kpi WHERE id_user='$user_id'";
     $result_kpi = mysqli_query($conn, $sql_kpi);
     $total_what = 0; $total_how = 0; $kpi_details = [];
+    if (!$result_kpi) {
+        return compact('total_what','total_how') + [
+            'bobot_what' => 0,
+            'bobot_how' => 0,
+            'final_what' => 0,
+            'final_how' => 0,
+            'total_kpi' => 0,
+            'kpi_details' => []
+        ];
+    }
     while ($kpi = mysqli_fetch_assoc($result_kpi)) {
-        $row_what = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(total) as total FROM {$prefix}whats WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'"));
-        $total_nilai_what = $row_what['total'] ?? 0;
-        $nilai_what = ($total_nilai_what * $kpi['bobot']) / 100;
+        $id_kpi = intval($kpi['id']);
+        $total_nilai_what = sumKPITotal_adm($conn, "{$prefix}whats", $user_id, $id_kpi);
+        $nilai_what = ($total_nilai_what * kpiNumber_adm($kpi['bobot'])) / 100;
         $total_what += $nilai_what;
-        $row_how = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(total) as total FROM {$prefix}hows WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'"));
-        $total_nilai_how = $row_how['total'] ?? 0;
-        $nilai_how = ($total_nilai_how * $kpi['bobot2']) / 100;
+        $total_nilai_how = sumKPITotal_adm($conn, "{$prefix}hows", $user_id, $id_kpi);
+        $nilai_how = ($total_nilai_how * kpiNumber_adm($kpi['bobot2'])) / 100;
         $total_how += $nilai_how;
-        $kpi_details[] = ['id'=>$kpi['id'],'poin_what'=>$kpi['poin'],'poin_how'=>$kpi['poin2'],
-                          'bobot_what'=>$kpi['bobot'],'bobot_how'=>$kpi['bobot2'],
+        $kpi_details[] = ['id'=>$id_kpi,'poin_what'=>$kpi['poin'],'poin_how'=>$kpi['poin2'],
+                          'bobot_what'=>kpiNumber_adm($kpi['bobot']),'bobot_how'=>kpiNumber_adm($kpi['bobot2']),
                           'nilai_what'=>$nilai_what,'nilai_how'=>$nilai_how,
                           'total_what_raw'=>$total_nilai_what,'total_how_raw'=>$total_nilai_how];
     }
-    $bobot = mysqli_fetch_assoc(mysqli_query($conn, "SELECT bobotwhat, bobothow FROM {$prefix}bobotkpi WHERE id_user='$user_id' LIMIT 1"));
-    $bobot_what = $bobot['bobotwhat'] ?? 0; $bobot_how = $bobot['bobothow'] ?? 0;
+    $result_bobot = mysqli_query($conn, "SELECT bobotwhat, bobothow FROM {$prefix}bobotkpi WHERE id_user='$user_id' LIMIT 1");
+    $bobot = $result_bobot ? mysqli_fetch_assoc($result_bobot) : [];
+    $bobot_what = kpiNumber_adm($bobot['bobotwhat'] ?? 0); $bobot_how = kpiNumber_adm($bobot['bobothow'] ?? 0);
     $final_what = ($total_what * $bobot_what) / 100;
     $final_how  = ($total_how  * $bobot_how)  / 100;
     $total_kpi  = $final_what + $final_how;
@@ -68,6 +119,7 @@ function calculateKPI_adm($conn, $user_id, $is_simulation = false) {
 }
 
 function saveKPIHistory_adm($conn, $user_id, $kpi_real, $kpi_sim) {
+    $user_id = intval($user_id);
     $bulan_simpan   = date('Y-m', strtotime('-1 month'));
     $bulan_sekarang = date('Y-m');
     if (!empty($kpi_real['kpi_details'])) {
@@ -79,9 +131,19 @@ function saveKPIHistory_adm($conn, $user_id, $kpi_real, $kpi_sim) {
         }
     }
     $check_table = mysqli_query($conn, "SHOW TABLES LIKE 'tb_kpi_history'");
-    if (mysqli_num_rows($check_table) == 0) return false;
+    if (!$check_table || mysqli_num_rows($check_table) == 0) return false;
     $check_next = mysqli_query($conn, "SELECT id FROM tb_kpi_history WHERE id_user='$user_id' AND bulan='$bulan_sekarang' AND is_summary=1");
-    if (mysqli_num_rows($check_next) > 0) return true;
+    if ($check_next && mysqli_num_rows($check_next) > 0) return true;
+
+    $current_has_value = kpiHasSavedValue_adm($kpi_real);
+    $check_sum = mysqli_query($conn, "SELECT * FROM tb_kpi_history WHERE id_user='$user_id' AND bulan='$bulan_simpan' AND is_summary=1 LIMIT 1");
+    $existing_summary = ($check_sum && mysqli_num_rows($check_sum) > 0) ? mysqli_fetch_assoc($check_sum) : null;
+
+    // Reset bisa diklik ulang setelah nilai live sudah 0. Jangan timpa history valid dengan angka 0.
+    if ($existing_summary && !$current_has_value && historySummaryHasValue_adm($existing_summary)) {
+        return true;
+    }
+
     $fw  = mysqli_real_escape_string($conn, $kpi_real['final_what']);
     $fh  = mysqli_real_escape_string($conn, $kpi_real['final_how']);
     $tw  = mysqli_real_escape_string($conn, $kpi_real['total_what']);
@@ -90,25 +152,64 @@ function saveKPIHistory_adm($conn, $user_id, $kpi_real, $kpi_sim) {
     $tkt = mysqli_real_escape_string($conn, $kpi_sim['total_kpi']);
     $bw  = mysqli_real_escape_string($conn, $kpi_real['bobot_what']);
     $bh  = mysqli_real_escape_string($conn, $kpi_real['bobot_how']);
-    $check_sum = mysqli_query($conn, "SELECT id FROM tb_kpi_history WHERE id_user='$user_id' AND bulan='$bulan_simpan' AND is_summary=1");
-    if (mysqli_num_rows($check_sum) > 0) {
-        mysqli_query($conn, "UPDATE tb_kpi_history SET total_kpi_real='$tkr',total_kpi_target='$tkt',total_what='$tw',total_how='$th',bobot_what='$bw',bobot_how='$bh',nilai_what='$fw',nilai_how='$fh' WHERE id_user='$user_id' AND bulan='$bulan_simpan' AND is_summary=1");
+    if ($existing_summary) {
+        if (!mysqli_query($conn, "UPDATE tb_kpi_history SET total_kpi_real='$tkr',total_kpi_target='$tkt',total_what='$tw',total_how='$th',bobot_what='$bw',bobot_how='$bh',nilai_what='$fw',nilai_how='$fh' WHERE id_user='$user_id' AND bulan='$bulan_simpan' AND is_summary=1")) return false;
     } else {
-        mysqli_query($conn, "INSERT INTO tb_kpi_history (id_user,id_kpi,bulan,is_summary,total_kpi_real,total_kpi_target,total_what,total_how,bobot_what,bobot_how,nilai_what,nilai_how) VALUES ('$user_id',NULL,'$bulan_simpan',1,'$tkr','$tkt','$tw','$th','$bw','$bh','$fw','$fh')");
+        if (!mysqli_query($conn, "INSERT INTO tb_kpi_history (id_user,id_kpi,bulan,is_summary,total_kpi_real,total_kpi_target,total_what,total_how,bobot_what,bobot_how,nilai_what,nilai_how) VALUES ('$user_id',NULL,'$bulan_simpan',1,'$tkr','$tkt','$tw','$th','$bw','$bh','$fw','$fh')")) return false;
     }
     foreach ($kpi_real['kpi_details'] as $d) {
-        $id_kpi=$d['id']; $pw=mysqli_real_escape_string($conn,$d['poin_what']); $ph=mysqli_real_escape_string($conn,$d['poin_how']);
+        $id_kpi=intval($d['id']); $pw=mysqli_real_escape_string($conn,$d['poin_what']); $ph=mysqli_real_escape_string($conn,$d['poin_how']);
         $dbw=mysqli_real_escape_string($conn,$d['bobot_what']); $dbh=mysqli_real_escape_string($conn,$d['bobot_how']);
         $twr=mysqli_real_escape_string($conn,$d['total_what_raw']); $thr=mysqli_real_escape_string($conn,$d['total_how_raw']);
         $nw=mysqli_real_escape_string($conn,$d['nilai_what']); $nh=mysqli_real_escape_string($conn,$d['nilai_how']);
         $ck=mysqli_query($conn,"SELECT id FROM tb_kpi_history WHERE id_user='$user_id' AND id_kpi='$id_kpi' AND bulan='$bulan_simpan' AND is_summary=0");
-        if (mysqli_num_rows($ck)>0) {
-            mysqli_query($conn,"UPDATE tb_kpi_history SET poin_what='$pw',poin_how='$ph',bobot_what='$dbw',bobot_how='$dbh',total_what_raw='$twr',total_how_raw='$thr',nilai_what='$nw',nilai_how='$nh' WHERE id_user='$user_id' AND id_kpi='$id_kpi' AND bulan='$bulan_simpan' AND is_summary=0");
+        if ($ck && mysqli_num_rows($ck)>0) {
+            if (!mysqli_query($conn,"UPDATE tb_kpi_history SET poin_what='$pw',poin_how='$ph',bobot_what='$dbw',bobot_how='$dbh',total_what_raw='$twr',total_how_raw='$thr',nilai_what='$nw',nilai_how='$nh' WHERE id_user='$user_id' AND id_kpi='$id_kpi' AND bulan='$bulan_simpan' AND is_summary=0")) return false;
         } else {
-            mysqli_query($conn,"INSERT INTO tb_kpi_history (id_user,id_kpi,bulan,is_summary,poin_what,poin_how,bobot_what,bobot_how,total_what_raw,total_how_raw,nilai_what,nilai_how) VALUES ('$user_id','$id_kpi','$bulan_simpan',0,'$pw','$ph','$dbw','$dbh','$twr','$thr','$nw','$nh')");
+            if (!mysqli_query($conn,"INSERT INTO tb_kpi_history (id_user,id_kpi,bulan,is_summary,poin_what,poin_how,bobot_what,bobot_how,total_what_raw,total_how_raw,nilai_what,nilai_how) VALUES ('$user_id','$id_kpi','$bulan_simpan',0,'$pw','$ph','$dbw','$dbh','$twr','$thr','$nw','$nh')")) return false;
         }
     }
     return true;
+}
+
+function saveKPIResetLog_adm($conn, $reset_by, $bulan_simpan, $total_user, $berhasil, $gagal, $catatan) {
+    mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_kpi_reset_log` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `reset_by` INT NOT NULL,
+        `bulan_direset` VARCHAR(7) NOT NULL,
+        `jumlah_user` INT DEFAULT 0,
+        `jumlah_berhasil` INT DEFAULT 0,
+        `jumlah_gagal` INT DEFAULT 0,
+        `catatan` TEXT NULL,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $columns = [];
+    $desc = mysqli_query($conn, "SHOW COLUMNS FROM tb_kpi_reset_log");
+    if ($desc) {
+        while ($row = mysqli_fetch_assoc($desc)) {
+            $columns[$row['Field']] = true;
+        }
+    }
+
+    $reset_by = intval($reset_by);
+    $total_user = intval($total_user);
+    $berhasil = intval($berhasil);
+    $gagal = intval($gagal);
+    $catatan = mysqli_real_escape_string($conn, $catatan);
+    $bulan_simpan = mysqli_real_escape_string($conn, $bulan_simpan);
+
+    if (isset($columns['bulan_direset'])) {
+        return mysqli_query($conn, "INSERT INTO tb_kpi_reset_log (reset_by,bulan_direset,jumlah_user,jumlah_berhasil,jumlah_gagal,catatan) VALUES ('$reset_by','$bulan_simpan','$total_user','$berhasil','$gagal','$catatan')");
+    }
+
+    if (isset($columns['bulan']) && isset($columns['tahun'])) {
+        $bulan = intval(date('m', strtotime($bulan_simpan . '-01')));
+        $tahun = intval(date('Y', strtotime($bulan_simpan . '-01')));
+        return mysqli_query($conn, "INSERT INTO tb_kpi_reset_log (bulan,tahun,reset_by,catatan,jumlah_tereset) VALUES ('$bulan','$tahun','$reset_by','$catatan','$berhasil')");
+    }
+
+    return false;
 }
 
 // ============================================================
@@ -121,7 +222,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'reset_kpi_all_users') {
     header('Content-Type: application/json');
 
     $sql_all_users = "SELECT u.id FROM tb_users u
-                      INNER JOIN tb_auth a ON u.id = a.id_user
                       WHERE u.jabatan != 'Admin HRD'
                       AND u.username NOT IN ('itboy', 'adminhrd')";
     $result_all_users = mysqli_query($conn, $sql_all_users);
@@ -131,26 +231,18 @@ if (isset($_POST['action']) && $_POST['action'] === 'reset_kpi_all_users') {
         $uid      = $u['id'];
         $kpi_real = calculateKPI_adm($conn, $uid, false);
         $kpi_sim  = calculateKPI_adm($conn, $uid, true);
-        saveKPIHistory_adm($conn, $uid, $kpi_real, $kpi_sim);
+        if (!saveKPIHistory_adm($conn, $uid, $kpi_real, $kpi_sim)) {
+            $gagal++;
+            continue;
+        }
         resetKPIData_adm($conn, $uid) ? $berhasil++ : $gagal++;
     }
 
-    mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_kpi_reset_log` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `reset_by` INT NOT NULL,
-        `bulan_direset` VARCHAR(7) NOT NULL,
-        `jumlah_user` INT DEFAULT 0,
-        `jumlah_berhasil` INT DEFAULT 0,
-        `jumlah_gagal` INT DEFAULT 0,
-        `catatan` TEXT NULL,
-        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-    $catatan    = mysqli_real_escape_string($conn, $_POST['catatan'] ?? '');
+    $catatan    = $_POST['catatan'] ?? '';
     $total_user = $berhasil + $gagal;
     $reset_by   = $_SESSION['id_user'];
     $bln        = date('Y-m', strtotime('-1 month'));
-    mysqli_query($conn, "INSERT INTO tb_kpi_reset_log (reset_by,bulan_direset,jumlah_user,jumlah_berhasil,jumlah_gagal,catatan) VALUES ('$reset_by','$bln','$total_user','$berhasil','$gagal','$catatan')");
+    saveKPIResetLog_adm($conn, $reset_by, $bln, $total_user, $berhasil, $gagal, $catatan);
 
     echo json_encode([
         'success'  => true,
@@ -556,7 +648,6 @@ updateExpiredSP($conn);
                                     SUM(CASE WHEN u.jabatan = 'Manager' THEN 1 ELSE 0 END) as total_manager,
                                     SUM(CASE WHEN u.jabatan = 'Karyawan' THEN 1 ELSE 0 END) as total_karyawan_biasa
                                   FROM tb_users u
-                                  INNER JOIN tb_auth a ON u.id = a.id_user
                                   WHERE u.id != $id_user AND u.jabatan != 'Admin HRD'";
                     $result_stats = mysqli_query($conn, $sql_stats);
                     $stats = mysqli_fetch_assoc($result_stats);
