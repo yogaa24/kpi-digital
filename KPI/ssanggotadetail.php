@@ -9,14 +9,233 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/config.php';
     require 'helper/getUser.php';
 
-    $id_sf = $_GET['id'];
+    $id_sf = intval($_GET['id']);
 
     $rsd = mysqli_fetch_assoc(mysqli_query($conn, 'Select * from tb_users where id = ' . $id_sf));
+    $is_editing_member_ss = intval($id_user) !== intval($id_sf);
+
+    function ensureSSAnggotaEditColumns($conn)
+    {
+        $sspoin_columns = [
+            'original_poinss' => "ALTER TABLE tb_sspoin ADD COLUMN original_poinss TEXT NULL",
+            'original_nilaiss' => "ALTER TABLE tb_sspoin ADD COLUMN original_nilaiss DECIMAL(10,2) NULL",
+            'original_deskripsi' => "ALTER TABLE tb_sspoin ADD COLUMN original_deskripsi TEXT NULL",
+            'is_edited' => "ALTER TABLE tb_sspoin ADD COLUMN is_edited TINYINT(1) NOT NULL DEFAULT 0",
+            'edited_by' => "ALTER TABLE tb_sspoin ADD COLUMN edited_by INT NULL",
+            'edited_at' => "ALTER TABLE tb_sspoin ADD COLUMN edited_at DATETIME NULL"
+        ];
+
+        $ss_columns = [
+            'original_poin_ss' => "ALTER TABLE tb_ss ADD COLUMN original_poin_ss VARCHAR(255) NULL",
+            'is_edited' => "ALTER TABLE tb_ss ADD COLUMN is_edited TINYINT(1) NOT NULL DEFAULT 0",
+            'edited_by' => "ALTER TABLE tb_ss ADD COLUMN edited_by INT NULL",
+            'edited_at' => "ALTER TABLE tb_ss ADD COLUMN edited_at DATETIME NULL"
+        ];
+
+        foreach ($sspoin_columns as $column => $query) {
+            $check = mysqli_query($conn, "SHOW COLUMNS FROM tb_sspoin LIKE '$column'");
+            if ($check && mysqli_num_rows($check) == 0) {
+                mysqli_query($conn, $query);
+            }
+        }
+
+        foreach ($ss_columns as $column => $query) {
+            $check = mysqli_query($conn, "SHOW COLUMNS FROM tb_ss LIKE '$column'");
+            if ($check && mysqli_num_rows($check) == 0) {
+                mysqli_query($conn, $query);
+            }
+        }
+    }
+
+    function getSSEditorName($conn, $editor_id)
+    {
+        $editor_id = intval($editor_id);
+        if ($editor_id <= 0) {
+            return '';
+        }
+
+        $result = mysqli_query($conn, "SELECT nama_lngkp FROM tb_users WHERE id = $editor_id LIMIT 1");
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+
+        return $row['nama_lngkp'] ?? '';
+    }
+
+    function shortSSValue($value, $length = 55)
+    {
+        $value = (string) $value;
+        return htmlspecialchars(strlen($value) > $length ? substr($value, 0, $length) . '...' : $value);
+    }
+
+    function ssFormatValue($value)
+    {
+        if ($value === null || $value === '') {
+            return 'Belum dinilai';
+        }
+
+        return number_format((float) $value, 2);
+    }
+
+    function ssShortMonthLabel($month)
+    {
+        $timestamp = strtotime($month . '-01');
+        $nama_bulan = [
+            'Jan' => 'Jan',
+            'Feb' => 'Feb',
+            'Mar' => 'Mar',
+            'Apr' => 'Apr',
+            'May' => 'Mei',
+            'Jun' => 'Jun',
+            'Jul' => 'Jul',
+            'Aug' => 'Agu',
+            'Sep' => 'Sep',
+            'Oct' => 'Okt',
+            'Nov' => 'Nov',
+            'Dec' => 'Des'
+        ];
+        $month_name = date('M', $timestamp);
+
+        return $nama_bulan[$month_name] ?? $month_name;
+    }
+
+    function ssTrendBadge($current, $previous)
+    {
+        if ($previous === null || $previous === '') {
+            return '<span class="badge bg-secondary">N/A</span>';
+        }
+
+        $difference = (float) $current - (float) $previous;
+        if ($difference > 0) {
+            return '<span class="badge bg-success">+' . number_format($difference, 2) . '</span>';
+        }
+
+        if ($difference < 0) {
+            return '<span class="badge bg-danger">' . number_format($difference, 2) . '</span>';
+        }
+
+        return '<span class="badge bg-secondary">0.00</span>';
+    }
+
+    function ssEnsureHistoryTable($conn)
+    {
+        return mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_ss_history` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `id_user` INT NOT NULL,
+            `id_ss` INT NOT NULL,
+            `id_sspoin` INT NOT NULL,
+            `bulan` VARCHAR(7) NOT NULL,
+            `kategori_ss` VARCHAR(255) DEFAULT NULL,
+            `poinss` TEXT,
+            `nilaiss` DECIMAL(10,2) NOT NULL DEFAULT '0.00',
+            `deskripsi` TEXT,
+            `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `unique_ss_history_month` (`id_user`, `id_sspoin`, `bulan`),
+            KEY `idx_ss_history_user_month` (`id_user`, `bulan`),
+            KEY `idx_ss_history_category` (`id_user`, `id_ss`, `bulan`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+
+    function ssSyncCurrentMonthHistory($conn, $id_user)
+    {
+        $id_user = intval($id_user);
+        $bulan = date('Y-m', strtotime('-1 month'));
+
+        if (!ssEnsureHistoryTable($conn)) {
+            return false;
+        }
+
+        $sql = "SELECT sp.id_sspoin, sp.id_ss, sp.poinss, sp.nilaiss, sp.deskripsi, s.poin_ss
+                FROM tb_sspoin sp
+                INNER JOIN tb_ss s ON s.id_poinss = sp.id_ss
+                WHERE sp.id_user = $id_user";
+        $result = mysqli_query($conn, $sql);
+
+        if (!$result) {
+            return false;
+        }
+
+        while ($row = mysqli_fetch_assoc($result)) {
+            $id_ss = intval($row['id_ss']);
+            $id_sspoin = intval($row['id_sspoin']);
+            $kategori = mysqli_real_escape_string($conn, $row['poin_ss']);
+            $poinss = mysqli_real_escape_string($conn, $row['poinss']);
+            $nilai = mysqli_real_escape_string($conn, $row['nilaiss']);
+            $deskripsi = mysqli_real_escape_string($conn, $row['deskripsi'] ?? '');
+
+            mysqli_query($conn, "INSERT INTO tb_ss_history
+                (id_user, id_ss, id_sspoin, bulan, kategori_ss, poinss, nilaiss, deskripsi)
+                VALUES ($id_user, $id_ss, $id_sspoin, '$bulan', '$kategori', '$poinss', '$nilai', '$deskripsi')
+                ON DUPLICATE KEY UPDATE
+                    id_ss = VALUES(id_ss),
+                    kategori_ss = VALUES(kategori_ss),
+                    poinss = VALUES(poinss),
+                    nilaiss = VALUES(nilaiss),
+                    deskripsi = VALUES(deskripsi)");
+        }
+
+        return true;
+    }
+
+    function ssGetAverage($conn, $id_user, $id_ss = null, $bulan = null)
+    {
+        $id_user = intval($id_user);
+        $where = "id_user = $id_user";
+
+        if ($id_ss !== null) {
+            $where .= " AND id_ss = " . intval($id_ss);
+        }
+
+        if ($bulan !== null) {
+            $bulan = mysqli_real_escape_string($conn, $bulan);
+            $table = 'tb_ss_history';
+            $where .= " AND bulan = '$bulan'";
+        } else {
+            $table = 'tb_sspoin';
+        }
+
+        $result = mysqli_query($conn, "SELECT SUM(nilaiss) AS total, COUNT(nilaiss) AS total_poin FROM $table WHERE $where");
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+
+        if ($row && $row['total'] && $row['total_poin']) {
+            return (float) $row['total'] / (float) $row['total_poin'];
+        }
+
+        return null;
+    }
+
+    function ssGetPreviousScores($conn, $id_user, $bulan)
+    {
+        $id_user = intval($id_user);
+        $bulan = mysqli_real_escape_string($conn, $bulan);
+        $scores = [];
+
+        if (!ssEnsureHistoryTable($conn)) {
+            return $scores;
+        }
+
+        $result = mysqli_query($conn, "SELECT id_sspoin, nilaiss FROM tb_ss_history WHERE id_user = $id_user AND bulan = '$bulan'");
+        if ($result) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $scores[$row['id_sspoin']] = (float) $row['nilaiss'];
+            }
+        }
+
+        return $scores;
+    }
+
+    ensureSSAnggotaEditColumns($conn);
 
     if (isset($_POST['submitSS'])) {
         $poin = $_POST['poin'];
-        $sql = "INSERT INTO tb_ss 
-        VALUES (null, $id_sf, '$poin')";
+        $poin_safe = mysqli_real_escape_string($conn, $poin);
+        if ($is_editing_member_ss) {
+            $sql = "INSERT INTO tb_ss (id_user, poin_ss, is_edited, edited_by, edited_at)
+            VALUES ($id_sf, '$poin_safe', 1, $id_user, NOW())";
+        } else {
+            $sql = "INSERT INTO tb_ss (id_user, poin_ss)
+            VALUES ($id_sf, '$poin_safe')";
+        }
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
@@ -28,9 +247,19 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['addsspoin'])) {
         $poin = $_POST['tujuan'];
         $id = $_POST['idss'];
+        $poin_safe = mysqli_real_escape_string($conn, $poin);
+        $indikator_1 = mysqli_real_escape_string($conn, $_POST['indikator_1'] ?? '');
+        $indikator_2 = mysqli_real_escape_string($conn, $_POST['indikator_2'] ?? '');
+        $indikator_3 = mysqli_real_escape_string($conn, $_POST['indikator_3'] ?? '');
+        $indikator_4 = mysqli_real_escape_string($conn, $_POST['indikator_4'] ?? '');
 
-        $sql = "INSERT INTO tb_sspoin (`id_user`, `id_ss`, `poinss`, `nilaiss`, `deskripsi`)
-        VALUES ($id_sf, $id, '$poin', 0, '')";
+        if ($is_editing_member_ss) {
+            $sql = "INSERT INTO tb_sspoin (`id_user`, `id_ss`, `poinss`, `nilai1`, `nilai2`, `nilai3`, `nilai4`, `nilaiss`, `deskripsi`, `is_edited`, `edited_by`, `edited_at`)
+            VALUES ($id_sf, $id, '$poin_safe', '$indikator_1', '$indikator_2', '$indikator_3', '$indikator_4', 0, '', 1, $id_user, NOW())";
+        } else {
+            $sql = "INSERT INTO tb_sspoin (`id_user`, `id_ss`, `poinss`, `nilai1`, `nilai2`, `nilai3`, `nilai4`, `nilaiss`, `deskripsi`)
+            VALUES ($id_sf, $id, '$poin_safe', '$indikator_1', '$indikator_2', '$indikator_3', '$indikator_4', 0, '')";
+        }
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
@@ -42,10 +271,21 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['ss_edit'])) {
         $poin = $_POST['poinsss'];
         $id = $_POST['idsss'];
+        $poin_safe = mysqli_real_escape_string($conn, $poin);
 
-        $sql = "UPDATE tb_sspoin 
-        SET poinss='$poin'
-        WHERE id_sspoin=$id";
+        if ($is_editing_member_ss) {
+            $sql = "UPDATE tb_sspoin 
+            SET original_poinss = CASE WHEN original_poinss IS NOT NULL THEN original_poinss ELSE poinss END,
+                poinss='$poin_safe',
+                is_edited=1,
+                edited_by=$id_user,
+                edited_at=NOW()
+            WHERE id_sspoin=$id";
+        } else {
+            $sql = "UPDATE tb_sspoin 
+            SET poinss='$poin_safe'
+            WHERE id_sspoin=$id";
+        }
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
@@ -71,10 +311,24 @@ if (!isset($_SESSION['id_user'])) {
         $id = $_POST['idnilai'];
         $nilai = $_POST['nilai'];
         $keterangan = $_POST['keterangan'];
+        $nilai_safe = mysqli_real_escape_string($conn, $nilai);
+        $keterangan_safe = mysqli_real_escape_string($conn, $keterangan);
     
-        $sql = "UPDATE tb_sspoin 
-        SET nilaiss='$nilai', deskripsi='$keterangan' 
-        WHERE id_sspoin=$id";
+        if ($is_editing_member_ss) {
+            $sql = "UPDATE tb_sspoin 
+            SET original_nilaiss = CASE WHEN original_nilaiss IS NOT NULL THEN original_nilaiss ELSE nilaiss END,
+                original_deskripsi = CASE WHEN original_deskripsi IS NOT NULL THEN original_deskripsi ELSE deskripsi END,
+                nilaiss='$nilai_safe',
+                deskripsi='$keterangan_safe',
+                is_edited=1,
+                edited_by=$id_user,
+                edited_at=NOW()
+            WHERE id_sspoin=$id";
+        } else {
+            $sql = "UPDATE tb_sspoin 
+            SET nilaiss='$nilai_safe', deskripsi='$keterangan_safe' 
+            WHERE id_sspoin=$id";
+        }
         $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
@@ -86,8 +340,19 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['update'])) {
     $idk = $_POST['idk'];
     $poinn = $_POST['poin'];
+    $poinn_safe = mysqli_real_escape_string($conn, $poinn);
 
-    $sql = "UPDATE `tb_ss` set poin_ss = '$poinn' where id_poinss=$idk";
+    if ($is_editing_member_ss) {
+        $sql = "UPDATE `tb_ss` 
+                SET original_poin_ss = CASE WHEN original_poin_ss IS NOT NULL THEN original_poin_ss ELSE poin_ss END,
+                    poin_ss = '$poinn_safe',
+                    is_edited = 1,
+                    edited_by = $id_user,
+                    edited_at = NOW()
+                WHERE id_poinss=$idk";
+    } else {
+        $sql = "UPDATE `tb_ss` set poin_ss = '$poinn_safe' where id_poinss=$idk";
+    }
     $result = mysqli_query($conn, $sql);
     if ($result) {
         header('Location: ' . $_SERVER['REQUEST_URI']);
@@ -113,6 +378,13 @@ if (isset($_POST['hapus_kategori_ss'])) {
         echo "<script>alert('Gagal Hapus Kategori')</script>";
     }
 }
+
+ssSyncCurrentMonthHistory($conn, $id_sf);
+$bulan_ini_ss = date('Y-m', strtotime('-1 month'));
+$bulan_lalu_ss = date('Y-m', strtotime('-2 month'));
+$label_bulan_ini_pendek_ss = ssShortMonthLabel($bulan_ini_ss);
+$label_bulan_lalu_pendek_ss = ssShortMonthLabel($bulan_lalu_ss);
+$ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
 } ?>
 <html lang="en">
 
@@ -153,6 +425,35 @@ if (isset($_POST['hapus_kategori_ss'])) {
             margin-left: auto;
             /* Memusatkan garis secara horizontal */
             margin-right: auto;
+        }
+        .edited-badge {
+            display: inline-block;
+            background-color: #ffc107;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-left: 6px;
+        }
+        .edited-row {
+            background-color: #fff8e1 !important;
+        }
+        .change-info {
+            margin-top: 4px;
+            padding: 5px 7px;
+            background-color: #fff3cd;
+            border-left: 3px solid #ffc107;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .change-info .old-val {
+            color: #dc3545;
+            text-decoration: line-through;
+        }
+        .change-info .new-val {
+            color: #198754;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -257,32 +558,40 @@ if (isset($_POST['hapus_kategori_ss'])) {
                 $sqler = "select * from tb_ss where id_user=$id_sf";
                 $tewg = mysqli_query($conn, $sqler);
                 while ($hasil = mysqli_fetch_assoc($tewg)) {
-                    $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_sspoin WHERE id_user=$id_sf AND id_ss=" . $hasil['id_poinss'];
-                    $sggh = mysqli_query($conn, $fiub);
+                    $current_category_average = ssGetAverage($conn, $id_sf, $hasil['id_poinss']);
+                    $previous_category_average = ssGetAverage($conn, $id_sf, $hasil['id_poinss'], $bulan_lalu_ss);
+                    $is_category_edited_by_superior = !empty($hasil['is_edited']) && !empty($hasil['edited_by']) && intval($hasil['edited_by']) !== intval($id_sf);
+                    $category_editor_name = $is_category_edited_by_superior ? getSSEditorName($conn, $hasil['edited_by']) : '';
+                    $category_edit_label = empty($hasil['original_poin_ss']) ? 'DITAMBAH ATASAN' : 'DIUBAH ATASAN';
                 ?>
                     <div class="row">
                         <div class="col-lg connectedSortable">
                             <div class="d-flex">
                                 <div class="card mb-4 w-100">
-                                    <div style="height: 50px; margin-top: -3px;" class="card-header bg-primary">
-                                        <h5 style="color:white;" class="card-title">
-                                            <?= $no . '. ' . $hasil['poin_ss']; ?>
-                                        </h5>
-                                        <h5 style="color:white; margin-left: 15px;" class="badge text-bg-warning fs-7 fw-bolder">
-                                            Nilai : <?php while ($hasfg = mysqli_fetch_assoc($sggh)) {
-                                                        if ($hasfg['total'] && $hasfg['totil']) {
-                                                            echo number_format($hasfg['total'] / $hasfg['totil'], 2);
-                                                        } else {
-                                                            echo '0';
-                                                        }
-                                                    } ?>
-                                        </h5>
-                                        <div class="card-tools">
-                                            <button style="color: white; margin-top: -20px; margin-right: 5px;" type="button"
+                                    <div class="card-header bg-primary d-flex align-items-center justify-content-between gap-2 flex-wrap" style="min-height: 52px;">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <h5 style="color:white;" class="card-title mb-0">
+                                                <?= $no . '. ' . $hasil['poin_ss']; ?>
+                                            </h5>
+                                            <span class="badge text-bg-warning fw-bolder">
+                                                Ini (<?= $label_bulan_ini_pendek_ss; ?>): <?= ssFormatValue($current_category_average); ?>
+                                            </span>
+                                            <span class="badge text-bg-light fw-bolder">
+                                                Lalu (<?= $label_bulan_lalu_pendek_ss; ?>): <?= ssFormatValue($previous_category_average); ?>
+                                            </span>
+                                            <?= ssTrendBadge($current_category_average ?? 0, $previous_category_average); ?>
+                                            <?php if ($is_category_edited_by_superior) { ?>
+                                                <span class="edited-badge" title="Diubah <?= !empty($hasil['edited_at']) ? date('d/m/Y H:i', strtotime($hasil['edited_at'])) : ''; ?><?= !empty($category_editor_name) ? ' oleh ' . htmlspecialchars($category_editor_name) : ''; ?>">
+                                                    <i class="bi bi-pencil-fill"></i> <?= $category_edit_label; ?>
+                                                </span>
+                                            <?php } ?>
+                                        </div>
+                                        <div class="card-tools d-flex align-items-center gap-1 ms-auto">
+                                            <button style="color: white;" type="button"
                                                 data-bs-toggle="modal" data-bs-target="#EditASSS<?= $hasil['id_poinss']; ?>" class="btn btn-tool">
                                                 <i class="bi bi-pencil fs-6"></i>
                                             </button>
-                                            <button style="color: white; margin-top: -20px; margin-right: 5px; "
+                                            <button style="color: white;"
                                                 type="button" data-bs-toggle="dropdown" 
                                                 class="btn btn-tool dropdown-toggle">
                                                 <i class="bi bi-plus-circle fs-6"></i>
@@ -308,8 +617,14 @@ if (isset($_POST['hapus_kategori_ss'])) {
                                                 <tr>
                                                     <th style="width: 5%">No</th>
                                                     <th style="padding-left : 30px">Poin</th>
-                                                    <th style="width: 15%">
-                                                        <center>Nilai</center>
+                                                    <th style="width: 10%">
+                                                        <center>Bulan Lalu (<?= $label_bulan_lalu_pendek_ss; ?>)</center>
+                                                    </th>
+                                                    <th style="width: 10%">
+                                                        <center>Bulan Ini (<?= $label_bulan_ini_pendek_ss; ?>)</center>
+                                                    </th>
+                                                    <th style="width: 10%">
+                                                        <center>Selisih</center>
                                                     </th>
                                                     <th style="width: 25%">
                                                         <center>Deskripsi</center>
@@ -325,10 +640,44 @@ if (isset($_POST['hapus_kategori_ss'])) {
                                                 $ql = mysqli_query($conn, $sql1);
                                                 $nodd = 1;
                                                 while ($res = mysqli_fetch_assoc($ql)) {
+                                                    $is_edited_by_superior = !empty($res['is_edited']) && !empty($res['edited_by']) && intval($res['edited_by']) !== intval($id_sf);
+                                                    $row_class = $is_edited_by_superior ? 'edited-row' : '';
+                                                    $has_original_change = !empty($res['original_poinss'])
+                                                        || $res['original_nilaiss'] !== null
+                                                        || $res['original_deskripsi'] !== null;
+                                                    $previous_score = array_key_exists($res['id_sspoin'], $ss_previous_scores)
+                                                        ? $ss_previous_scores[$res['id_sspoin']]
+                                                        : null;
                                                 ?>
-                                                    <tr class="align-middle">
+                                                    <tr class="align-middle <?= $row_class ?>">
                                                         <td><?= $no . '.' . $nodd ?></td>
-                                                        <td><?= $res['poinss']; ?></td>
+                                                        <td>
+                                                            <?= $res['poinss']; ?>
+                                                            <?php if ($is_edited_by_superior) { ?>
+                                                                <span class="edited-badge">
+                                                                    <i class="bi bi-pencil-fill"></i> <?= $has_original_change ? 'DIUBAH ATASAN' : 'DITAMBAH ATASAN'; ?>
+                                                                </span>
+                                                            <?php } ?>
+                                                            <?php if ($is_edited_by_superior && !empty($res['original_poinss']) && $res['original_poinss'] != $res['poinss']) { ?>
+                                                                <div class="change-info">
+                                                                    <strong>Sebelum:</strong>
+                                                                    <span class="old-val"><?= shortSSValue($res['original_poinss']); ?></span><br>
+                                                                    <strong>Sesudah:</strong>
+                                                                    <span class="new-val"><?= shortSSValue($res['poinss']); ?></span>
+                                                                </div>
+                                                            <?php } ?>
+                                                        </td>
+                                                        <td>
+                                                            <center>
+                                                                <?php if ($previous_score !== null) { ?>
+                                                                    <span class="badge bg-secondary fs-8">
+                                                                        <?= number_format($previous_score, 2); ?>
+                                                                    </span>
+                                                                <?php } else { ?>
+                                                                    <span class="badge bg-light text-dark fs-8">N/A</span>
+                                                                <?php } ?>
+                                                            </center>
+                                                        </td>
                                                         <td>
                                                             <center>
                                                                 <?php if ($res['nilaiss'] != 0) { ?>
@@ -338,6 +687,18 @@ if (isset($_POST['hapus_kategori_ss'])) {
                                                                 <?php } else { ?>
                                                                     <span class="badge bg-warning fs-8">Belum Dinilai</span>
                                                                 <?php } ?>
+                                                                <?php if ($is_edited_by_superior && $res['original_nilaiss'] !== null && $res['original_nilaiss'] != $res['nilaiss']) { ?>
+                                                                    <div class="change-info" style="text-align:left;">
+                                                                        <span class="old-val"><?= number_format($res['original_nilaiss'], 2); ?></span>
+                                                                        &rarr;
+                                                                        <span class="new-val"><?= number_format($res['nilaiss'], 2); ?></span>
+                                                                    </div>
+                                                                <?php } ?>
+                                                            </center>
+                                                        </td>
+                                                        <td>
+                                                            <center>
+                                                                <?= ssTrendBadge($res['nilaiss'], $previous_score); ?>
                                                             </center>
                                                         </td>
                                                         <td>
@@ -345,6 +706,14 @@ if (isset($_POST['hapus_kategori_ss'])) {
                                                                 <small><?= $res['deskripsi']; ?></small>
                                                             <?php } else { ?>
                                                                 <small class="text-muted fst-italic">Belum ada deskripsi. Klik "Nilai" untuk menambahkan.</small>
+                                                            <?php } ?>
+                                                            <?php if ($is_edited_by_superior && $res['original_deskripsi'] !== null && $res['original_deskripsi'] != $res['deskripsi']) { ?>
+                                                                <div class="change-info">
+                                                                    <strong>Sebelum:</strong>
+                                                                    <span class="old-val"><?= shortSSValue($res['original_deskripsi']); ?></span><br>
+                                                                    <strong>Sesudah:</strong>
+                                                                    <span class="new-val"><?= shortSSValue($res['deskripsi']); ?></span>
+                                                                </div>
                                                             <?php } ?>
                                                         </td>
                                                         <td class="text-center">
