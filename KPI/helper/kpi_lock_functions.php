@@ -34,21 +34,18 @@ function checkKPIAccess($conn, $user_level, $tanggal = null, $action = 'view') {
     
     $current_day = intval(date('d', strtotime($tanggal)));
     
-    // Cari pengaturan yang aktif untuk tanggal tersebut
-    $sql = "SELECT level_akses, izin_akses, is_recurring, recurring_day_start, recurring_day_end,
-                   tanggal_mulai, tanggal_selesai
+    // Cari pengaturan berulang bulanan yang aktif untuk tanggal tersebut
+    $sql = "SELECT level_akses, izin_akses, recurring_day_start, recurring_day_end
             FROM tb_kpi_lock_settings 
             WHERE status = 'aktif' 
-            AND (
-                (is_recurring = 1 AND recurring_day_start <= ? AND recurring_day_end >= ?)
-                OR
-                (is_recurring = 0 AND tanggal_mulai <= ? AND tanggal_selesai >= ?)
-            )
-            ORDER BY is_recurring DESC, created_at DESC
+            AND is_recurring = 1
+            AND recurring_day_start <= ?
+            AND recurring_day_end >= ?
+            ORDER BY created_at DESC
             LIMIT 1";
     
     $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "iiss", $current_day, $current_day, $tanggal, $tanggal);
+    mysqli_stmt_bind_param($stmt, "ii", $current_day, $current_day);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
     
@@ -82,29 +79,24 @@ function getKPILockMessage($conn, $user_level, $tanggal = null) {
     
     $current_day = intval(date('d', strtotime($tanggal)));
     
-    $sql = "SELECT nama_periode, tanggal_mulai, tanggal_selesai, level_akses, keterangan,
-                   is_recurring, recurring_day_start, recurring_day_end
+    $sql = "SELECT nama_periode, level_akses, keterangan, recurring_day_start, recurring_day_end
             FROM tb_kpi_lock_settings 
             WHERE status = 'aktif' 
-            AND (
-                (is_recurring = 1 AND recurring_day_start <= ? AND recurring_day_end >= ?)
-                OR
-                (is_recurring = 0 AND tanggal_mulai <= ? AND tanggal_selesai >= ?)
-            )
-            ORDER BY is_recurring DESC, created_at DESC
+            AND is_recurring = 1
+            AND recurring_day_start <= ?
+            AND recurring_day_end >= ?
+            ORDER BY created_at DESC
             LIMIT 1";
     
     $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "iiss", $current_day, $current_day, $tanggal, $tanggal);
+    mysqli_stmt_bind_param($stmt, "ii", $current_day, $current_day);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
     
     if ($row = mysqli_fetch_assoc($result)) {
         $level_akses = explode(',', $row['level_akses']);
         
-        $periode_text = $row['is_recurring'] 
-            ? "setiap bulan tanggal {$row['recurring_day_start']} - {$row['recurring_day_end']}"
-            : date('d/m/Y', strtotime($row['tanggal_mulai'])) . " - " . date('d/m/Y', strtotime($row['tanggal_selesai']));
+        $periode_text = "setiap bulan tanggal {$row['recurring_day_start']} - {$row['recurring_day_end']}";
         
         if (!in_array($user_level, $level_akses) && !empty($row['level_akses'])) {
             return [
@@ -131,48 +123,10 @@ function getKPILockMessage($conn, $user_level, $tanggal = null) {
  * Mendapatkan semua periode lock yang aktif
  */
 function getAllActiveLockPeriods($conn) {
-    $sql = "SELECT * FROM tb_kpi_lock_settings WHERE status = 'aktif' ORDER BY tanggal_mulai ASC";
+    $sql = "SELECT * FROM tb_kpi_lock_settings 
+            WHERE status = 'aktif' AND is_recurring = 1 
+            ORDER BY recurring_day_start ASC, recurring_day_end ASC, created_at DESC";
     $result = mysqli_query($conn, $sql);
     return $result;
-}
-
-/**
- * Cek apakah ada overlap periode
- */
-function checkPeriodOverlap($conn, $tanggal_mulai, $tanggal_selesai, $exclude_id = null) {
-    $sql = "SELECT COUNT(*) as count FROM tb_kpi_lock_settings 
-            WHERE status = 'aktif' 
-            AND (
-                (tanggal_mulai <= ? AND tanggal_selesai >= ?) OR
-                (tanggal_mulai <= ? AND tanggal_selesai >= ?) OR
-                (tanggal_mulai >= ? AND tanggal_selesai <= ?)
-            )";
-    
-    if ($exclude_id) {
-        $sql .= " AND id_lock != ?";
-    }
-    
-    $stmt = mysqli_prepare($conn, $sql);
-    
-    if ($exclude_id) {
-        mysqli_stmt_bind_param($stmt, "sssssssi", 
-            $tanggal_mulai, $tanggal_mulai,
-            $tanggal_selesai, $tanggal_selesai,
-            $tanggal_mulai, $tanggal_selesai,
-            $exclude_id
-        );
-    } else {
-        mysqli_stmt_bind_param($stmt, "ssssss", 
-            $tanggal_mulai, $tanggal_mulai,
-            $tanggal_selesai, $tanggal_selesai,
-            $tanggal_mulai, $tanggal_selesai
-        );
-    }
-    
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    $row = mysqli_fetch_assoc($result);
-    
-    return $row['count'] > 0;
 }
 ?>

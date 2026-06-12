@@ -14,29 +14,14 @@ require 'helper/kpi_lock_functions.php';
 // Hanya Admin HRD yang bisa akses
 requireAdminHRD();
 
-// Handler untuk tambah periode lock
-// Handler untuk tambah periode lock
+// Handler untuk tambah periode lock berulang
 if (isset($_POST['tambah_lock'])) {
     $nama_periode = mysqli_real_escape_string($conn, $_POST['nama_periode']);
-    $is_recurring = isset($_POST['is_recurring']) ? 1 : 0;
-    
-    if ($is_recurring) {
-        // Mode recurring: simpan tanggal sebagai hari dalam bulan
-        $recurring_day_start = intval($_POST['recurring_day_start']);
-        $recurring_day_end = intval($_POST['recurring_day_end']);
-        
-        // Set tanggal dummy untuk kolom tanggal_mulai dan tanggal_selesai
-        $tanggal_mulai = date('Y-m-01');
-        $tanggal_selesai = date('Y-m-t');
-        
-    } else {
-        // Mode normal seperti sebelumnya
-        $tanggal_mulai = mysqli_real_escape_string($conn, $_POST['tanggal_mulai']);
-        $tanggal_selesai = date('Y-m-d', strtotime($tanggal_mulai . ' +1 year -1 day'));
-        $recurring_day_start = NULL;
-        $recurring_day_end = NULL;
-    }
-    
+    $is_recurring = 1;
+    $recurring_day_start = intval($_POST['recurring_day_start']);
+    $recurring_day_end = intval($_POST['recurring_day_end']);
+    $tanggal_mulai = date('Y-m-01');
+    $tanggal_selesai = date('Y-m-t');
     $level_akses = isset($_POST['level_akses']) ? implode(',', $_POST['level_akses']) : '';
     $keterangan = mysqli_real_escape_string($conn, $_POST['keterangan']);
     
@@ -48,9 +33,10 @@ if (isset($_POST['tambah_lock'])) {
     ];
     $izin_akses_json = json_encode($izin_akses);
     
-    // Untuk recurring, skip validasi overlap
-    if (!$is_recurring && checkPeriodOverlap($conn, $tanggal_mulai, $tanggal_selesai)) {
-        echo "<script>alert('Periode yang dipilih bertumpuk dengan periode lain yang sudah ada!');</script>";
+    if ($recurring_day_start < 1 || $recurring_day_start > 31 || $recurring_day_end < 1 || $recurring_day_end > 31) {
+        echo "<script>alert('Tanggal berulang harus berada di antara 1 sampai 31!');</script>";
+    } elseif ($recurring_day_end < $recurring_day_start) {
+        echo "<script>alert('Tanggal selesai tidak boleh lebih kecil dari tanggal mulai!');</script>";
     } else {
         $sql = "INSERT INTO tb_kpi_lock_settings 
                 (nama_periode, tanggal_mulai, tanggal_selesai, is_recurring, recurring_day_start, recurring_day_end, 
@@ -58,56 +44,37 @@ if (isset($_POST['tambah_lock'])) {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "sssiissssi", 
+        mysqli_stmt_bind_param($stmt, "sssiiisssi", 
             $nama_periode, $tanggal_mulai, $tanggal_selesai, 
             $is_recurring, $recurring_day_start, $recurring_day_end,
             $level_akses, $izin_akses_json, $keterangan, $id_user);
         
         if (mysqli_stmt_execute($stmt)) {
-            if ($is_recurring) {
-                echo "<script>alert('Pengaturan lock berulang berhasil ditambahkan!\\nSetiap bulan tanggal $recurring_day_start - $recurring_day_end'); window.location.href='kpi-lock-settings-adminhrd';</script>";
-            } else {
-                echo "<script>alert('Pengaturan lock berhasil ditambahkan!\\nPeriode: " . date('d/m/Y', strtotime($tanggal_mulai)) . " - " . date('d/m/Y', strtotime($tanggal_selesai)) . "'); window.location.href='kpi-lock-settings-adminhrd';</script>";
-            }
+            echo "<script>alert('Pengaturan lock berulang berhasil ditambahkan!\\nSetiap bulan tanggal $recurring_day_start - $recurring_day_end'); window.location.href='kpi-lock-settings-adminhrd';</script>";
         } else {
             echo "<script>alert('Gagal menambahkan pengaturan lock!');</script>";
         }
     }
 }
 
-// Handler untuk edit periode lock
-// Handler untuk edit periode lock
+// Handler untuk edit periode lock berulang
 if (isset($_POST['edit_lock'])) {
     $id_lock = intval($_POST['id_lock']);
     $nama_periode = mysqli_real_escape_string($conn, $_POST['nama_periode']);
-    $is_recurring = isset($_POST['edit_is_recurring']) ? 1 : 0;
-    
-    if ($is_recurring) {
-        // Mode recurring
-        $recurring_day_start = intval($_POST['recurring_day_start']);
-        $recurring_day_end = intval($_POST['recurring_day_end']);
-        
-        // Validasi hari
-        if ($recurring_day_end < $recurring_day_start) {
-            echo "<script>alert('Tanggal selesai tidak boleh lebih kecil dari tanggal mulai!');</script>";
-            exit;
-        }
-        
-        // Set tanggal dummy
-        $tanggal_mulai = date('Y-m-01');
-        $tanggal_selesai = date('Y-m-t');
-        
-    } else {
-        // Mode normal
-        $tanggal_mulai = mysqli_real_escape_string($conn, $_POST['tanggal_mulai']);
-        $tanggal_selesai = mysqli_real_escape_string($conn, $_POST['tanggal_selesai']);
-        $recurring_day_start = NULL;
-        $recurring_day_end = NULL;
-        
-        if ($tanggal_selesai < $tanggal_mulai) {
-            echo "<script>alert('Tanggal selesai tidak boleh lebih kecil dari tanggal mulai!');</script>";
-            exit;
-        }
+    $is_recurring = 1;
+    $recurring_day_start = intval($_POST['recurring_day_start']);
+    $recurring_day_end = intval($_POST['recurring_day_end']);
+    $tanggal_mulai = date('Y-m-01');
+    $tanggal_selesai = date('Y-m-t');
+
+    if ($recurring_day_start < 1 || $recurring_day_start > 31 || $recurring_day_end < 1 || $recurring_day_end > 31) {
+        echo "<script>alert('Tanggal berulang harus berada di antara 1 sampai 31!');</script>";
+        exit;
+    }
+
+    if ($recurring_day_end < $recurring_day_start) {
+        echo "<script>alert('Tanggal selesai tidak boleh lebih kecil dari tanggal mulai!');</script>";
+        exit;
     }
     
     $level_akses = isset($_POST['level_akses']) ? implode(',', $_POST['level_akses']) : '';
@@ -121,27 +88,22 @@ if (isset($_POST['edit_lock'])) {
     ];
     $izin_akses_json = json_encode($izin_akses);
     
-    // Skip overlap check untuk recurring
-    if (!$is_recurring && checkPeriodOverlap($conn, $tanggal_mulai, $tanggal_selesai, $id_lock)) {
-        echo "<script>alert('Periode yang dipilih bertumpuk dengan periode lain yang sudah ada!');</script>";
+    $sql = "UPDATE tb_kpi_lock_settings SET 
+            nama_periode = ?, tanggal_mulai = ?, tanggal_selesai = ?, 
+            is_recurring = ?, recurring_day_start = ?, recurring_day_end = ?,
+            level_akses = ?, izin_akses = ?, keterangan = ?
+            WHERE id_lock = ?";
+    
+    $stmt = mysqli_prepare($conn, $sql);
+    mysqli_stmt_bind_param($stmt, "sssiiisssi", 
+        $nama_periode, $tanggal_mulai, $tanggal_selesai, 
+        $is_recurring, $recurring_day_start, $recurring_day_end,
+        $level_akses, $izin_akses_json, $keterangan, $id_lock);
+    
+    if (mysqli_stmt_execute($stmt)) {
+        echo "<script>alert('Pengaturan lock berulang berhasil diupdate!'); window.location.href='kpi-lock-settings-adminhrd';</script>";
     } else {
-        $sql = "UPDATE tb_kpi_lock_settings SET 
-                nama_periode = ?, tanggal_mulai = ?, tanggal_selesai = ?, 
-                is_recurring = ?, recurring_day_start = ?, recurring_day_end = ?,
-                level_akses = ?, izin_akses = ?, keterangan = ?
-                WHERE id_lock = ?";
-        
-        $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "sssiissssi", 
-            $nama_periode, $tanggal_mulai, $tanggal_selesai, 
-            $is_recurring, $recurring_day_start, $recurring_day_end,
-            $level_akses, $izin_akses_json, $keterangan, $id_lock);
-        
-        if (mysqli_stmt_execute($stmt)) {
-            echo "<script>alert('Pengaturan lock berhasil diupdate!'); window.location.href='kpi-lock-settings-adminhrd';</script>";
-        } else {
-            echo "<script>alert('Gagal mengupdate pengaturan lock!');</script>";
-        }
+        echo "<script>alert('Gagal mengupdate pengaturan lock!');</script>";
     }
 }
 
@@ -160,7 +122,7 @@ if (isset($_POST['hapus_lock'])) {
     }
 }
 
-// Ambil semua periode lock aktif
+// Ambil semua lock berulang aktif
 $result_locks = getAllActiveLockPeriods($conn);
 ?>
 <!DOCTYPE html>
@@ -221,10 +183,10 @@ $result_locks = getAllActiveLockPeriods($conn);
                                             <h4 class="mb-2">
                                                 <i class="bi bi-lock-fill me-2"></i>Pengaturan Lock Akses KPI
                                             </h4>
-                                            <p class="mb-0 opacity-75">Atur periode dan level akses untuk pengisian KPI karyawan</p>
+                                            <p class="mb-0 opacity-75">Atur periode berulang bulanan dan level akses untuk pengisian KPI karyawan</p>
                                         </div>
                                         <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#modalTambahLock">
-                                            <i class="bi bi-plus-circle me-2"></i>Tambah Periode Lock
+                                            <i class="bi bi-plus-circle me-2"></i>Tambah Lock Berulang
                                         </button>
                                     </div>
                                 </div>
@@ -232,48 +194,25 @@ $result_locks = getAllActiveLockPeriods($conn);
                         </div>
                     </div>
 
-                    <!-- Info Box -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="alert alert-info">
-                                <i class="bi bi-info-circle-fill me-2"></i>
-                                <strong>Cara Kerja:</strong> 
-                                Atur periode waktu dan level jabatan mana saja yang boleh mengakses KPI. 
-                                Level: 1=Karyawan, 2=Koordinator, 3=Manager, 4=Kadep. 
-                                Admin HRD selalu memiliki akses penuh.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Daftar Periode Lock -->
+                    <!-- Daftar Lock Berulang -->
                     <div class="row">
                         <div class="col-12">
                             <div class="card shadow-sm">
                                 <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Daftar Periode Lock</h5>
+                                    <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Daftar Lock Berulang Bulanan</h5>
                                 </div>
                                 <div class="card-body">
                                     <?php 
-                                    $today = date('Y-m-d');
                                     if (mysqli_num_rows($result_locks) > 0): 
                                     ?>
                                         <div class="row">
                                         <?php while($lock = mysqli_fetch_assoc($result_locks)): 
                                             $izin = json_decode($lock['izin_akses'], true);
                                             
-                                            // PERBAIKAN: Logika status untuk recurring dan non-recurring
-                                            if ($lock['is_recurring']) {
-                                                // Untuk recurring, cek hari dalam bulan saat ini
-                                                $current_day = intval(date('d'));
-                                                $is_aktif = ($lock['recurring_day_start'] <= $current_day && $lock['recurring_day_end'] >= $current_day);
-                                                $is_akan_datang = ($lock['recurring_day_start'] > $current_day);
-                                                $is_selesai = ($lock['recurring_day_end'] < $current_day);
-                                            } else {
-                                                // Untuk non-recurring, cek tanggal normal
-                                                $is_aktif = ($lock['tanggal_mulai'] <= $today && $lock['tanggal_selesai'] >= $today);
-                                                $is_akan_datang = ($lock['tanggal_mulai'] > $today);
-                                                $is_selesai = ($lock['tanggal_selesai'] < $today);
-                                            }
+                                            $current_day = intval(date('d'));
+                                            $is_aktif = ($lock['recurring_day_start'] <= $current_day && $lock['recurring_day_end'] >= $current_day);
+                                            $is_akan_datang = ($lock['recurring_day_start'] > $current_day);
+                                            $is_selesai = ($lock['recurring_day_end'] < $current_day);
                                             
                                             $card_class = 'periode-card';
                                             if ($is_aktif) $card_class .= ' periode-aktif';
@@ -318,16 +257,11 @@ $result_locks = getAllActiveLockPeriods($conn);
                                                         <div class="mb-2">
                                                             <i class="bi bi-calendar-range text-muted me-2"></i>
                                                             <strong>Periode:</strong>
-                                                            <?php if($lock['is_recurring']): ?>
-                                                                <span class="badge bg-success">
-                                                                    <i class="bi bi-arrow-repeat me-1"></i>Berulang Setiap Bulan
-                                                                </span>
-                                                                <br>
-                                                                <small class="ms-4">Tanggal <?=$lock['recurring_day_start']?> - <?=$lock['recurring_day_end']?> setiap bulan</small>
-                                                            <?php else: ?>
-                                                                <?=date('d/m/Y', strtotime($lock['tanggal_mulai']))?> - 
-                                                                <?=date('d/m/Y', strtotime($lock['tanggal_selesai']))?>
-                                                            <?php endif; ?>
+                                                            <span class="badge bg-success">
+                                                                <i class="bi bi-arrow-repeat me-1"></i>Berulang Setiap Bulan
+                                                            </span>
+                                                            <br>
+                                                            <small class="ms-4">Tanggal <?=$lock['recurring_day_start']?> - <?=$lock['recurring_day_end']?> setiap bulan</small>
                                                         </div>
                                                         
                                                         <div class="mb-2">
@@ -382,7 +316,7 @@ $result_locks = getAllActiveLockPeriods($conn);
                                     <?php else: ?>
                                         <div class="text-center py-5">
                                             <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
-                                            <p class="text-muted mt-3">Belum ada pengaturan lock. Klik tombol "Tambah Periode Lock" untuk memulai.</p>
+                                            <p class="text-muted mt-3">Belum ada pengaturan lock. Klik tombol "Tambah Lock Berulang" untuk memulai.</p>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -403,7 +337,7 @@ $result_locks = getAllActiveLockPeriods($conn);
             <div class="modal-content">
                 <form method="POST">
                     <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Tambah Periode Lock</h5>
+                        <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Tambah Lock Berulang</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -411,61 +345,25 @@ $result_locks = getAllActiveLockPeriods($conn);
                             <div class="col-12 mb-3">
                                 <label class="form-label fw-bold">Nama Periode <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" name="nama_periode" required
-                                       placeholder="Contoh: Periode Input Bulan Januari">
+                                       placeholder="Contoh: Periode Input Bulanan Tanggal 1-15">
                             </div>
                             
-                            <!-- Ganti bagian form tanggal di Modal Tambah Lock -->
-                            <div class="col-12 mb-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="is_recurring" name="is_recurring" 
-                                        onchange="toggleRecurringMode()">
-                                    <label class="form-check-label fw-bold" for="is_recurring">
-                                        Mode Berulang Setiap Bulan
-                                    </label>
-                                </div>
-                                <small class="text-muted">Aktifkan jika ingin periode ini berlaku setiap bulan</small>
-                            </div>
-
-                            <!-- Mode Normal (Single Period) -->
-<!-- Mode Normal (Single Period) -->
-<div id="normal_mode">
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">
-                Tanggal Mulai <span class="text-danger">*</span>
-            </label>
-            <input type="date" class="form-control" name="tanggal_mulai" id="tanggal_mulai">
-            <small class="text-muted">Tanggal mulai periode</small>
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">
-                Tanggal Selesai <span class="text-danger">*</span>
-            </label>
-            <input type="date" class="form-control" name="tanggal_selesai" id="tanggal_selesai">
-            <small class="text-muted">Tanggal akhir periode</small>
-        </div>
-    </div>
-</div>
-
-
-                            <!-- Mode Recurring -->
-                            <div id="recurring_mode" style="display: none;">
+                            <div id="recurring_mode">
                                 <div class="alert alert-info">
                                     <i class="bi bi-arrow-repeat me-2"></i>
-                                    <strong>Mode Berulang:</strong> Atur tanggal dalam bulan (1-31) yang akan berlaku setiap bulan
+                                    <strong>Periode Berulang:</strong> Atur tanggal dalam bulan (1-31) yang akan berlaku setiap bulan
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label fw-bold">Tanggal Mulai (Hari) <span class="text-danger">*</span></label>
                                         <input type="number" class="form-control" name="recurring_day_start" 
-                                            id="recurring_day_start" min="1" max="31" placeholder="Contoh: 1">
+                                            id="recurring_day_start" min="1" max="31" placeholder="Contoh: 1" required>
                                         <small class="text-muted">Tanggal berapa setiap bulannya</small>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label fw-bold">Tanggal Selesai (Hari) <span class="text-danger">*</span></label>
                                         <input type="number" class="form-control" name="recurring_day_end" 
-                                            id="recurring_day_end" min="1" max="31" placeholder="Contoh: 15">
+                                            id="recurring_day_end" min="1" max="31" placeholder="Contoh: 15" required>
                                         <small class="text-muted">Tanggal berapa setiap bulannya</small>
                                     </div>
                                 </div>
@@ -522,7 +420,7 @@ $result_locks = getAllActiveLockPeriods($conn);
                             <div class="col-12 mb-3">
                                 <label class="form-label fw-bold">Keterangan</label>
                                 <textarea class="form-control" name="keterangan" rows="3" 
-                                          placeholder="Keterangan tambahan tentang periode ini..."></textarea>
+                                          placeholder="Keterangan tambahan tentang periode berulang ini..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -544,7 +442,7 @@ $result_locks = getAllActiveLockPeriods($conn);
                 <form method="POST" id="formEditLock">
                     <input type="hidden" name="id_lock" id="edit_id_lock">
                     <div class="modal-header bg-warning">
-                        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Periode Lock</h5>
+                        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Lock Berulang</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -554,47 +452,22 @@ $result_locks = getAllActiveLockPeriods($conn);
                                 <input type="text" class="form-control" name="nama_periode" id="edit_nama_periode" required>
                             </div>
                             
-                            <div class="col-12 mb-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="edit_is_recurring" name="edit_is_recurring" 
-                                        onchange="toggleEditRecurringMode()">
-                                    <label class="form-check-label fw-bold" for="edit_is_recurring">
-                                        Mode Berulang Setiap Bulan
-                                    </label>
-                                </div>
-                                <small class="text-muted">Aktifkan jika ingin periode ini berlaku setiap bulan</small>
-                            </div>
-
-                            <!-- Mode Normal (Single Period) -->
-                            <div id="edit_normal_mode">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Tanggal Mulai <span class="text-danger">*</span></label>
-                                    <input type="date" class="form-control" name="tanggal_mulai" id="edit_tanggal_mulai">
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Tanggal Selesai <span class="text-danger">*</span></label>
-                                    <input type="date" class="form-control" name="tanggal_selesai" id="edit_tanggal_selesai">
-                                </div>
-                            </div>
-
-                            <!-- Mode Recurring -->
-                            <div id="edit_recurring_mode" style="display: none;">
+                            <div id="edit_recurring_mode">
                                 <div class="alert alert-info">
                                     <i class="bi bi-arrow-repeat me-2"></i>
-                                    <strong>Mode Berulang:</strong> Atur tanggal dalam bulan (1-31) yang akan berlaku setiap bulan
+                                    <strong>Periode Berulang:</strong> Atur tanggal dalam bulan (1-31) yang akan berlaku setiap bulan
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label fw-bold">Tanggal Mulai (Hari) <span class="text-danger">*</span></label>
                                         <input type="number" class="form-control" name="recurring_day_start" 
-                                            id="edit_recurring_day_start" min="1" max="31" placeholder="Contoh: 1">
+                                            id="edit_recurring_day_start" min="1" max="31" placeholder="Contoh: 1" required>
                                         <small class="text-muted">Tanggal berapa setiap bulannya</small>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label fw-bold">Tanggal Selesai (Hari) <span class="text-danger">*</span></label>
                                         <input type="number" class="form-control" name="recurring_day_end" 
-                                            id="edit_recurring_day_end" min="1" max="31" placeholder="Contoh: 15">
+                                            id="edit_recurring_day_end" min="1" max="31" placeholder="Contoh: 15" required>
                                         <small class="text-muted">Tanggal berapa setiap bulannya</small>
                                     </div>
                                 </div>
@@ -651,7 +524,7 @@ $result_locks = getAllActiveLockPeriods($conn);
                             <div class="col-12 mb-3">
                                 <label class="form-label fw-bold">Keterangan</label>
                                 <textarea class="form-control" name="keterangan" id="edit_keterangan" rows="3"
-                                        placeholder="Keterangan tambahan tentang periode ini..."></textarea>
+                                        placeholder="Keterangan tambahan tentang periode berulang ini..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -676,50 +549,6 @@ $result_locks = getAllActiveLockPeriods($conn);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-    // Toggle mode recurring untuk form TAMBAH
-    function toggleRecurringMode() {
-        const isRecurring = document.getElementById('is_recurring').checked;
-        const normalMode = document.getElementById('normal_mode');
-        const recurringMode = document.getElementById('recurring_mode');
-        
-        if (isRecurring) {
-            normalMode.style.display = 'none';
-            recurringMode.style.display = 'block';
-            document.getElementById('tanggal_mulai').removeAttribute('required');
-            document.getElementById('recurring_day_start').setAttribute('required', 'required');
-            document.getElementById('recurring_day_end').setAttribute('required', 'required');
-        } else {
-            normalMode.style.display = 'block';
-            recurringMode.style.display = 'none';
-            document.getElementById('tanggal_mulai').setAttribute('required', 'required');
-            document.getElementById('recurring_day_start').removeAttribute('required');
-            document.getElementById('recurring_day_end').removeAttribute('required');
-        }
-    }
-
-    // Toggle mode recurring untuk form EDIT
-    function toggleEditRecurringMode() {
-        const isRecurring = document.getElementById('edit_is_recurring').checked;
-        const normalMode = document.getElementById('edit_normal_mode');
-        const recurringMode = document.getElementById('edit_recurring_mode');
-        
-        if (isRecurring) {
-            normalMode.style.display = 'none';
-            recurringMode.style.display = 'block';
-            document.getElementById('edit_tanggal_mulai').removeAttribute('required');
-            document.getElementById('edit_tanggal_selesai').removeAttribute('required');
-            document.getElementById('edit_recurring_day_start').setAttribute('required', 'required');
-            document.getElementById('edit_recurring_day_end').setAttribute('required', 'required');
-        } else {
-            normalMode.style.display = 'block';
-            recurringMode.style.display = 'none';
-            document.getElementById('edit_tanggal_mulai').setAttribute('required', 'required');
-            document.getElementById('edit_tanggal_selesai').setAttribute('required', 'required');
-            document.getElementById('edit_recurring_day_start').removeAttribute('required');
-            document.getElementById('edit_recurring_day_end').removeAttribute('required');
-        }
-    }
-
     // Preview recurring untuk TAMBAH
     document.getElementById('recurring_day_start')?.addEventListener('input', updateRecurringPreview);
     document.getElementById('recurring_day_end')?.addEventListener('input', updateRecurringPreview);
@@ -760,9 +589,10 @@ $result_locks = getAllActiveLockPeriods($conn);
             // Populate form
             document.getElementById('edit_id_lock').value = data.id_lock;
             document.getElementById('edit_nama_periode').value = data.nama_periode;
-            document.getElementById('edit_tanggal_mulai').value = data.tanggal_mulai;
-            document.getElementById('edit_tanggal_selesai').value = data.tanggal_selesai;
+            document.getElementById('edit_recurring_day_start').value = data.recurring_day_start;
+            document.getElementById('edit_recurring_day_end').value = data.recurring_day_end;
             document.getElementById('edit_keterangan').value = data.keterangan;
+            updateEditRecurringPreview();
             
             // Uncheck semua level dulu
             document.querySelectorAll('[id^="edit_level"]').forEach(cb => cb.checked = false);
