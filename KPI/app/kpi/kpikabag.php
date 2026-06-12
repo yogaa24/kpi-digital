@@ -260,6 +260,7 @@ function getkpi($nilair)
 <html lang="en">
 
 <head>
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>KPI Digital</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

@@ -138,6 +138,7 @@ $bobot_how = $data_bobot['bobothow'] ?? 0;
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
     <meta charset="UTF-8">
     <style>
         table {

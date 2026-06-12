@@ -2,6 +2,7 @@
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
 <meta charset="utf-8">
 <title>KPI Server Error</title>
 <style type="text/css">

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <?php
-require 'config.php';
+require 'helper/config.php';
 session_start();
 // echo $_SESSION['username'];
 $username = $_SESSION['username'];

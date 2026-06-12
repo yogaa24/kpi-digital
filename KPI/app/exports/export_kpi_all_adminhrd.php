@@ -119,6 +119,7 @@ function renderIndividualKPIXls($user, $breakdown) {
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
     <meta charset="UTF-8">
     <style>
         table { border-collapse: collapse; width: 100%; margin-bottom: 18px; }

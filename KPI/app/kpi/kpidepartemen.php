@@ -247,6 +247,7 @@ if ($leveel == 5 || $leveel == 6) {
 <html lang="en">
 
 <head>
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>KPI Departemen - KPI Digital</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
