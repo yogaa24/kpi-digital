@@ -5,7 +5,6 @@ if (!isset($_SESSION['id_user'])) {
     header("Location: index");
     exit();
 } else {
-
     require 'helper/config.php';
     require 'helper/getUser.php';
     require 'helper/getEviAnggota.php';
@@ -114,7 +113,7 @@ if (!isset($_SESSION['id_user'])) {
                                                         if($row['id'] != $_SESSION['id_user']){ 
                                                     ?>
                                                         <center>
-                                                            <a type="button" class="btn btn-sm btn-success" href="evidenanggota?id=<?= $row['id']; ?>"><i class="bi bi-eye"></i></a>
+                                                            <a type="button" class="btn btn-sm btn-success" href="router.php?page=evidenanggota&id=<?= $row['id']; ?>"><i class="bi bi-eye"></i></a>
                                                         </center>
                                                     <?php } ?>
                                                 </td>

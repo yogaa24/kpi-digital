@@ -168,7 +168,7 @@ if (isset($_POST['deleteevi'])) {
                         $jabatan == "Wadir Utama"
                     ) { ?>
                         <li class="nav-item d-none d-md-block">
-                            <a href="evidenkabag" class="nav-link">Eviden Anggota</a>
+                            <a href="router.php?page=evidenkabag" class="nav-link">Eviden Anggota</a>
                         </li>
                     <?php } ?>
 

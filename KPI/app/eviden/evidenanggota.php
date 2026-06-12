@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <?php
 session_start();
+$appRoot = dirname(__DIR__, 2);
+chdir($appRoot);
+
 if (!isset($_SESSION['id_user'])) {
     header("Location: index");
     exit();
 } else {
     $id_sf = $_GET['id'];
 
-    require 'helper/config.php';
-    require 'helper/getUser.php';
+    require $appRoot . '/helper/config.php';
+    require $appRoot . '/helper/getUser.php';
     $sqlevi= "SELECT * FROM tb_eviden where id_user = $id_sf";
     $resulteviden = mysqli_query($conn, $sqlevi);
 }
+
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+$appBaseUrl = $scriptDir;
+$appPathPosition = strpos($scriptDir, '/app/');
+if ($appPathPosition !== false) {
+    $appBaseUrl = substr($scriptDir, 0, $appPathPosition);
+}
+$appBaseUrl = rtrim($appBaseUrl, '/');
 
 if (isset($_POST['submitevid']) && !empty($_FILES['file']['name'])) {
     $targetfolder = "assets/kpi/eviden/".$id_user."/";
@@ -135,7 +146,7 @@ if (isset($_POST['editevi'])) {
             <div class="container-fluid">
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"> <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"> <i class="bi bi-list"></i> </a> </li>
-                    <li class="nav-item d-none d-md-block"> <a href="evidenkabag" class="nav-link">Kembali</a> </li>
+                    <li class="nav-item d-none d-md-block"> <a href="<?= $appBaseUrl ?>/router.php?page=evidenkabag" class="nav-link">Kembali</a> </li>
                 </ul>
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"> <a class="nav-link" href="#" data-lte-toggle="fullscreen"> <i data-lte-icon="maximize" class="bi bi-arrows-fullscreen"></i> <i data-lte-icon="minimize" class="bi bi-fullscreen-exit" style="display: none;"></i> </a> </li> <!--end::Fullscreen Toggle--> <!--begin::User Menu Dropdown-->
@@ -203,13 +214,14 @@ if (isset($_POST['editevi'])) {
                                                         <div class="modal-body">
                                                                 <?php $fileExtension = pathinfo($row['namafoto'], PATHINFO_EXTENSION);
                                                                 $fileExtension = strtolower($fileExtension);
+                                                                $evidenFileUrl = $appBaseUrl . '/assets/kpi/eviden/' . rawurlencode($row['id_user']) . '/' . rawurlencode($row['namafoto']);
                                                                 if ($fileExtension === 'xlsx' || $fileExtension === 'csv' || $fileExtension === 'xls' || $fileExtension === 'xlsm' || $fileExtension === 'xltx' || $fileExtension === 'xltm') { ?>
-                                                                    <p>This browser does not support Excel. Please download the Excel to view it: <a download href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
+                                                                    <p>This browser does not support Excel. Please download the Excel to view it: <a download href="<?= $evidenFileUrl ?>">Download File</a>.</p>
                                                                 <?php } else { ?>
-                                                                    <embed src="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>" width="100%" height="650px">
+                                                                    <embed src="<?= $evidenFileUrl ?>" width="100%" height="650px">
 
                                                                     </embed>
-                                                                    <p><a download href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
+                                                                    <p><a download href="<?= $evidenFileUrl ?>">Download File</a>.</p>
                                                                 <?php } ?>
                                                             </div> 
                                                     </div>
