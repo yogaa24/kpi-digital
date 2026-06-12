@@ -503,7 +503,7 @@ function getkpi($nilair)
                                                             class="btn btn-success btn-sm" title="Lihat Detail">
                                                             <i class="bi bi-eye fs-8"></i>
                                                         </a>
-                                                        <a type="button" href="dashboard-simulasi?id=<?= $hasilsfa['id']; ?>&from=kpikabag"
+                                                        <a type="button" href="home-kpi-simulasi?id=<?= $hasilsfa['id']; ?>&from=kpikabag"
                                                             class="btn btn-warning btn-sm" title="Lihat/Edit KPI Simulasi">
                                                             <i class="bi bi-clipboard-data fs-8"></i>
                                                         </a>

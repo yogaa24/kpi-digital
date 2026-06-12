@@ -15,7 +15,7 @@ $result_check = mysqli_query($conn, $sql_check);
 $user_data = mysqli_fetch_assoc($result_check);
 
 if ($user_data['level'] != 7) {
-    header("Location: dashboard");
+    header("Location: home-kpi-real");
     exit();
 }
 

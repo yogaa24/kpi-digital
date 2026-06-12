@@ -27,7 +27,7 @@ echo '
                                 class="bi bi-list"></i> </a> </li>
                     <li class="nav-item d-none d-md-block"> <a href="archive" class="nav-link">Kembali</a> </li>
                     
-                    <!-- <li class="nav-item d-none d-md-block"> <a href="dashboard" class="nav-link">Archive SS</a> </li> -->
+                    <!-- <li class="nav-item d-none d-md-block"> <a href="home-kpi-real" class="nav-link">Archive SS</a> </li> -->
                 </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
 
                 <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->

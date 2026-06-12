@@ -14,14 +14,14 @@
            <!-- MENU SIMULASI (HANYA LEVEL 1 / KARYAWAN) -->
             <?php if ($leveel == 1) { ?>
                 <li class="nav-item d-none d-md-block">
-                    <a href="dashboard-simulasi" class="nav-link">
+                    <a href="home-kpi-simulasi" class="nav-link">
                         Simulasi
                     </a>
                 </li>
             <?php } ?>
 
             <li class="nav-item d-none d-md-block">
-                <a href="detailkpi-sl" class="nav-link">Detail KPI</a>
+                <a href="detail-kpi-simulasi" class="nav-link">Detail KPI</a>
             </li>
 
         </ul>

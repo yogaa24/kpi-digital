@@ -13,7 +13,7 @@ if (!isset($_SESSION['id_user'])) {
 
 // Hanya boleh diakses oleh level 4 (Kadep) dan level 5 (Direktur)
 if (!isset($leveel) || ($leveel != 4 && $leveel != 5 && $leveel != 6)) {
-    header("Location: dashboard");
+    header("Location: home-kpi-real");
     exit();
 }
 
@@ -500,7 +500,7 @@ if ($leveel == 5 || $leveel == 6) {
                                                    class="btn btn-success btn-sm" title="Lihat Detail">
                                                     <i class="bi bi-eye fs-8"></i>
                                                 </a>
-                                                <a href="dashboard-simulasi?id=<?= $hasilsfa['id'] ?>&from=kpidepartemen"
+                                                <a href="home-kpi-simulasi?id=<?= $hasilsfa['id'] ?>&from=kpidepartemen"
                                                    class="btn btn-warning btn-sm" title="Lihat/Edit KPI Simulasi">
                                                     <i class="bi bi-clipboard-data fs-8"></i>
                                                 </a>

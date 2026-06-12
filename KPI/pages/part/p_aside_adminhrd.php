@@ -1,6 +1,6 @@
 <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
     <div class="sidebar-brand">
-        <a href="dashboard" class="brand-link">
+        <a href="home-kpi-real" class="brand-link">
             <img src="assets/img/logokpi.png" alt="Logo" class="brand-image opacity-100">
             <span class="brand-text fw-light">KPI Digital</span>
         </a>

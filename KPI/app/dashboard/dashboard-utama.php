@@ -447,7 +447,7 @@ if ($user_level >= 5) {
                                     <div class="row g-2">
                                         <?php if ($user_level == 1) { ?>
                                         <div class="col">
-                                            <a href="dashboard" class="btn btn-outline-primary w-100">
+                                            <a href="home-kpi-real" class="btn btn-outline-primary w-100">
                                                 <i class="bi bi-speedometer2 me-2"></i>Real KPI Dashboard
                                             </a>
                                         </div>
@@ -856,7 +856,7 @@ if ($user_level >= 5) {
                         
                         <!-- KPI REAL Card -->
                         <div class="col-lg-6 mb-3">
-                            <div class="card shadow-sm border-0 h-100 hover-card-analytics" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='dashboard'">
+                            <div class="card shadow-sm border-0 h-100 hover-card-analytics" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='home-kpi-real'">
                                 <div class="card-header bg-primary text-white">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
@@ -951,7 +951,7 @@ if ($user_level >= 5) {
 
                         <!-- KPI SIMULATION Card -->
                         <div class="col-lg-6 mb-3">
-                            <div class="card shadow-sm border-0 h-100 hover-card-analytics" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='dashboard-simulasi'">
+                            <div class="card shadow-sm border-0 h-100 hover-card-analytics" style="cursor: pointer; transition: transform 0.2s;" onclick="window.location.href='home-kpi-simulasi'">
                                 <div class="card-header bg-success text-white">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>

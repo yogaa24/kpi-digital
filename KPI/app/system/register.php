@@ -5,7 +5,7 @@ require 'helper/auth.php';
 // require 'helper/simulasi-db/config.php';
 
 if (isset($_SESSION['id_user'])) {
-    header("Location: dashboard");
+    header("Location: home-kpi-real");
     exit();
 }
 

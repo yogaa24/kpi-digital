@@ -38,7 +38,7 @@ function isKoorOrHigher() {
  */
 function requireAdminHRD() {
     if (!isAdminHRD()) {
-        header("Location: dashboard");
+        header("Location: home-kpi-real");
         exit();
     }
 }

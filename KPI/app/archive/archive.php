@@ -160,7 +160,7 @@ echo '
                     ) { ?>
                         <li class="nav-item d-none d-md-block"> <a href="archivekabag" class="nav-link">Archive KPI Anggota</a> </li>
                     <?php }?>
-                    <!-- <li class="nav-item d-none d-md-block"> <a href="dashboard" class="nav-link">Archive SS</a> </li> -->
+                    <!-- <li class="nav-item d-none d-md-block"> <a href="home-kpi-real" class="nav-link">Archive SS</a> </li> -->
                 </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
 
                 <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->

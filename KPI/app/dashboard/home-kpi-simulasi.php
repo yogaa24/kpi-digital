@@ -14,7 +14,7 @@ if (!isset($_SESSION['id_user'])) {
     $target_user_id = isset($_GET['id']) ? intval($_GET['id']) : $current_user_id;
     $allowedPages = ['kpidirektur', 'kpidepartemen', 'kpikadep', 'kpikabag'];
     $from = $_GET['from'] ?? '';
-    $backUrl = in_array($from, $allowedPages) ? $from : 'dashboard-simulasi';
+    $backUrl = in_array($from, $allowedPages) ? $from : 'home-kpi-simulasi';
 
     if ($target_user_id <= 0) {
         header("Location: noaccess");
@@ -46,7 +46,7 @@ if (!isset($_SESSION['id_user'])) {
     $jabatan = $targetUser['jabatan'];
     $atasan = $targetUser['atasan'];
     $penilai = $targetUser['penilai'];
-    $detailUrl = 'detailkpi-sl' . ($target_user_id !== $current_user_id ? '?id=' . $target_user_id . '&from=' . urlencode($backUrl) : '');
+    $detailUrl = 'detail-kpi-simulasi' . ($target_user_id !== $current_user_id ? '?id=' . $target_user_id . '&from=' . urlencode($backUrl) : '');
 
     require 'helper/getKPI_sim.php';
     require 'helper/getHow_sim.php';

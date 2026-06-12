@@ -12,7 +12,7 @@
             </li>
 
             <li class="nav-item d-none d-md-block">
-                <a href="home-kpi" class="nav-link">Detail KPI</a>
+                <a href="detail-kpi-real" class="nav-link">Detail KPI</a>
             </li>
 
 <!-- 

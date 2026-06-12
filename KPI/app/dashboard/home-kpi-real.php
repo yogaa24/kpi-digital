@@ -622,7 +622,7 @@ if (!isset($_SESSION['id_user'])) {
             
             echo "<script>
                 alert('✅ Berhasil! Data KPI Real telah disalin ke KPI Simulasi');
-                window.location.href = 'dashboard-simulasi';
+                window.location.href = 'home-kpi-simulasi';
             </script>";
             exit();
             

@@ -16,13 +16,13 @@ $routes = [
 
     'home-adminedp' => 'app/adminedp/home-adminedp.php',
 
-    'dashboard' => 'app/dashboard/dashboard.php',
+    'home-kpi-real' => 'app/dashboard/home-kpi-real.php',
     'dashboard-bu' => 'app/dashboard/dashboard-bu.php',
-    'dashboard-simulasi' => 'app/dashboard/dashboard-simulasi.php',
+    'home-kpi-simulasi' => 'app/dashboard/home-kpi-simulasi.php',
     'dashboard-utama' => 'app/dashboard/dashboard-utama.php',
-    'home-kpi' => 'app/dashboard/home-kpi.php',
+    'detail-kpi-real' => 'app/dashboard/detail-kpi-real.php',
 
-    'detailkpi-sl' => 'app/kpi/detailkpi-sl.php',
+    'detail-kpi-simulasi' => 'app/dashboard/detail-kpi-simulasi.php',
     'kpianggota' => 'app/kpi/kpianggota.php',
     'kpidepartemen' => 'app/kpi/kpidepartemen.php',
     'kpidetailanggota' => 'app/kpi/kpidetailanggota.php',

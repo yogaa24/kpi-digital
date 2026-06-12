@@ -33,7 +33,7 @@ if (isset($_POST['submit'])) {
                     VALUES ('$ids', '$poin','$bobot','$poin2','$bobot2')";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin')</script>";
@@ -49,7 +49,7 @@ if (isset($_POST['update'])) {
     $sql = "UPDATE tb_kpi SET poin='$poin' ,bobot=$bobot  WHERE id=$idk AND id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin" . $result . "')</script>";
@@ -64,7 +64,7 @@ if (isset($_POST['update2'])) {
     $sql = "UPDATE tb_kpi SET poin2='$poin2', bobot2=$bobot2 WHERE id=$idk AND id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin" . $result . "')</script>";
@@ -109,7 +109,7 @@ if (isset($_POST['what_add'])) {
             }
         }
         
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         exit();
     } else {
         echo "<script>alert('Gagal menambah What: " . mysqli_error($conn) . "')</script>";
@@ -119,7 +119,7 @@ if (isset($_POST['what_add'])) {
 // Handler untuk penilaian what (WHAT A dan WHAT B)
 if (isset($_POST['nilai_what'])) {
     if (!$can_edit) {  // atau bisa pakai izin khusus untuk penilaian
-        echo "<script>alert('Anda tidak memiliki izin untuk menilai KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        echo "<script>alert('Anda tidak memiliki izin untuk menilai KPI pada periode ini!'); window.location.href='detail-kpi-real';</script>";
         exit();
     }
     $ids = $_SESSION['id_user'];
@@ -139,7 +139,7 @@ if (isset($_POST['nilai_what'])) {
     if ($tipe_what == 'A') {
         // WHAT A: Ambil nilai dari indikator yang dipilih
         if (empty($_POST['nilaisi'])) {
-            echo "<script>alert('Silakan pilih indikator penilaian terlebih dahulu.'); window.location.href='home-kpi';</script>";
+            echo "<script>alert('Silakan pilih indikator penilaian terlebih dahulu.'); window.location.href='detail-kpi-real';</script>";
             exit();
         }
 
@@ -150,7 +150,7 @@ if (isset($_POST['nilai_what'])) {
         $data = mysqli_fetch_assoc($result_get);
 
         if (!$data) {
-            echo "<script>alert('Indikator penilaian tidak ditemukan. Silakan pilih indikator yang valid.'); window.location.href='home-kpi';</script>";
+            echo "<script>alert('Indikator penilaian tidak ditemukan. Silakan pilih indikator yang valid.'); window.location.href='detail-kpi-real';</script>";
             exit();
         }
 
@@ -228,7 +228,7 @@ if (isset($_POST['nilai_what'])) {
     }
     
     if (mysqli_query($conn, $sql_update)) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         exit();
     } else {
         echo "<script>alert('Gagal menyimpan penilaian: " . mysqli_error($conn) . "')</script>";
@@ -331,7 +331,7 @@ if (isset($_POST['what_edit'])) {
             }
         }
         
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         exit();
     } else {
         echo "<script>alert('Gagal mengupdate What')</script>";
@@ -340,7 +340,7 @@ if (isset($_POST['what_edit'])) {
 // Handler untuk tambah how dengan indikator
 if (isset($_POST['how_add'])) {
      if (!$can_add) {
-        echo "<script>alert('Anda tidak memiliki izin untuk menambah KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        echo "<script>alert('Anda tidak memiliki izin untuk menambah KPI pada periode ini!'); window.location.href='detail-kpi-real';</script>";
         exit();
     }
     $ids = $_SESSION['id_user'];
@@ -375,7 +375,7 @@ if (isset($_POST['how_add'])) {
             }
         }
         
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         exit();
     } else {
         echo "<script>alert('Gagal menambah How: " . mysqli_error($conn) . "')</script>";
@@ -385,7 +385,7 @@ if (isset($_POST['how_add'])) {
 // Handler untuk penilaian how (HOW A dan HOW B)
 if (isset($_POST['nilai_how'])) {
     if (!$can_edit) {  // atau bisa pakai izin khusus untuk penilaian
-        echo "<script>alert('Anda tidak memiliki izin untuk menilai KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        echo "<script>alert('Anda tidak memiliki izin untuk menilai KPI pada periode ini!'); window.location.href='detail-kpi-real';</script>";
         exit();
     }
     $ids = $_SESSION['id_user'];
@@ -405,7 +405,7 @@ if (isset($_POST['nilai_how'])) {
     if ($tipe_how == 'A') {
         // HOW A: Ambil nilai dari indikator yang dipilih
         if (empty($_POST['nilaisi'])) {
-            echo "<script>alert('Silakan pilih indikator penilaian terlebih dahulu.'); window.location.href='home-kpi';</script>";
+            echo "<script>alert('Silakan pilih indikator penilaian terlebih dahulu.'); window.location.href='detail-kpi-real';</script>";
             exit();
         }
 
@@ -416,7 +416,7 @@ if (isset($_POST['nilai_how'])) {
         $data = mysqli_fetch_assoc($result_get);
 
         if (!$data) {
-            echo "<script>alert('Indikator penilaian tidak ditemukan. Silakan pilih indikator yang valid.'); window.location.href='home-kpi';</script>";
+            echo "<script>alert('Indikator penilaian tidak ditemukan. Silakan pilih indikator yang valid.'); window.location.href='detail-kpi-real';</script>";
             exit();
         }
 
@@ -495,7 +495,7 @@ if (isset($_POST['nilai_how'])) {
     }
     
     if (mysqli_query($conn, $sql_update)) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         exit();
     } else {
         echo "<script>alert('Gagal menyimpan penilaian: " . mysqli_error($conn) . "')</script>";
@@ -505,7 +505,7 @@ if (isset($_POST['nilai_how'])) {
 // Handler untuk edit how (HOW A dan HOW B)
 if (isset($_POST['how_edit'])) {
     if (!$can_edit) {
-        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='detail-kpi-real';</script>";
         exit();
     }
     $ids = $_SESSION['id_user'];
@@ -596,7 +596,7 @@ if (isset($_POST['how_edit'])) {
             }
         }
         
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         exit();
     } else {
         echo "<script>alert('Gagal mengupdate How')</script>";
@@ -605,7 +605,7 @@ if (isset($_POST['how_edit'])) {
 
 if (isset($_POST['how_hapus'])) {
     if (!$can_delete) {
-        echo "<script>alert('Anda tidak memiliki izin untuk menghapus KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        echo "<script>alert('Anda tidak memiliki izin untuk menghapus KPI pada periode ini!'); window.location.href='detail-kpi-real';</script>";
         exit();
     }
     $ids = $_SESSION['id_user'];
@@ -614,7 +614,7 @@ if (isset($_POST['how_hapus'])) {
     $sql = "delete from tb_hows where id_how=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin')</script>";
@@ -631,7 +631,7 @@ if (isset($_POST['what_hapus'])) {
     $sql = "delete from tb_whats where id_what=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         echo "<script>alert('Berhasil, Tambah Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Tambah Poin')</script>";
@@ -639,7 +639,7 @@ if (isset($_POST['what_hapus'])) {
 }
 if (isset($_POST['update'])) {
     if (!$can_edit) {
-        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='detail-kpi-real';</script>";
         exit();
     }
     $ids = $_SESSION['id_user'];
@@ -650,7 +650,7 @@ if (isset($_POST['update'])) {
     $sql = "UPDATE `tb_kpi` set poin = '$poinn', bobot = $bobott where id=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         echo "<script>alert('Berhasil, Edit Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Edit Poin')</script>";
@@ -658,7 +658,7 @@ if (isset($_POST['update'])) {
 }
 if (isset($_POST['update2'])) {
     if (!$can_edit) {
-        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        echo "<script>alert('Anda tidak memiliki izin untuk mengedit KPI pada periode ini!'); window.location.href='detail-kpi-real';</script>";
         exit();
     }
     $ids = $_SESSION['id_user'];
@@ -669,7 +669,7 @@ if (isset($_POST['update2'])) {
     $sql = "UPDATE `tb_kpi` set poin2 = '$poinn', bobot2 = $bobott where id=$idkpi and id_user=$ids";
     $result = mysqli_query($conn, $sql);
     if ($result) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         echo "<script>alert('Berhasil, Edit Poin')</script>";
     } else {
         echo "<script>alert('Gagal, Edit Poin')</script>";
@@ -677,7 +677,7 @@ if (isset($_POST['update2'])) {
 }
 if (isset($_POST['kpi_hapus'])) {
     if (!$can_delete) {
-        echo "<script>alert('Anda tidak memiliki izin untuk menghapus KPI pada periode ini!'); window.location.href='home-kpi';</script>";
+        echo "<script>alert('Anda tidak memiliki izin untuk menghapus KPI pada periode ini!'); window.location.href='detail-kpi-real';</script>";
         exit();
     }
     $ids = $_SESSION['id_user'];
@@ -699,7 +699,7 @@ if (isset($_POST['kpi_hapus'])) {
     $result = mysqli_query($conn, $sql);
     
     if ($result) {
-        header('Location: home-kpi');
+        header('Location: detail-kpi-real');
         echo "<script>alert('Berhasil menghapus KPI')</script>";
         exit();
     } else {

@@ -421,7 +421,7 @@ $result2 = mysqli_query($conn, $sql2);
         </nav>
         <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
             <div class="sidebar-brand">
-                <a href="dashboard" class="brand-link">
+                <a href="home-kpi-real" class="brand-link">
                     <img src="assets/img/logokpi.png" alt="Logo" class="brand-image opacity-100">
                     <span class="brand-text fw-light">KPI Digital</span>
                 </a>
@@ -430,7 +430,7 @@ $result2 = mysqli_query($conn, $sql2);
                 <nav class="mt-2">
                     <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
 
-                        <li class="nav-item"> <a href="dashboard" class="nav-link"> <i class="nav-icon bi bi-plus-circle"></i>
+                        <li class="nav-item"> <a href="home-kpi-real" class="nav-link"> <i class="nav-icon bi bi-plus-circle"></i>
                                 <p>KPI & SS</p>
                             </a>
                         </li>
