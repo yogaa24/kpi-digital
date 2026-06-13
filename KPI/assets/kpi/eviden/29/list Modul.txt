@@ -1,0 +1,10 @@
+list modul aplikasi plafon:
+- CRUD
+- Import
+- Export
+- Approvel
+- Open Plafon
+- Rubah Plafon
+- Tracking Pengajuan
+
+-Aplikasi Timeline 

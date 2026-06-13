@@ -11,6 +11,14 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/getEviden.php';
 }
 
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+$appBaseUrl = $scriptDir;
+$appPathPosition = strpos($scriptDir, '/app/');
+if ($appPathPosition !== false) {
+    $appBaseUrl = substr($scriptDir, 0, $appPathPosition);
+}
+$appBaseUrl = rtrim($appBaseUrl, '/');
+
 if (isset($_POST['submitevid']) && !empty($_FILES['file']['name'])) {
     $targetfolder = "assets/kpi/eviden/".$id_user."/";
 
@@ -279,13 +287,14 @@ if (isset($_POST['deleteevi'])) {
                                                         <div class="modal-body">
                                                                 <?php $fileExtension = pathinfo($row['namafoto'], PATHINFO_EXTENSION);
                                                                 $fileExtension = strtolower($fileExtension);
+                                                                $evidenFileUrl = $appBaseUrl . '/assets/kpi/eviden/' . rawurlencode($row['id_user']) . '/' . rawurlencode($row['namafoto']);
                                                                 if ($fileExtension === 'xlsx' || $fileExtension === 'csv' || $fileExtension === 'xls' || $fileExtension === 'xlsm' || $fileExtension === 'xltx' || $fileExtension === 'xltm') { ?>
-                                                                    <p>This browser does not support Excel. Please download the Excel to view it: <a download href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
+                                                                    <p>This browser does not support Excel. Please download the Excel to view it: <a download href="<?= $evidenFileUrl ?>">Download File</a>.</p>
                                                                 <?php } else { ?>
-                                                                    <embed src="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>" width="100%" height="650px">
+                                                                    <embed src="<?= $evidenFileUrl ?>" width="100%" height="650px">
 
                                                                     </embed>
-                                                                    <p><a download href="assets\kpi\eviden\<?= $row['id_user'] ?>/<?= $row['namafoto']; ?>">Download File</a>.</p>
+                                                                    <p><a download href="<?= $evidenFileUrl ?>">Download File</a>.</p>
                                                                 <?php } ?>
                                                         </div> 
                                                     </div>

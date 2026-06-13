@@ -1,0 +1,69 @@
+List Modul Aplikasi
+1.	Plafon Digital
+-	Approval User
+-	Tracking Pengajuan plafon
+-	Open plafon
+-	Rubah Plafon
+-	Import data plafon customer
+-	Import Piutang customers
+-	export pengajuan
+-	History Pengajuan
+2.	Kpi Digital
+-	Dashboard KPI
+-	Skill Standart
+-	Kpi Anggota
+-	Archive KPI
+-	KPI Real
+-	KPI Simulasi
+-	Export Data KPI
+-	Dashboard Adminhrd
+-	Data User
+-	Data KPI Karyawan
+-	Lock KPI Setting
+-	Archive all 
+-	SS all user
+-	Eviden all user
+
+3.	Company Profile
+-	Halaman beranda
+-	Halaman produk
+-	Halaman galeri
+-	Halaman Penghargaan dan prestasi
+-	Halaman tentang kami
+4.	Kiu_market
+-	List Produk 
+-	Search dan Filter Profuk fokus, online shop.
+-	Update Status Online shop
+-	Upload gambar produk
+5.	LPB
+-	Filter dan search data PO
+-	List Faktur PO
+-	Input barang PO Masuk
+-	List detail barang Masuk
+-	List barang PO Selesai
+-	Cetak faktur barang masuk
+6.	Digital warehouse activity
+-	Dashboard Tracking Activity Wirehouse
+-	Start dan Update progres  Bongkaran, Loading lk dan kk
+-	History Bongkaran, Loding lk dan loading kk
+-	Plotting pintu dan Checker yang bertugas
+-	Archive Activity wirehouse
+7.	digital KMT Corn
+-	Halaman Dashboard KMT Corn
+-	Halaman Omset, Gaji, Biaya Operasional, Promo material, DCA, Retur dan others
+-	Export excel semua halaman
+-	Rekap DCA
+-	Import Excel halaman retur, omset dan gaji
+-	Verifikasi halaman DCA dan Operasinal
+8.	Tracking CCTV
+-	Dashboard Halaman
+-	Tracking kamera online/ofline , terakam/tidak
+9.	Sales Order ( April )
+-	List faktur so
+-	Tonase, kubikasi, dimensi dan expired date barang
+-	Pilih barang dan customers
+-	Log Activity so
+-	Approvel  dan Harga Produk
+
+
+

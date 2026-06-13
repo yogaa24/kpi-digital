@@ -1,0 +1,8 @@
+list modul kpi
+- kpi simulasi
+- dashboard analisa
+- sp karyawan
+- data user adminhrd
+- data kpi karyawan adminhrd
+- lock kpi 
+- export excel
