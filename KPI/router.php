@@ -33,6 +33,7 @@ $routes = [
     'skillstandard' => 'app/skill-standard/skillstandard.php',
     'ssanggota' => 'app/skill-standard/ssanggota.php',
     'ssanggotadetail' => 'app/skill-standard/ssanggotadetail.php',
+    'penilaian-karakter' => 'app/skill-standard/penilaian-karakter.php',
 
     'archive' => 'app/archive/archive.php',
     'archiveangdet' => 'app/archive/archiveangdet.php',

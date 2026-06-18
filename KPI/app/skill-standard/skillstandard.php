@@ -9,7 +9,11 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/config.php';
     require 'helper/getUser.php';
     require 'helper/getKPI.php';
-    require 'vendor/autoload.php';
+    $autoload_path = __DIR__ . '/../../vendor/autoload.php';
+    $ss_import_ready = is_file($autoload_path);
+    if ($ss_import_ready) {
+        require_once $autoload_path;
+    }
 
     function ssMonthLabel($month)
     {
@@ -300,6 +304,15 @@ if (!isset($_SESSION['id_user'])) {
         }
     }
     if (isset($_POST['import_ss'])) {
+        if (!$ss_import_ready || !class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
+            $_SESSION['ss_import_message'] = [
+                'type' => 'danger',
+                'text' => 'Import Excel belum bisa digunakan karena dependency Composer belum terpasang. Jalankan composer install di folder KPI.'
+            ];
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            exit();
+        }
+
         if (!isset($_FILES['file_ss']) || $_FILES['file_ss']['error'] !== UPLOAD_ERR_OK) {
             $_SESSION['ss_import_message'] = [
                 'type' => 'danger',
@@ -472,11 +485,13 @@ if (!isset($_SESSION['id_user'])) {
                         <li class="nav-item d-none d-md-block"> <a href="assets/template/template_import_skill_standard.xlsx"
                                 class="nav-link" download>Template Import</a> </li>
                         <li class="nav-item d-none d-md-block"> <a href="ssanggota" class="nav-link">SS Anggota</a> </li>
+                        <li class="nav-item d-none d-md-block"> <a href="penilaian-karakter" class="nav-link">Penilaian Karakter</a> </li>
                     <?php } else { ?>
                         <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#SSmodal"
                                 class="nav-link">Tambah Kategori SS</a> </li>
                         <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#ImportSSmodal"
                                 class="nav-link">Import SS</a> </li>
+                        <li class="nav-item d-none d-md-block"> <a href="penilaian-karakter" class="nav-link">Penilaian Karakter</a> </li>
                     <?php } ?>
                 </ul>
                 <ul class="navbar-nav ms-auto">
