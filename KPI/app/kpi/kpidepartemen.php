@@ -170,6 +170,61 @@ function getHoww($conn, $id)
     return number_format($zboth, 2);
 }
 
+function getKPISimulasi($conn, $id)
+{
+    $sql = "SELECT * FROM tbsim_kpi WHERE id_user='$id'";
+    $result = mysqli_query($conn, $sql);
+    $exists = $result && mysqli_num_rows($result) > 0;
+
+    $totalws = 0;
+    if ($result) {
+        while ($hasils = mysqli_fetch_assoc($result)) {
+            $sql3s = "SELECT SUM(total) as total FROM tbsim_whats WHERE id_user=$id AND id_kpi=" . $hasils['id'];
+            $result3s = mysqli_query($conn, $sql3s);
+            $row3sd = mysqli_fetch_assoc($result3s);
+            $totalnilaisd = $row3sd['total'] ?? 0;
+            $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
+            $totalws += $nilaiws;
+        }
+    }
+
+    $bobotwhat = 0;
+    $sql5a = "SELECT bobotwhat as bw FROM tbsim_bobotkpi WHERE id_user=$id";
+    $result5a = mysqli_query($conn, $sql5a);
+    while ($row5a = mysqli_fetch_assoc($result5a)) {
+        $bobotwhat = $row5a['bw'];
+    }
+    $nilaiwhat = ($totalws * $bobotwhat) / 100;
+
+    $totalhfg = 0;
+    $resultfg = mysqli_query($conn, $sql);
+    if ($resultfg) {
+        while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
+            $sql7fg = "SELECT SUM(total) as totalh FROM tbsim_hows WHERE id_user=$id AND id_kpi=" . $hasilfg['id'];
+            $result7fg = mysqli_query($conn, $sql7fg);
+            $row7fg = mysqli_fetch_assoc($result7fg);
+            $totalnilaihfg = $row7fg['totalh'] ?? 0;
+            $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
+            $totalhfg += $nilaihfg;
+        }
+    }
+
+    $bobothow = 0;
+    $sql8a = "SELECT bobothow as bh FROM tbsim_bobotkpi WHERE id_user=$id";
+    $result8a = mysqli_query($conn, $sql8a);
+    while ($row8a = mysqli_fetch_assoc($result8a)) {
+        $bobothow = $row8a['bh'];
+    }
+    $nilaihow = ($totalhfg * $bobothow) / 100;
+
+    return [
+        'nilai_what' => number_format($nilaiwhat, 2),
+        'nilai_how' => number_format($nilaihow, 2),
+        'total_kpi' => number_format($nilaiwhat + $nilaihow, 2),
+        'exists' => $exists
+    ];
+}
+
 // ===== TENTUKAN FILTER DEPARTEMEN =====
 // Bulan referensi = bulan lalu dari sistem
 $referensi = new DateTime('first day of last month');
@@ -348,12 +403,15 @@ if ($leveel == 5 || $leveel == 6) {
                                     <?php if ($leveel == 5 || $leveel == 6): ?>
                                     <th width="12%" rowspan="2"><center>Atasan Langsung</center></th>
                                     <?php endif; ?>
-                                    <th colspan="3"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
                                     <th colspan="3"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
-                                    <th width="8%" rowspan="2"><center>Trend</center></th>
+                                    <th colspan="3"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
+                                    <th colspan="3"><center>Simulasi</center></th>
                                     <th width="7%" rowspan="2"><center>#</center></th>
                                 </tr>
                                 <tr>
+                                    <th width="7%"><center>What</center></th>
+                                    <th width="7%"><center>How</center></th>
+                                    <th width="7%"><center>Total</center></th>
                                     <th width="7%"><center>What</center></th>
                                     <th width="7%"><center>How</center></th>
                                     <th width="7%"><center>Total</center></th>
@@ -387,27 +445,29 @@ if ($leveel == 5 || $leveel == 6) {
                                 $howBulanLalu    = $dataHistoryBulanLalu['nilai_how'];
                                 $adaDataBulanLalu = $dataHistoryBulanLalu['exists'];
 
+                                $dataSimulasi = getKPISimulasi($conn, $hasilsfa['id']);
+                                $nilaiSimulasi = $dataSimulasi['total_kpi'];
+                                $whatSimulasi = $dataSimulasi['nilai_what'];
+                                $howSimulasi = $dataSimulasi['nilai_how'];
+                                $adaDataSimulasi = $dataSimulasi['exists'];
+
                                 $selisih = floatval($nilair) - floatval($nilaiBulanLalu);
 
                                 if (!$adaDataBulanLalu) {
                                     $trendIcon  = '<i class="bi bi-dash-circle"></i>';
                                     $trendColor = 'gray';
-                                    $trendBg    = '#f8f9fa';
                                     $trendText  = 'N/A';
                                 } elseif ($selisih > 0) {
                                     $trendIcon  = '<i class="bi bi-arrow-up-circle-fill"></i>';
                                     $trendColor = 'green';
-                                    $trendBg    = '#d4edda';
                                     $trendText  = '+' . number_format($selisih, 2);
                                 } elseif ($selisih < 0) {
                                     $trendIcon  = '<i class="bi bi-arrow-down-circle-fill"></i>';
                                     $trendColor = 'red';
-                                    $trendBg    = '#f8d7da';
                                     $trendText  = number_format($selisih, 2);
                                 } else {
                                     $trendIcon  = '<i class="bi bi-dash-circle-fill"></i>';
                                     $trendColor = '#6c757d';
-                                    $trendBg    = '#e9ecef';
                                     $trendText  = '0.00';
                                 }
 
@@ -422,6 +482,11 @@ if ($leveel == 5 || $leveel == 6) {
                                 elseif ($nilaiBulanLalu <= 100)  { $wrabsLalu = "orange"; }
                                 elseif ($nilaiBulanLalu <= 110)  { $wrabsLalu = "blue"; }
                                 else                             { $wrabsLalu = "green"; }
+
+                                if ($nilaiSimulasi < 90)        { $wrabsSimulasi = "red"; }
+                                elseif ($nilaiSimulasi <= 100)  { $wrabsSimulasi = "orange"; }
+                                elseif ($nilaiSimulasi <= 110)  { $wrabsSimulasi = "blue"; }
+                                else                            { $wrabsSimulasi = "green"; }
 
                                 // Statistik pie chart
                                 $kpi_category = getkpi($nilair);
@@ -458,16 +523,6 @@ if ($leveel == 5 || $leveel == 6) {
                                     <td><center><?= htmlspecialchars($hasilsfa['atasan'] ?? '-') ?></center></td>
                                     <?php endif; ?>
 
-                                    <!-- Bulan Ini -->
-                                    <td><center><?= $whatIni ?></center></td>
-                                    <td><center><?= $howIni ?></center></td>
-                                    <td style="color:<?= $wrabs ?>">
-                                        <center>
-                                            <strong><?= $nilair ?></strong><br>
-                                            <small class="text-muted"><?= getkpi($nilair) ?></small>
-                                        </center>
-                                    </td>
-
                                     <!-- Bulan Lalu -->
                                     <td><center><?= $adaDataBulanLalu ? $whatBulanLalu : '-' ?></center></td>
                                     <td><center><?= $adaDataBulanLalu ? $howBulanLalu : '-' ?></center></td>
@@ -482,11 +537,28 @@ if ($leveel == 5 || $leveel == 6) {
                                         </center>
                                     </td>
 
-                                    <!-- Trend -->
-                                    <td style="background-color:<?= $trendBg ?>; color:<?= $trendColor ?>">
+                                    <!-- Bulan Ini -->
+                                    <td><center><?= $whatIni ?></center></td>
+                                    <td><center><?= $howIni ?></center></td>
+                                    <td style="color:<?= $wrabs ?>">
                                         <center>
-                                            <?= $trendIcon ?><br>
-                                            <small><strong><?= $trendText ?></strong></small>
+                                            <strong><?= $nilair ?></strong><br>
+                                            <small class="text-muted"><?= getkpi($nilair) ?></small><br>
+                                            <small style="color:<?= $trendColor ?>; font-size: 0.7rem;"><?= $trendIcon ?> <strong><?= $trendText ?></strong></small>
+                                        </center>
+                                    </td>
+
+                                    <!-- Simulasi -->
+                                    <td><center><?= $adaDataSimulasi ? $whatSimulasi : '-' ?></center></td>
+                                    <td><center><?= $adaDataSimulasi ? $howSimulasi : '-' ?></center></td>
+                                    <td style="color:<?= $adaDataSimulasi ? $wrabsSimulasi : '#6c757d' ?>">
+                                        <center>
+                                            <?php if ($adaDataSimulasi): ?>
+                                                <strong><?= $nilaiSimulasi ?></strong><br>
+                                                <small class="text-muted"><?= getkpi($nilaiSimulasi) ?></small>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?>
                                         </center>
                                     </td>
 

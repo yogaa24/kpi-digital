@@ -312,7 +312,6 @@ function getkpi($nilair)
                                         <th colspan="3"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
                                         <th colspan="3"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
                                         <th colspan="3"><center>Simulasi</center></th>
-                                        <th width="8%" rowspan="2"><center>Trend</center></th>
                                         <th width="10%" rowspan="2"><center>#</center></th>
                                     </tr>
                                     <tr>
@@ -382,27 +381,22 @@ function getkpi($nilair)
                                         $selisih = floatval($nilair) - floatval($nilaiBulanLalu);
                                         $trendIcon = '';
                                         $trendColor = '';
-                                        $trendBg = '';
                                         
                                         if (!$adaDataBulanLalu) {
                                             $trendIcon = '<i class="bi bi-dash-circle"></i>';
                                             $trendColor = 'gray';
-                                            $trendBg = '#f8f9fa';
                                             $trendText = 'N/A';
                                         } elseif ($selisih > 0) {
                                             $trendIcon = '<i class="bi bi-arrow-up-circle-fill"></i>';
                                             $trendColor = 'green';
-                                            $trendBg = '#d4edda';
                                             $trendText = '+' . number_format($selisih, 2);
                                         } elseif ($selisih < 0) {
                                             $trendIcon = '<i class="bi bi-arrow-down-circle-fill"></i>';
                                             $trendColor = 'red';
-                                            $trendBg = '#f8d7da';
                                             $trendText = number_format($selisih, 2);
                                         } else {
                                             $trendIcon = '<i class="bi bi-dash-circle-fill"></i>';
                                             $trendColor = '#6c757d';
-                                            $trendBg = '#e9ecef';
                                             $trendText = '0.00';
                                         }
                                         
@@ -464,7 +458,8 @@ function getkpi($nilair)
                                             <td style="color:<?= $wrabs ?>">
                                                 <center>
                                                     <strong><?= $nilair ?></strong><br>
-                                                    <small class="text-muted"><?= getkpi($nilair) ?></small>
+                                                    <small class="text-muted"><?= getkpi($nilair) ?></small><br>
+                                                    <small style="color:<?= $trendColor ?>; font-size: 0.7rem;"><?= $trendIcon ?> <strong><?= $trendText ?></strong></small>
                                                 </center>
                                             </td>
 
@@ -481,15 +476,6 @@ function getkpi($nilair)
                                                     <?php endif; ?>
                                                 </center>
                                             </td>
-                                            
-                                            <!-- Kolom Trend -->
-                                            <td style="background-color:<?= $trendBg ?>; color:<?= $trendColor ?>">
-                                                <center>
-                                                    <?= $trendIcon ?><br>
-                                                    <small><strong><?= $trendText ?></strong></small>
-                                                </center>
-                                            </td>
-                                            
                                             <td>
                                                 <?php 
                                                     if (
