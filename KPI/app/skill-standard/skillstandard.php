@@ -482,8 +482,6 @@ if (!isset($_SESSION['id_user'])) {
                                 class="nav-link">Tambah Poin SS</a> </li>
                         <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#ImportSSmodal"
                                 class="nav-link">Import SS</a> </li>
-                        <li class="nav-item d-none d-md-block"> <a href="assets/template/template_import_skill_standard.xlsx"
-                                class="nav-link" download>Template Import</a> </li>
                         <li class="nav-item d-none d-md-block"> <a href="ssanggota" class="nav-link">SS Anggota</a> </li>
                         <li class="nav-item d-none d-md-block"> <a href="penilaian-karakter" class="nav-link">Penilaian Karakter</a> </li>
                     <?php } else { ?>

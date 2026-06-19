@@ -31,7 +31,6 @@ function karakterCategories($questions)
     foreach ($questions as $question) {
         $categories[$question['kategori']] = $question['kategori'];
     }
-
     return array_values($categories);
 }
 
@@ -467,90 +466,131 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                     <div class="row g-3">
                         <div class="col-12">
                             <div class="card shadow-sm">
-                                <div class="card-header bg-success text-white">
-                                    <h5 class="card-title mb-0"><i class="bi bi-inbox"></i> Permintaan Penilaian Saya</h5>
+                                <div class="card-header bg-success text-white d-flex align-items-center justify-content-between"
+                                     style="cursor:pointer;"
+                                     data-bs-toggle="collapse"
+                                     data-bs-target="#collapsePermintaanPenilaian"
+                                     aria-expanded="<?= $can_manage ? 'false' : 'true'; ?>"
+                                     aria-controls="collapsePermintaanPenilaian">
+                                    <h5 class="card-title mb-0">
+                                        <i class="bi bi-inbox"></i> Permintaan Penilaian Saya
+                                        <?php
+                                        $pending_count = 0;
+                                        $total_requests = 0;
+                                        if ($requests_result && mysqli_num_rows($requests_result) > 0) {
+                                            $requests_result->data_seek(0);
+                                            while ($tmp = mysqli_fetch_assoc($requests_result)) {
+                                                $total_requests++;
+                                                if (empty($tmp['submitted_at'])) $pending_count++;
+                                            }
+                                            $requests_result->data_seek(0);
+                                        }
+                                        if ($total_requests > 0) {
+                                            ?>
+                                                <span class="badge bg-white text-dark ms-2"><?= $total_requests; ?> permintaan</span>
+                                            <?php
+                                        }
+                                        if ($pending_count > 0) {
+                                            ?>
+                                                <span class="badge bg-warning text-dark ms-1"><?= $pending_count; ?> menunggu</span>
+                                            <?php
+                                        } ?>
+                                    </h5>
+                                    <!-- <i class="bi bi-chevron-down collapse-chevron" style="transition:transform .2s;"></i> -->
                                 </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover table-bordered mb-0">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Nama yang Dinilai</th>
-                                                    <th>Bagian</th>
-                                                    <th>Departemen</th>
-                                                    <th>Status</th>
-                                                    <th width="12%"><center>#</center></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php if ($requests_result && mysqli_num_rows($requests_result) > 0) { ?>
-                                                    <?php while ($request = mysqli_fetch_assoc($requests_result)) { ?>
-                                                        <tr>
-                                                            <td><?= h($request['nama_dinilai']); ?></td>
-                                                            <td><?= h($request['bagian']); ?></td>
-                                                            <td><?= h($request['departement']); ?></td>
-                                                            <td>
-                                                                <?php if (!empty($request['submitted_at'])) { ?>
-                                                                    <span class="badge bg-success">Sudah dinilai</span>
-                                                                    <small class="text-muted d-block"><?= h(date('d/m/Y H:i', strtotime($request['submitted_at']))); ?></small>
-                                                                <?php } else { ?>
-                                                                    <span class="badge bg-warning text-dark">Menunggu</span>
-                                                                <?php } ?>
-                                                            </td>
-                                                            <td><center><button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#nilaiKarakter<?= intval($request['id_assignment']); ?>"><i class="bi bi-pencil-square"></i></button></center></td>
-                                                        </tr>
-
-                                                        <div class="modal fade" id="nilaiKarakter<?= intval($request['id_assignment']); ?>" tabindex="-1" aria-hidden="true">
-                                                            <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                                                                <div class="modal-content">
-                                                                    <div class="modal-header bg-success text-white">
-                                                                        <h5 class="modal-title fw-bold">Penilaian Karakter - <?= h($request['nama_dinilai']); ?></h5>
-                                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <div class="collapse <?= $can_manage ? '' : 'show'; ?>" id="collapsePermintaanPenilaian">
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover table-bordered mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Nama yang Dinilai</th>
+                                                        <th>Bagian</th>
+                                                        <th>Departemen</th>
+                                                        <th>Status</th>
+                                                        <!-- PERBAIKAN: header rata kanan -->
+                                                        <th width="12%" style="text-align:right; padding-right:16px;">Aksi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php if ($requests_result && mysqli_num_rows($requests_result) > 0) { ?>
+                                                        <?php while ($request = mysqli_fetch_assoc($requests_result)) { ?>
+                                                            <tr>
+                                                                <td><?= h($request['nama_dinilai']); ?></td>
+                                                                <td><?= h($request['bagian']); ?></td>
+                                                                <td><?= h($request['departement']); ?></td>
+                                                                <td>
+                                                                    <?php if (!empty($request['submitted_at'])) { ?>
+                                                                        <span class="badge bg-success">Sudah dinilai</span>
+                                                                        <small class="text-muted d-block"><?= h(date('d/m/Y H:i', strtotime($request['submitted_at']))); ?></small>
+                                                                    <?php } else { ?>
+                                                                        <span class="badge bg-warning text-dark">Menunggu</span>
+                                                                    <?php } ?>
+                                                                </td>
+                                                                <!-- PERBAIKAN: pakai flex justify-content:flex-end agar tidak terpengaruh CSS AdminLTE -->
+                                                                <td style="vertical-align:middle; padding:6px 12px;">
+                                                                    <div style="display:flex; justify-content:flex-end;">
+                                                                        <button class="btn btn-success btn-sm"
+                                                                                data-bs-toggle="modal"
+                                                                                data-bs-target="#nilaiKarakter<?= intval($request['id_assignment']); ?>">
+                                                                            <i class="bi bi-pencil-square me-1"></i> Nilai
+                                                                        </button>
                                                                     </div>
-                                                                    <form method="POST" action="">
-                                                                        <input type="hidden" name="id_assignment" value="<?= intval($request['id_assignment']); ?>">
-                                                                        <div class="modal-body">
-                                                                            <div class="alert alert-info mb-3">Jawaban anda menentukan kesuksesan kami, mohon disampaikan apa adanya sesuai dengan yang Anda ketahui, Terimakasih.</div>
-                                                                            <?php foreach ($questions as $index => $question) {
-                                                                                $number = $index + 1;
-                                                                                $jawaban_key = 'q' . $number . '_jawaban';
-                                                                                $fakta_key = 'q' . $number . '_fakta';
-                                                                            ?>
-                                                                                <div class="border rounded p-3 mb-3">
-                                                                                    <div class="mb-2">
-                                                                                        <span class="badge bg-primary"><?= h($question['kategori']); ?></span>
-                                                                                        <span class="badge bg-light text-dark"><?= h($question['poin']); ?></span>
-                                                                                    </div>
-                                                                                    <label class="form-label fw-bold"><?= $number; ?>. <?= h($question['tanya']); ?></label>
-                                                                                    <div class="d-flex gap-3 mb-2">
-                                                                                        <div class="form-check">
-                                                                                            <input class="form-check-input" type="radio" name="q<?= $number; ?>_jawaban" id="q<?= $number; ?>ya<?= intval($request['id_assignment']); ?>" value="Ya" <?= ($request[$jawaban_key] ?? '') === 'Ya' ? 'checked' : ''; ?> required>
-                                                                                            <label class="form-check-label" for="q<?= $number; ?>ya<?= intval($request['id_assignment']); ?>">Ya</label>
-                                                                                        </div>
-                                                                                        <div class="form-check">
-                                                                                            <input class="form-check-input" type="radio" name="q<?= $number; ?>_jawaban" id="q<?= $number; ?>tidak<?= intval($request['id_assignment']); ?>" value="Tidak" <?= ($request[$jawaban_key] ?? '') === 'Tidak' ? 'checked' : ''; ?> required>
-                                                                                            <label class="form-check-label" for="q<?= $number; ?>tidak<?= intval($request['id_assignment']); ?>">Tidak</label>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <label class="form-label text-muted"><?= h($question['fakta']); ?></label>
-                                                                                    <textarea class="form-control" name="q<?= $number; ?>_fakta" rows="2" required><?= h($request[$fakta_key] ?? ''); ?></textarea>
-                                                                                </div>
-                                                                            <?php } ?>
+                                                                </td>
+                                                            </tr>
+
+                                                            <div class="modal fade" id="nilaiKarakter<?= intval($request['id_assignment']); ?>" tabindex="-1" aria-hidden="true">
+                                                                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                                                                    <div class="modal-content">
+                                                                        <div class="modal-header bg-success text-white">
+                                                                            <h5 class="modal-title fw-bold">Penilaian Karakter - <?= h($request['nama_dinilai']); ?></h5>
+                                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                         </div>
-                                                                        <div class="modal-footer">
-                                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                                            <button type="submit" name="simpan_penilaian" class="btn btn-primary"><i class="bi bi-save"></i> Simpan Penilaian</button>
-                                                                        </div>
-                                                                    </form>
+                                                                        <form method="POST" action="">
+                                                                            <input type="hidden" name="id_assignment" value="<?= intval($request['id_assignment']); ?>">
+                                                                            <div class="modal-body">
+                                                                                <div class="alert alert-info mb-3">Jawaban anda menentukan kesuksesan kami, mohon disampaikan apa adanya sesuai dengan yang Anda ketahui, Terimakasih.</div>
+                                                                                <?php foreach ($questions as $index => $question) {
+                                                                                    $number = $index + 1;
+                                                                                    $jawaban_key = 'q' . $number . '_jawaban';
+                                                                                    $fakta_key = 'q' . $number . '_fakta';
+                                                                                ?>
+                                                                                    <div class="border rounded p-3 mb-3">
+                                                                                        <div class="mb-2">
+                                                                                            <span class="badge bg-primary"><?= h($question['kategori']); ?></span>
+                                                                                            <span class="badge bg-light text-dark"><?= h($question['poin']); ?></span>
+                                                                                        </div>
+                                                                                        <label class="form-label fw-bold"><?= $number; ?>. <?= h($question['tanya']); ?></label>
+                                                                                        <div class="d-flex gap-3 mb-2">
+                                                                                            <div class="form-check">
+                                                                                                <input class="form-check-input" type="radio" name="q<?= $number; ?>_jawaban" id="q<?= $number; ?>ya<?= intval($request['id_assignment']); ?>" value="Ya" <?= ($request[$jawaban_key] ?? '') === 'Ya' ? 'checked' : ''; ?> required>
+                                                                                                <label class="form-check-label" for="q<?= $number; ?>ya<?= intval($request['id_assignment']); ?>">Ya</label>
+                                                                                            </div>
+                                                                                            <div class="form-check">
+                                                                                                <input class="form-check-input" type="radio" name="q<?= $number; ?>_jawaban" id="q<?= $number; ?>tidak<?= intval($request['id_assignment']); ?>" value="Tidak" <?= ($request[$jawaban_key] ?? '') === 'Tidak' ? 'checked' : ''; ?> required>
+                                                                                                <label class="form-check-label" for="q<?= $number; ?>tidak<?= intval($request['id_assignment']); ?>">Tidak</label>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <label class="form-label text-muted"><?= h($question['fakta']); ?></label>
+                                                                                        <textarea class="form-control" name="q<?= $number; ?>_fakta" rows="2" required><?= h($request[$fakta_key] ?? ''); ?></textarea>
+                                                                                    </div>
+                                                                                <?php } ?>
+                                                                            </div>
+                                                                            <div class="modal-footer">
+                                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                                                <button type="submit" name="simpan_penilaian" class="btn btn-primary"><i class="bi bi-save"></i> Simpan Penilaian</button>
+                                                                            </div>
+                                                                        </form>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
+                                                        <?php } ?>
+                                                    <?php } else { ?>
+                                                        <tr><td colspan="5" class="text-center text-muted py-4">Belum ada permintaan penilaian karakter.</td></tr>
                                                     <?php } ?>
-                                                <?php } else { ?>
-                                                    <tr><td colspan="5" class="text-center text-muted py-4">Belum ada permintaan penilaian karakter.</td></tr>
-                                                <?php } ?>
-                                            </tbody>
-                                        </table>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -737,6 +777,66 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                         </tbody>
                                     </table>
                                 </div>
+
+                                <?php
+                                $submitted_assignments = array_filter($member_assignments, fn($a) => !empty($a['submitted_at']));
+                                if (!empty($submitted_assignments)) {
+                                ?>
+                                <hr>
+                                <h6 class="fw-bold mt-3">Detail Jawaban Per Penilai</h6>
+                                <div class="mb-3">
+                                    <select class="form-select form-select-sm detail-penilai-select" data-member-id="<?= intval($anggota['id']); ?>" style="max-width:350px;">
+                                        <option value="">-- Pilih nama penilai --</option>
+                                        <?php foreach ($submitted_assignments as $ma) { ?>
+                                            <option value="detail-jawaban-<?= intval($anggota['id']); ?>-<?= intval($ma['id_assignment']); ?>">
+                                                <?= h($ma['nama_penilai']); ?> &mdash; <?= h($ma['bagian_penilai'] . ' / ' . $ma['departement_penilai']); ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                                <?php foreach ($submitted_assignments as $ma) { ?>
+                                    <div class="card mb-3 border-0 shadow-sm detail-jawaban-card" id="detail-jawaban-<?= intval($anggota['id']); ?>-<?= intval($ma['id_assignment']); ?>" style="display:none;">
+                                        <div class="card-header bg-light d-flex align-items-center justify-content-between py-2">
+                                            <span class="fw-bold"><i class="bi bi-person-fill me-1"></i><?= h($ma['nama_penilai']); ?></span>
+                                            <small class="text-muted"><?= h($ma['bagian_penilai'] . ' / ' . $ma['departement_penilai']); ?> &mdash; Dikirim: <?= h(date('d/m/Y H:i', strtotime($ma['submitted_at']))); ?></small>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <table class="table table-sm table-bordered mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th width="3%">#</th>
+                                                        <th width="18%">Kategori / Poin</th>
+                                                        <th>Pertanyaan</th>
+                                                        <th width="8%"><center>Jawaban</center></th>
+                                                        <th>Fakta / Penjelasan</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach ($questions as $qi => $question) {
+                                                        $qn = $qi + 1;
+                                                        $jawaban_val = $ma['q' . $qn . '_jawaban'] ?? '-';
+                                                        $fakta_val   = $ma['q' . $qn . '_fakta'] ?? '';
+                                                        $is_ideal    = $jawaban_val === $question['ideal'];
+                                                    ?>
+                                                        <tr>
+                                                            <td class="text-center text-muted"><?= $qn; ?></td>
+                                                            <td>
+                                                                <span class="badge bg-primary" style="font-size:10px;"><?= h($question['kategori']); ?></span>
+                                                                <div class="text-muted" style="font-size:11px;"><?= h($question['poin']); ?></div>
+                                                            </td>
+                                                            <td><?= h($question['tanya']); ?></td>
+                                                            <td class="text-center">
+                                                                <span class="badge <?= $is_ideal ? 'bg-success' : 'bg-danger'; ?>"><?= h($jawaban_val); ?></span>
+                                                            </td>
+                                                            <td class="text-muted" style="white-space:pre-wrap;"><?= nl2br(h($fakta_val)); ?></td>
+                                                        </tr>
+                                                    <?php } ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                <?php } ?>
+                                <?php } ?>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -794,13 +894,13 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                             $search_text = strtolower($user_row['nama_lngkp'] . ' ' . $user_row['bagian'] . ' ' . $user_row['departement'] . ' ' . $user_row['jabatan']);
                                         ?>
                                             <div class="col-md-6 penilai-option" data-member-id="<?= intval($anggota['id']); ?>" data-search="<?= h($search_text); ?>" data-departement="<?= h(strtolower($user_row['departement'])); ?>">
-                                                <div class="form-check border rounded p-2 ps-4 h-100">
-                                                    <input class="form-check-input" type="checkbox" name="id_penilai[]" value="<?= intval($user_row['id']); ?>" id="penilai<?= intval($anggota['id']); ?>_<?= intval($user_row['id']); ?>" <?= $checked ? 'checked' : ''; ?>>
-                                                    <label class="form-check-label" for="penilai<?= intval($anggota['id']); ?>_<?= intval($user_row['id']); ?>">
+                                                <label for="penilai<?= intval($anggota['id']); ?>_<?= intval($user_row['id']); ?>" class="d-flex align-items-start gap-2 border rounded p-2 h-100 cursor-pointer w-100" style="cursor:pointer;">
+                                                    <input class="form-check-input flex-shrink-0 mt-1" type="checkbox" name="id_penilai[]" value="<?= intval($user_row['id']); ?>" id="penilai<?= intval($anggota['id']); ?>_<?= intval($user_row['id']); ?>" <?= $checked ? 'checked' : ''; ?>>
+                                                    <span>
                                                         <strong><?= h($user_row['nama_lngkp']); ?></strong>
                                                         <small class="text-muted d-block"><?= h($user_row['bagian'] . ' / ' . $user_row['departement']); ?></small>
-                                                    </label>
-                                                </div>
+                                                    </span>
+                                                </label>
                                             </div>
                                         <?php } ?>
                                     </div>
@@ -934,7 +1034,6 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                     var departement = item.getAttribute('data-departement') || '';
                     var matchSearch = searchValue === '' || text.indexOf(searchValue) !== -1;
                     var matchFilter = filterValue === '' || departement === filterValue;
-
                     item.style.display = matchSearch && matchFilter ? '' : 'none';
                 });
             }
@@ -945,6 +1044,34 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                 });
                 input.addEventListener('change', function () {
                     filterPenilai(this.getAttribute('data-member-id'));
+                });
+            });
+
+            document.querySelectorAll('.detail-penilai-select').forEach(function (select) {
+                select.addEventListener('change', function () {
+                    var memberId = this.getAttribute('data-member-id');
+                    var selectedId = this.value;
+                    document.querySelectorAll('.detail-jawaban-card[id^="detail-jawaban-' + memberId + '-"]').forEach(function (card) {
+                        card.style.display = 'none';
+                    });
+                    if (selectedId) {
+                        var target = document.getElementById(selectedId);
+                        if (target) {
+                            target.style.display = '';
+                            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    }
+                });
+            });
+
+            document.querySelectorAll('[id^="hasilKarakter"]').forEach(function (modal) {
+                modal.addEventListener('hidden.bs.modal', function () {
+                    modal.querySelectorAll('.detail-penilai-select').forEach(function (sel) {
+                        sel.value = '';
+                    });
+                    modal.querySelectorAll('.detail-jawaban-card').forEach(function (card) {
+                        card.style.display = 'none';
+                    });
                 });
             });
         });
