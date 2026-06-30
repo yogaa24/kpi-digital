@@ -624,7 +624,7 @@ updateExpiredSP($conn);
                                                     Reset KPI Semua Karyawan
                                                 </h5>
                                                 <p class="mb-0 text-muted" style="font-size:0.88rem; line-height:1.5;">
-                                                    Reset nilai KPI (<strong>tb_whats</strong> & <strong>tb_hows</strong>) seluruh karyawan menjadi 0.
+                                                    Reset nilai KPI seluruh karyawan menjadi 0.
                                                     History bulan berjalan akan <strong>disimpan otomatis</strong> sebelum direset.
                                                     <span style="color:#dc2626; font-weight:600;">Tindakan ini tidak dapat dibatalkan.</span>
                                                 </p>
