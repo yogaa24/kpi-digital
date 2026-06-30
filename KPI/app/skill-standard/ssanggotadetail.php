@@ -9,6 +9,12 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/config.php';
     require 'helper/getUser.php';
 
+    $autoload_path = __DIR__ . '/../../vendor/autoload.php';
+    $ss_import_ready = is_file($autoload_path);
+    if ($ss_import_ready) {
+        require_once $autoload_path;
+    }
+
     $id_sf = intval($_GET['id']);
 
     $rsd = mysqli_fetch_assoc(mysqli_query($conn, 'Select * from tb_users where id = ' . $id_sf));
@@ -45,6 +51,112 @@ if (!isset($_SESSION['id_user'])) {
                 mysqli_query($conn, $query);
             }
         }
+    }
+
+    function ssNormalizeImportValue($value)
+    {
+        return trim((string) $value);
+    }
+
+    function ssFindOrCreateCategoryForMember($conn, $id_target_user, $id_editor_user, $category, $is_editing)
+    {
+        $id_target_user = intval($id_target_user);
+        $id_editor_user = intval($id_editor_user);
+        $category_safe = mysqli_real_escape_string($conn, $category);
+        $result = mysqli_query($conn, "SELECT id_poinss FROM tb_ss WHERE id_user=$id_target_user AND poin_ss='$category_safe' LIMIT 1");
+
+        if ($result && mysqli_num_rows($result) > 0) {
+            $row = mysqli_fetch_assoc($result);
+            return intval($row['id_poinss']);
+        }
+
+        if ($is_editing) {
+            $insert = mysqli_query($conn, "INSERT INTO tb_ss (id_user, poin_ss, is_edited, edited_by, edited_at) VALUES ($id_target_user, '$category_safe', 1, $id_editor_user, NOW())");
+        } else {
+            $insert = mysqli_query($conn, "INSERT INTO tb_ss (id_user, poin_ss) VALUES ($id_target_user, '$category_safe')");
+        }
+        if (!$insert) {
+            return null;
+        }
+
+        return mysqli_insert_id($conn);
+    }
+
+    function ssImportSkillStandardForMember($conn, $id_target_user, $id_editor_user, $file_path, $is_editing)
+    {
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file_path);
+        $sheet = $spreadsheet->getActiveSheet();
+        $highest_row = $sheet->getHighestDataRow();
+        $imported = 0;
+        $skipped = 0;
+        $errors = [];
+
+        for ($row = 2; $row <= $highest_row; $row++) {
+            $category        = ssNormalizeImportValue($sheet->getCell('A' . $row)->getCalculatedValue());
+            $point           = ssNormalizeImportValue($sheet->getCell('B' . $row)->getCalculatedValue());
+            $nilai1          = ssNormalizeImportValue($sheet->getCell('C' . $row)->getCalculatedValue());
+            $nilai2          = ssNormalizeImportValue($sheet->getCell('D' . $row)->getCalculatedValue());
+            $nilai3          = ssNormalizeImportValue($sheet->getCell('E' . $row)->getCalculatedValue());
+            $nilai4          = ssNormalizeImportValue($sheet->getCell('F' . $row)->getCalculatedValue());
+            $nilai_bulan_ini = ssNormalizeImportValue($sheet->getCell('G' . $row)->getCalculatedValue());
+            $deskripsi       = ssNormalizeImportValue($sheet->getCell('H' . $row)->getCalculatedValue());
+
+            if ($category === '' && $point === '') {
+                continue;
+            }
+
+            if ($category === '' || $point === '') {
+                $skipped++;
+                $errors[] = "Baris $row dilewati: Kategori SS dan Poin SS wajib diisi.";
+                continue;
+            }
+
+            $category_id = ssFindOrCreateCategoryForMember($conn, $id_target_user, $id_editor_user, $category, $is_editing);
+            if (!$category_id) {
+                $skipped++;
+                $errors[] = "Baris $row gagal: kategori tidak bisa dibuat.";
+                continue;
+            }
+
+            $point_safe = mysqli_real_escape_string($conn, $point);
+            $duplicate = mysqli_query($conn, "SELECT id_sspoin FROM tb_sspoin WHERE id_user=$id_target_user AND id_ss=$category_id AND poinss='$point_safe' LIMIT 1");
+            if ($duplicate && mysqli_num_rows($duplicate) > 0) {
+                $skipped++;
+                continue;
+            }
+
+            $nilai1_safe   = mysqli_real_escape_string($conn, $nilai1);
+            $nilai2_safe   = mysqli_real_escape_string($conn, $nilai2);
+            $nilai3_safe   = mysqli_real_escape_string($conn, $nilai3);
+            $nilai4_safe   = mysqli_real_escape_string($conn, $nilai4);
+            $nilai_bulan_ini = str_replace(',', '.', $nilai_bulan_ini);
+            $nilai_bulan_ini = is_numeric($nilai_bulan_ini) ? max(0, min(4, (float) $nilai_bulan_ini)) : 0;
+            $nilai_bulan_ini_safe = mysqli_real_escape_string($conn, $nilai_bulan_ini);
+            $deskripsi_safe = mysqli_real_escape_string($conn, $deskripsi);
+
+            if ($is_editing) {
+                $sql = "INSERT INTO tb_sspoin
+                    (id_user, id_ss, poinss, nilai1, nilai2, nilai3, nilai4, nilaiss, deskripsi, is_edited, edited_by, edited_at)
+                    VALUES ($id_target_user, $category_id, '$point_safe', '$nilai1_safe', '$nilai2_safe', '$nilai3_safe', '$nilai4_safe', '$nilai_bulan_ini_safe', '$deskripsi_safe', 1, $id_editor_user, NOW())";
+            } else {
+                $sql = "INSERT INTO tb_sspoin
+                    (id_user, id_ss, poinss, nilai1, nilai2, nilai3, nilai4, nilaiss, deskripsi)
+                    VALUES ($id_target_user, $category_id, '$point_safe', '$nilai1_safe', '$nilai2_safe', '$nilai3_safe', '$nilai4_safe', '$nilai_bulan_ini_safe', '$deskripsi_safe')";
+            }
+
+            if (mysqli_query($conn, $sql)) {
+                $imported++;
+            } else {
+                $skipped++;
+                $errors[] = "Baris $row gagal disimpan.";
+            }
+        }
+
+        return [
+            'imported' => $imported,
+            'skipped'  => $skipped,
+            'errors'   => $errors
+        ];
     }
 
     function getSSEditorName($conn, $editor_id)
@@ -379,6 +491,59 @@ if (isset($_POST['hapus_kategori_ss'])) {
     }
 }
 
+    if (isset($_POST['import_ss'])) {
+        if (!$ss_import_ready || !class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
+            $_SESSION['ss_import_message'] = [
+                'type' => 'danger',
+                'text' => 'Import Excel belum bisa digunakan karena dependency Composer belum terpasang. Jalankan composer install di folder KPI.'
+            ];
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            exit();
+        }
+
+        if (!isset($_FILES['file_ss']) || $_FILES['file_ss']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['ss_import_message'] = [
+                'type' => 'danger',
+                'text' => 'Gagal upload file import.'
+            ];
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            exit();
+        }
+
+        $allowed_extensions = ['xlsx', 'xls', 'csv'];
+        $file_name = $_FILES['file_ss']['name'];
+        $file_extension = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+        if (!in_array($file_extension, $allowed_extensions)) {
+            $_SESSION['ss_import_message'] = [
+                'type' => 'danger',
+                'text' => 'Format file tidak didukung. Gunakan .xlsx, .xls, atau .csv.'
+            ];
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            exit();
+        }
+
+        try {
+            $summary = ssImportSkillStandardForMember($conn, $id_sf, $id_user, $_FILES['file_ss']['tmp_name'], $is_editing_member_ss);
+            $error_text = '';
+            if (!empty($summary['errors'])) {
+                $error_text = ' Detail: ' . implode(' ', array_slice($summary['errors'], 0, 5));
+            }
+            $_SESSION['ss_import_message'] = [
+                'type' => $summary['imported'] > 0 ? 'success' : 'warning',
+                'text' => "Import SS anggota selesai. Berhasil: {$summary['imported']}, dilewati/gagal: {$summary['skipped']}.$error_text"
+            ];
+        } catch (Throwable $e) {
+            $_SESSION['ss_import_message'] = [
+                'type' => 'danger',
+                'text' => 'Gagal membaca file Excel. Pastikan format sesuai template.'
+            ];
+        }
+
+        header('Location: ' . $_SERVER['REQUEST_URI']);
+        exit();
+    }
+
 ssSyncCurrentMonthHistory($conn, $id_sf);
 $bulan_ini_ss = date('Y-m', strtotime('-1 month'));
 $bulan_lalu_ss = date('Y-m', strtotime('-2 month'));
@@ -478,6 +643,8 @@ $ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
 
                     <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#SSmodal"
                             class="nav-link">Tambah Poin SS</a> </li>
+                    <li class="nav-item d-none d-md-block"> <a href="#" data-bs-toggle="modal" data-bs-target="#ImportSSAnggotaModal"
+                            class="nav-link"><i class="bi bi-file-earmark-arrow-up"></i> Import SS</a> </li>
                 </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
 
                 <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->
@@ -523,6 +690,52 @@ $ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
                 </div>
             </div>
         </div>
+
+        <!-- Modal Import SS Anggota -->
+        <div class="modal fade" id="ImportSSAnggotaModal" tabindex="-1" aria-labelledby="ImportSSAnggotaLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title fw-bold" id="ImportSSAnggotaLabel">
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i>Import Skill Standard
+                            <?php if ($is_editing_member_ss) { ?>
+                                &mdash; <small class="fw-normal"><?= htmlspecialchars($rsd['nama_lngkp']); ?></small>
+                            <?php } ?>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="" enctype="multipart/form-data">
+                        <div class="modal-body">
+                            <?php if ($is_editing_member_ss) { ?>
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                Anda sedang mengimport SS sebagai <strong>atasan</strong> untuk <strong><?= htmlspecialchars($rsd['nama_lngkp']); ?></strong>.
+                                Data yang diimport akan ditandai <em>"DITAMBAH ATASAN"</em>.
+                            </div>
+                            <?php } ?>
+                            <div class="alert alert-info">
+                                <strong>Format kolom:</strong> Kategori SS, Poin SS, Nilai 1, Nilai 2, Nilai 3, Nilai 4, Nilai Bulan Ini, Deskripsi Penilaian.
+                                Baris pertama adalah header dan data dimulai dari baris kedua.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">File Excel</label>
+                                <input type="file" class="form-control" name="file_ss" accept=".xlsx,.xls,.csv" required>
+                            </div>
+                            <a href="assets/template/template_import_skill_standard.xlsx" class="btn btn-outline-primary btn-sm" download>
+                                <i class="bi bi-download me-1"></i>Download Template
+                            </a>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" name="import_ss" class="btn btn-success">
+                                <i class="bi bi-upload me-1"></i>Import
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <?php include("pages/part/p_aside.php"); ?>
         <div class="m-3">
             <div class="container-fluid" style="font-size:13px;">
@@ -554,6 +767,13 @@ $ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
                         </div>
                     </div>
                 </div>
+                <?php if (isset($_SESSION['ss_import_message'])) { ?>
+                    <div class="alert alert-<?= $_SESSION['ss_import_message']['type']; ?> alert-dismissible fade show" role="alert">
+                        <?= htmlspecialchars($_SESSION['ss_import_message']['text']); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <?php unset($_SESSION['ss_import_message']); ?>
+                <?php } ?>
                 <?php
                 $no = 1;
                 $sqler = "select * from tb_ss where id_user=$id_sf";
