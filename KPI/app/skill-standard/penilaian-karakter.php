@@ -466,8 +466,8 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                     <div class="row g-3">
                         <div class="col-12">
                             <div class="card shadow-sm">
-                                <div class="card-header bg-success text-white d-flex align-items-center justify-content-between"
-                                     style="cursor:pointer;"
+                                <div class="card-header bg-success text-white"
+                                     style="cursor:pointer; position:relative; padding-right:3rem;"
                                      data-bs-toggle="collapse"
                                      data-bs-target="#collapsePermintaanPenilaian"
                                      aria-expanded="<?= $can_manage ? 'false' : 'true'; ?>"
@@ -496,7 +496,7 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                             <?php
                                         } ?>
                                     </h5>
-                                    <!-- <i class="bi bi-chevron-down collapse-chevron" style="transition:transform .2s;"></i> -->
+                                    <i class="bi bi-chevron-down collapse-chevron" style="position:absolute; right:1rem; top:50%; transform:translateY(-50%); transition:transform .2s; <?= $can_manage ? '' : 'transform:translateY(-50%) rotate(180deg);' ?>"></i>
                                 </div>
                                 <div class="collapse <?= $can_manage ? '' : 'show'; ?>" id="collapsePermintaanPenilaian">
                                     <div class="card-body p-0">
@@ -508,7 +508,6 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                         <th>Bagian</th>
                                                         <th>Departemen</th>
                                                         <th>Status</th>
-                                                        <!-- PERBAIKAN: header rata kanan -->
                                                         <th width="12%" style="text-align:right; padding-right:16px;">Aksi</th>
                                                     </tr>
                                                 </thead>
@@ -527,7 +526,6 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                                         <span class="badge bg-warning text-dark">Menunggu</span>
                                                                     <?php } ?>
                                                                 </td>
-                                                                <!-- PERBAIKAN: pakai flex justify-content:flex-end agar tidak terpengaruh CSS AdminLTE -->
                                                                 <td style="vertical-align:middle; padding:6px 12px;">
                                                                     <div style="display:flex; justify-content:flex-end;">
                                                                         <button class="btn btn-success btn-sm"
@@ -1074,6 +1072,19 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                     });
                 });
             });
+
+            // Rotasi icon chevron dropdown "Permintaan Penilaian Saya"
+            var permintaanCollapse = document.getElementById('collapsePermintaanPenilaian');
+            if (permintaanCollapse) {
+                var header = permintaanCollapse.previousElementSibling;
+                var chevron = header ? header.querySelector('.collapse-chevron') : null;
+                permintaanCollapse.addEventListener('show.bs.collapse', function () {
+                    if (chevron) chevron.style.transform = 'translateY(-50%) rotate(180deg)';
+                });
+                permintaanCollapse.addEventListener('hide.bs.collapse', function () {
+                    if (chevron) chevron.style.transform = 'translateY(-50%) rotate(0deg)';
+                });
+            }
         });
     </script>
 </body>
