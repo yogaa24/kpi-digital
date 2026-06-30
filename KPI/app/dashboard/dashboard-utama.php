@@ -13,6 +13,26 @@ $id_user = $_SESSION['id_user'];
 
 $user_level = $_SESSION['level'] ?? 1;
 
+// ==================== NOTIFIKASI PENILAIAN KARAKTER ====================
+$bulan_penilaian_notif = date('Y-m');
+$id_user_login_notif = intval($id_user);
+$notif_pending_rows = [];
+$notif_pending_count = 0;
+
+$notif_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lngkp AS nama_dinilai, dinilai.bagian, dinilai.departement
+    FROM tb_penilaian_karakter_assignment a
+    INNER JOIN tb_users dinilai ON dinilai.id = a.id_user_dinilai
+    LEFT JOIN tb_penilaian_karakter_response r ON r.id_assignment = a.id_assignment AND r.bulan = '$bulan_penilaian_notif'
+    WHERE a.id_penilai = $id_user_login_notif AND a.status = 'aktif' AND r.submitted_at IS NULL
+    ORDER BY dinilai.nama_lngkp");
+
+if ($notif_result) {
+    while ($notif_row = mysqli_fetch_assoc($notif_result)) {
+        $notif_pending_rows[] = $notif_row;
+        $notif_pending_count++;
+    }
+}
+
 // ==================== FILTER PARAMETERS ====================
 $filter_user = isset($_GET['filter_user']) ? $_GET['filter_user'] : $id_user;
 $filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departemen'] : '';
@@ -407,6 +427,16 @@ if ($user_level >= 5) {
     @media print {
         .no-print { display: none; }
     }
+    @keyframes bellRing {
+        0%, 100% { transform: rotate(0deg); }
+        10%       { transform: rotate(-12deg); }
+        20%       { transform: rotate(12deg); }
+        30%       { transform: rotate(-8deg); }
+        40%       { transform: rotate(8deg); }
+        50%       { transform: rotate(-4deg); }
+        60%       { transform: rotate(4deg); }
+        70%       { transform: rotate(0deg); }
+    }
 </style>
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
@@ -430,11 +460,66 @@ if ($user_level >= 5) {
                                             </h3>
                                             <p class="mb-0 opacity-90">Advanced Performance Monitoring & Analysis</p>
                                         </div>
+                                        <div class="col-md-6 d-flex justify-content-end align-items-center">
+                                            <?php if ($notif_pending_count > 0) { ?>
+                                            <button type="button"
+                                                    class="btn btn-warning btn-sm position-relative"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalNotifKarakter"
+                                                    title="Ada penilaian karakter yang menunggu"
+                                                    style="border-radius:50px; padding:8px 16px; font-size:14px; box-shadow:0 2px 8px rgba(0,0,0,0.25); animation: bellRing 1.2s infinite;">
+                                                <i class="bi bi-bell-fill me-1"></i>
+                                                Penilaian Karakter
+                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                                    <?= $notif_pending_count ?>
+                                                    <span class="visually-hidden">pending penilaian</span>
+                                                </span>
+                                            </button>
+                                            <?php } ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Modal Notifikasi Penilaian Karakter -->
+                    <?php if ($notif_pending_count > 0) { ?>
+                    <div class="modal fade" id="modalNotifKarakter" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-warning">
+                                    <h5 class="modal-title fw-bold">
+                                        <i class="bi bi-bell-fill me-2"></i>Penilaian Karakter Menunggu
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="text-muted mb-3">
+                                        Anda memiliki <strong><?= $notif_pending_count ?> penilaian karakter</strong> yang belum diselesaikan bulan ini (<?= date('m/Y') ?>):
+                                    </p>
+                                    <ul class="list-group">
+                                        <?php foreach ($notif_pending_rows as $nr) { ?>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong><?= htmlspecialchars($nr['nama_dinilai'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                                <small class="text-muted d-block"><?= htmlspecialchars($nr['bagian'] . ' / ' . $nr['departement'], ENT_QUOTES, 'UTF-8') ?></small>
+                                            </div>
+                                            <span class="badge bg-warning text-dark">Menunggu</span>
+                                        </li>
+                                        <?php } ?>
+                                    </ul>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                    <a href="penilaian-karakter" class="btn btn-success">
+                                        <i class="bi bi-pencil-square me-1"></i>Buka Penilaian Karakter
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php } ?>
 
                     <!-- ==================== QUICK ACTIONS ==================== -->
                     <div class="row mb-4 no-print">
