@@ -248,8 +248,8 @@ karakterEnsureTables($conn);
 $questions = karakterQuestions();
 $categories = karakterCategories($questions);
 $id_user_login = intval($id_user);
-$bulan_penilaian = date('Y-m');
-$bulan_lalu = date('Y-m', strtotime($bulan_penilaian . '-01 -1 month'));
+$bulan_penilaian = date('Y-m', strtotime(date('Y-m-01') . ' -1 month'));
+$bulan_lalu = date('Y-m', strtotime(date('Y-m-01') . ' -2 month'));
 $can_manage = in_array($jabatan, ['Manager', 'Kadep', 'Koordinator', 'Direktur', 'Wadir Utama', 'Kabag']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
