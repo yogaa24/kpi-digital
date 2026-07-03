@@ -9,7 +9,9 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/config.php';
     require 'helper/getUser.php';
 
-    $id_sf = $_GET['id'];
+    mysqli_report(MYSQLI_REPORT_OFF);
+
+    $id_sf = isset($_GET['id']) ? intval($_GET['id']) : 0;
     $from = $_GET['from'] ?? '';
 
     if (isset($_POST['submit'])) {
@@ -810,9 +812,9 @@ if (isset($_POST['kpi_hapus'])) {
                     <!--begin::Row-->
 
                     <?php
-                    $sqlang = "SELECT * FROM tb_kpi WHERE id_user='$id_sf'";
+                    $sqlang = "SELECT * FROM tb_kpi WHERE id_user='$id_sf' ORDER BY id ASC";
                     $resulasft = mysqli_query($conn, $sqlang);
-                    while ($hasil = mysqli_fetch_assoc($resulasft)) {
+                    while ($resulasft && ($hasil = mysqli_fetch_assoc($resulasft))) {
                         $idKPI = $hasil['id'];
                         $poin = $hasil['poin'];
                         $bobot = $hasil['bobot'];

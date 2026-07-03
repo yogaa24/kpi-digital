@@ -16,22 +16,27 @@ $id_user = intval($_SESSION['id_user']);
 $user_level = intval($_SESSION['level'] ?? 1);
 
 // ==================== NOTIFIKASI PENILAIAN KARAKTER ====================
-$bulan_penilaian_notif = date('Y-m');
+// Gunakan bulan yang sama dengan penilaian-karakter.php yaitu bulan lalu
+$bulan_penilaian_notif = date('Y-m', strtotime(date('Y-m-01') . ' -1 month'));
 $id_user_login_notif = intval($id_user);
+$notif_all_rows = [];
 $notif_pending_rows = [];
 $notif_pending_count = 0;
 
-$notif_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lngkp AS nama_dinilai, dinilai.bagian, dinilai.departement
+$notif_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lngkp AS nama_dinilai, dinilai.bagian, dinilai.departement, r.submitted_at
     FROM tb_penilaian_karakter_assignment a
     INNER JOIN tb_users dinilai ON dinilai.id = a.id_user_dinilai
     LEFT JOIN tb_penilaian_karakter_response r ON r.id_assignment = a.id_assignment AND r.bulan = '$bulan_penilaian_notif'
-    WHERE a.id_penilai = $id_user_login_notif AND a.status = 'aktif' AND r.submitted_at IS NULL
-    ORDER BY dinilai.nama_lngkp");
+    WHERE a.id_penilai = $id_user_login_notif AND a.status = 'aktif'
+    ORDER BY r.submitted_at IS NULL DESC, dinilai.nama_lngkp");
 
 if ($notif_result) {
     while ($notif_row = mysqli_fetch_assoc($notif_result)) {
-        $notif_pending_rows[] = $notif_row;
-        $notif_pending_count++;
+        $notif_all_rows[] = $notif_row;
+        if (empty($notif_row['submitted_at'])) {
+            $notif_pending_rows[] = $notif_row;
+            $notif_pending_count++;
+        }
     }
 }
 
@@ -515,16 +520,20 @@ if ($user_level >= 5) {
                                 </div>
                                 <div class="modal-body">
                                     <p class="text-muted mb-3">
-                                        Anda memiliki <strong><?= $notif_pending_count ?> penilaian karakter</strong> yang belum diselesaikan bulan ini (<?= date('m/Y') ?>):
+                                        Anda memiliki <strong><?= $notif_pending_count ?> penilaian karakter</strong> yang belum diselesaikan periode <?= date('m/Y', strtotime($bulan_penilaian_notif . '-01')) ?>:
                                     </p>
                                     <ul class="list-group">
-                                        <?php foreach ($notif_pending_rows as $nr) { ?>
+                                        <?php foreach ($notif_all_rows as $nr) { ?>
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
                                                 <strong><?= htmlspecialchars($nr['nama_dinilai'], ENT_QUOTES, 'UTF-8') ?></strong>
                                                 <small class="text-muted d-block"><?= htmlspecialchars($nr['bagian'] . ' / ' . $nr['departement'], ENT_QUOTES, 'UTF-8') ?></small>
                                             </div>
-                                            <span class="badge bg-warning text-dark">Menunggu</span>
+                                            <?php if (!empty($nr['submitted_at'])) { ?>
+                                                <span class="badge bg-success">Sudah dinilai</span>
+                                            <?php } else { ?>
+                                                <span class="badge bg-warning text-dark">Menunggu</span>
+                                            <?php } ?>
                                         </li>
                                         <?php } ?>
                                     </ul>

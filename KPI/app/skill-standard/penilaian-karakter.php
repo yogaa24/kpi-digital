@@ -56,17 +56,25 @@ function karakterScoreResponse($response, $questions)
         $answer = $response['q' . $number . '_jawaban'] ?? null;
 
         $score['categories'][$category]['total']++;
+        // Jawaban benar (sesuai ideal) = 1, salah = 0
         if ($answer === $question['ideal']) {
             $score['categories'][$category]['correct']++;
         }
     }
 
+    $num_categories = 0;
+    $total_score = 0;
     foreach ($score['categories'] as $category => $category_score) {
         if ($category_score['total'] > 0) {
-            $score['categories'][$category]['score'] = $category_score['correct'] / $category_score['total'];
-            $score['total'] += $score['categories'][$category]['score'];
+            // Skor per kategori = (jumlah benar / jumlah soal kategori) x 4
+            $score['categories'][$category]['score'] = ($category_score['correct'] / $category_score['total']) * 4;
+            $total_score += $score['categories'][$category]['score'];
+            $num_categories++;
         }
     }
+
+    // Total = rata-rata skor semua kategori (max 4.00)
+    $score['total'] = $num_categories > 0 ? $total_score / $num_categories : 0;
 
     return $score;
 }
@@ -74,39 +82,74 @@ function karakterScoreResponse($response, $questions)
 function karakterAverageScores($rows, $questions)
 {
     $summary = [
-        'count' => 0,
-        'total' => null,
-        'categories' => []
+        'count'      => 0,
+        'total'      => null,
+        'categories' => [],
+        'questions'  => []   // skor per pertanyaan: (total benar / total menjawab) x 4
     ];
 
     foreach (karakterCategories($questions) as $category) {
         $summary['categories'][$category] = null;
     }
 
-    $category_totals = [];
-    foreach ($summary['categories'] as $category => $value) {
-        $category_totals[$category] = 0;
+    // Inisialisasi akumulasi per pertanyaan
+    $q_correct = [];   // jumlah penilai yang menjawab benar
+    $q_count   = [];   // jumlah penilai yang menjawab (sudah submit)
+    foreach ($questions as $index => $question) {
+        $q_correct[$index] = 0;
+        $q_count[$index]   = 0;
     }
 
-    $total = 0;
+    // Kumpulkan jawaban dari setiap penilai yang sudah submit
     foreach ($rows as $row) {
-        $score = karakterScoreResponse($row, $questions);
-        if (!$score['submitted']) {
+        if (empty($row['submitted_at'])) {
             continue;
         }
-
         $summary['count']++;
-        $total += $score['total'];
-        foreach ($score['categories'] as $category => $category_score) {
-            $category_totals[$category] += $category_score['score'];
+
+        foreach ($questions as $index => $question) {
+            $number = $index + 1;
+            $answer = $row['q' . $number . '_jawaban'] ?? null;
+            if ($answer !== null) {
+                $q_count[$index]++;
+                if ($answer === $question['ideal']) {
+                    $q_correct[$index]++;
+                }
+            }
         }
     }
 
     if ($summary['count'] > 0) {
-        $summary['total'] = $total / $summary['count'];
-        foreach ($category_totals as $category => $category_total) {
-            $summary['categories'][$category] = $category_total / $summary['count'];
+        // Hitung skor per pertanyaan: (total benar / jumlah menjawab) x 4
+        $category_scores = [];
+        $all_q_scores    = [];
+        foreach ($questions as $index => $question) {
+            $category = $question['kategori'];
+            $q_score  = $q_count[$index] > 0
+                ? ($q_correct[$index] / $q_count[$index]) * 4
+                : 0;
+
+            $summary['questions'][$index] = [
+                'correct' => $q_correct[$index],
+                'count'   => $q_count[$index],
+                'score'   => $q_score
+            ];
+
+            $all_q_scores[]              = $q_score;
+            $category_scores[$category][] = $q_score;
         }
+
+        // Skor per kategori = rata-rata hasil nilai pertanyaan dalam kategori tsb
+        foreach ($category_scores as $category => $scores) {
+            $summary['categories'][$category] = count($scores) > 0
+                ? array_sum($scores) / count($scores)
+                : null;
+        }
+
+        // Skor total = rata-rata semua hasil nilai per pertanyaan
+        $summary['total'] = count($all_q_scores) > 0
+            ? array_sum($all_q_scores) / count($all_q_scores)
+            : null;
     }
 
     return $summary;

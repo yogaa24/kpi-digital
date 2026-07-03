@@ -59,7 +59,7 @@
                         <?php 
                         $sql1 = "SELECT * FROM tb_whats WHERE id_user='$id_sf' AND id_kpi='" . $hasil['id'] . "'";
                         $ql = mysqli_query($conn, $sql1);
-                        while ($res = mysqli_fetch_assoc($ql)) {
+                        while ($ql && ($res = mysqli_fetch_assoc($ql))) {
                             $is_edited = $res['is_edited'];
                             $row_class = $is_edited ? 'edited-row' : '';
                         ?>
@@ -236,7 +236,7 @@
                                                                             ORDER BY urutan ASC";
                                                             $result_indikator = mysqli_query($conn, $sql_indikator);
                                                             
-                                                            while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                                            while ($result_indikator && ($indikator = mysqli_fetch_assoc($result_indikator))) {
                                                                 // Potong keterangan jika terlalu panjang untuk ditampilkan
                                                                 $ket_display = strlen($indikator['keterangan']) > 80 
                                                                             ? substr($indikator['keterangan'], 0, 80) . '...' 
@@ -285,7 +285,7 @@
                                 $result_indikator = mysqli_query($conn, $sql_indikator);
                                 
                                 $has_edited_indikator = false;
-                                while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                while ($result_indikator && ($indikator = mysqli_fetch_assoc($result_indikator))) {
                                     if ($indikator['is_edited']) {
                                         $has_edited_indikator = true;
                                         break;
@@ -426,7 +426,7 @@
                         <?php 
                         $sql1 = "SELECT * FROM tb_hows WHERE id_user='$id_sf' AND id_kpi='" . $hasil['id'] . "'";
                         $ql = mysqli_query($conn, $sql1);
-                        while ($res = mysqli_fetch_assoc($ql)) {
+                        while ($ql && ($res = mysqli_fetch_assoc($ql))) {
                             $is_edited = $res['is_edited'];
                             $row_class = $is_edited ? 'edited-row' : '';
                         ?>
@@ -474,11 +474,12 @@
                                                 <?php 
                                                 if (!empty($res['edited_by'])) {
                                                     $editor_id = $res['edited_by'];
-                                                    $sql_editor = "SELECT nama_lengkap FROM user WHERE id_user = $editor_id";
+                                                    $editor_id = intval($editor_id);
+                                                    $sql_editor = "SELECT nama_lngkp FROM tb_users WHERE id = $editor_id";
                                                     $result_editor = mysqli_query($conn, $sql_editor);
                                                     if ($result_editor && mysqli_num_rows($result_editor) > 0) {
                                                         $editor_data = mysqli_fetch_assoc($result_editor);
-                                                        echo '<br><i class="bi bi-person-fill"></i> Oleh: ' . $editor_data['nama_lengkap'];
+                                                        echo '<br><i class="bi bi-person-fill"></i> Oleh: ' . $editor_data['nama_lngkp'];
                                                     }
                                                 }
                                                 ?>
@@ -613,7 +614,7 @@
                                                                             ORDER BY urutan ASC";
                                                             $result_indikator = mysqli_query($conn, $sql_indikator);
                                                             
-                                                            while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                                            while ($result_indikator && ($indikator = mysqli_fetch_assoc($result_indikator))) {
                                                                 $ket_display = strlen($indikator['keterangan']) > 80 
                                                                             ? substr($indikator['keterangan'], 0, 80) . '...' 
                                                                             : $indikator['keterangan'];
@@ -660,7 +661,7 @@
                                 $result_indikator = mysqli_query($conn, $sql_indikator);
                                 
                                 $has_edited_indikator = false;
-                                while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                while ($result_indikator && ($indikator = mysqli_fetch_assoc($result_indikator))) {
                                     if ($indikator['is_edited']) {
                                         $has_edited_indikator = true;
                                         break;
