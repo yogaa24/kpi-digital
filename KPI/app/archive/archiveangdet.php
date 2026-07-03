@@ -350,10 +350,26 @@ if (isset($_POST['how_hapus'])) {
     }
 }
 
-    $id_user = $_GET['id'];
-$idar = $_GET['idar'];
+    $id_user = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$idar = isset($_GET['idar']) ? $_GET['idar'] : '';
+$idar_safe = mysqli_real_escape_string($conn, $idar);
 
-$sql= "SELECT tbar_kpi.* FROM tbar_kpi INNER JOIN tbar_archive ON tbar_archive.id_archive = tbar_kpi.id_arcv WHERE tbar_archive.bulan = '$idar' AND tbar_archive.id_user = $id_user";
+if ($id_user <= 0 || $idar === '') {
+    header("Location: archivekabag");
+    exit();
+}
+
+$query_archive = mysqli_query($conn, "SELECT id_archive FROM tbar_archive WHERE bulan = '$idar_safe' AND id_user = $id_user LIMIT 1");
+if (!$query_archive || mysqli_num_rows($query_archive) == 0) {
+    echo "<script>alert('Data archive tidak ditemukan!'); window.location.href='archiveanggota?id=$id_user';</script>";
+    exit();
+}
+
+$row_archive = mysqli_fetch_assoc($query_archive);
+$id_archive = intval($row_archive['id_archive']);
+$current_archive_id = $id_archive;
+
+$sql = "SELECT * FROM tbar_kpi WHERE id_user = $id_user AND id_arcv = $id_archive";
 $result = mysqli_query($conn, $sql);
 $idKPI;
 $idUSER;
@@ -362,7 +378,7 @@ $bobot;
 $poin2;
 $bobot2;
 
-$sql2 = "SELECT sum(bobot) FROM tbar_kpi WHERE id_user=$id_user AND bulan = '$idar'";
+$sql2 = "SELECT sum(bobot) FROM tbar_kpi WHERE id_user=$id_user AND id_arcv = $id_archive";
 $result2 = mysqli_query($conn, $sql2);
 
 }
@@ -463,7 +479,7 @@ $result2 = mysqli_query($conn, $sql2);
                 <!--begin::Container-->
                 <div class="container-fluid" style="font-size:13px;">
                     <!--begin::Row-->
-                    <?php while ($hasil = mysqli_fetch_assoc($result)) {
+                    <?php while ($result && ($hasil = mysqli_fetch_assoc($result))) {
                         $idKPI = $hasil['id'];
                         $poin = $hasil['poin'];
                         $bobot = $hasil['bobot'];
@@ -512,7 +528,7 @@ $result2 = mysqli_query($conn, $sql2);
                                             <?php 
                                             $sql1 = "SELECT * FROM tbar_whats WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
                                             $ql = mysqli_query($conn, $sql1);
-                                            while ($res = mysqli_fetch_assoc($ql)) {
+                                            while ($ql && ($res = mysqli_fetch_assoc($ql))) {
                                             ?>
                                                 <tr class="align-middle <?= $res['is_edited'] == 1 ? 'edited-row' : '' ?>">
                                                     <td>
@@ -607,7 +623,7 @@ $result2 = mysqli_query($conn, $sql2);
                                                                                                 ORDER BY urutan ASC";
                                                                                 $result_indikator = mysqli_query($conn, $sql_indikator);
                                                                                 
-                                                                                while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                                                                while ($result_indikator && ($indikator = mysqli_fetch_assoc($result_indikator))) {
                                                                                     // Potong keterangan jika terlalu panjang untuk ditampilkan
                                                                                     $ket_display = strlen($indikator['keterangan']) > 80 
                                                                                                 ? substr($indikator['keterangan'], 0, 80) . '...' 
@@ -646,8 +662,10 @@ $result2 = mysqli_query($conn, $sql2);
                                                     </div>
                                                 </div>
 
-                                                <?php include('pages/kpi/k_modalEditwhat.php'); ?>
-                                                <?php include('pages/kpi/k_modalHapuswhat.php'); ?>
+                                                <?php if (false) { ?>
+                                                    <?php include('pages/kpi/k_modalEditwhat.php'); ?>
+                                                    <?php include('pages/kpi/k_modalHapuswhat.php'); ?>
+                                                <?php } ?>
 
                                             <?php } ?>
                                             </tbody>
@@ -695,7 +713,7 @@ $result2 = mysqli_query($conn, $sql2);
                                             <?php
                                             $sql1 = "SELECT * FROM tbar_hows WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
                                             $ql = mysqli_query($conn, $sql1);
-                                            while ($res = mysqli_fetch_assoc($ql)) {
+                                            while ($ql && ($res = mysqli_fetch_assoc($ql))) {
                                             ?>
                                                 <tr class="align-middle <?= $res['is_edited'] == 1 ? 'edited-row' : '' ?>">
                                                     <td>
@@ -774,7 +792,7 @@ $result2 = mysqli_query($conn, $sql2);
                                                                                                 ORDER BY urutan ASC";
                                                                                 $result_indikator = mysqli_query($conn, $sql_indikator);
                                                                                 
-                                                                                while ($indikator = mysqli_fetch_assoc($result_indikator)) {
+                                                                                while ($result_indikator && ($indikator = mysqli_fetch_assoc($result_indikator))) {
                                                                                     echo '<option value="'.$indikator['id_indikator'].'">';
                                                                                     echo ''.$indikator['keterangan'].' = '.$indikator['nilai'];
                                                                                     echo '</option>';
@@ -807,8 +825,10 @@ $result2 = mysqli_query($conn, $sql2);
                                                     </div>
                                                 </div>
 
-                                                <?php include('pages/kpi/k_modalEdithow.php'); ?>
-                                                <?php include('pages/kpi/k_modalHapushow.php'); ?>
+                                                <?php if (false) { ?>
+                                                    <?php include('pages/kpi/k_modalEdithow.php'); ?>
+                                                    <?php include('pages/kpi/k_modalHapushow.php'); ?>
+                                                <?php } ?>
 
                                             <?php } ?>
                                             </tbody>

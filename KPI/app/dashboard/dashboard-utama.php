@@ -9,9 +9,11 @@ if (!isset($_SESSION['id_user'])) {
 require 'helper/config.php';
 require 'helper/getUser.php';
 
-$id_user = $_SESSION['id_user'];
+mysqli_report(MYSQLI_REPORT_OFF);
 
-$user_level = $_SESSION['level'] ?? 1;
+$id_user = intval($_SESSION['id_user']);
+
+$user_level = intval($_SESSION['level'] ?? 1);
 
 // ==================== NOTIFIKASI PENILAIAN KARAKTER ====================
 $bulan_penilaian_notif = date('Y-m');
@@ -34,7 +36,7 @@ if ($notif_result) {
 }
 
 // ==================== FILTER PARAMETERS ====================
-$filter_user = isset($_GET['filter_user']) ? $_GET['filter_user'] : $id_user;
+$filter_user = isset($_GET['filter_user']) ? intval($_GET['filter_user']) : $id_user;
 $filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departemen'] : '';
 
 // ==================== FETCH FILTER OPTIONS ====================
@@ -72,17 +74,17 @@ function calculateKPI($conn, $user_id, $is_simulation = false) {
     $total_how = 0;
     $kpi_details = [];
     
-    while ($kpi = mysqli_fetch_assoc($result_kpi)) {
+    while ($result_kpi && ($kpi = mysqli_fetch_assoc($result_kpi))) {
         $sql_what = "SELECT SUM(total) as total FROM {$prefix}whats WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'";
         $result_what = mysqli_query($conn, $sql_what);
-        $row_what = mysqli_fetch_assoc($result_what);
+        $row_what = $result_what ? mysqli_fetch_assoc($result_what) : null;
         $total_nilai_what = $row_what['total'] ?? 0;
         $nilai_what = ($total_nilai_what * $kpi['bobot']) / 100;
         $total_what += $nilai_what;
         
         $sql_how = "SELECT SUM(total) as total FROM {$prefix}hows WHERE id_user='$user_id' AND id_kpi='{$kpi['id']}'";
         $result_how = mysqli_query($conn, $sql_how);
-        $row_how = mysqli_fetch_assoc($result_how);
+        $row_how = $result_how ? mysqli_fetch_assoc($result_how) : null;
         $total_nilai_how = $row_how['total'] ?? 0;
         $nilai_how = ($total_nilai_how * $kpi['bobot2']) / 100;
         $total_how += $nilai_how;
@@ -102,7 +104,7 @@ function calculateKPI($conn, $user_id, $is_simulation = false) {
     
     $sql_bobot = "SELECT bobotwhat, bobothow FROM {$prefix}bobotkpi WHERE id_user='$user_id' LIMIT 1";
     $result_bobot = mysqli_query($conn, $sql_bobot);
-    $bobot = mysqli_fetch_assoc($result_bobot);
+    $bobot = $result_bobot ? mysqli_fetch_assoc($result_bobot) : null;
     $bobot_what = $bobot['bobotwhat'] ?? 0;
     $bobot_how = $bobot['bobothow'] ?? 0;
     
@@ -166,7 +168,19 @@ $kpi_sim = calculateKPI($conn, $filter_user, true);
 // Get user info
 $sql_user_info = "SELECT * FROM tb_users WHERE id='$filter_user'";
 $result_user_info = mysqli_query($conn, $sql_user_info);
-$user_info = mysqli_fetch_assoc($result_user_info);
+$user_info = $result_user_info ? mysqli_fetch_assoc($result_user_info) : null;
+
+if (!$user_info) {
+    $filter_user = $id_user;
+    $sql_user_info = "SELECT * FROM tb_users WHERE id='$filter_user'";
+    $result_user_info = mysqli_query($conn, $sql_user_info);
+    $user_info = $result_user_info ? mysqli_fetch_assoc($result_user_info) : [
+        'id' => $id_user,
+        'nama_lngkp' => $nama_lngkp ?? '',
+        'departement' => $departement ?? '',
+        'jabatan' => $jabatan ?? ''
+    ];
+}
 
 // ==================== GET DETAILED KPI COMPARISON ====================
 $bulan_ini = date('Y-m');
@@ -177,14 +191,14 @@ $sql_current = "SELECT * FROM tb_kpi_history
                 AND bulan='$bulan_ini'
                 AND is_summary=1";
 $result_current = mysqli_query($conn, $sql_current);
-$data_current = mysqli_fetch_assoc($result_current);
+$data_current = $result_current ? mysqli_fetch_assoc($result_current) : null;
 
 $sql_previous = "SELECT * FROM tb_kpi_history 
                  WHERE id_user='$filter_user' 
                  AND bulan='$bulan_kemarin'
                  AND is_summary=1";
 $result_previous = mysqli_query($conn, $sql_previous);
-$data_previous = mysqli_fetch_assoc($result_previous);
+$data_previous = $result_previous ? mysqli_fetch_assoc($result_previous) : null;
 
 if (!$data_previous) {
     $data_previous = [
@@ -224,7 +238,7 @@ LIMIT 6";
 
 $result_trend = mysqli_query($conn, $sql_trend);
 
-if (mysqli_num_rows($result_trend) > 0) {
+if ($result_trend && mysqli_num_rows($result_trend) > 0) {
     $temp_data = [];
     while ($row = mysqli_fetch_assoc($result_trend)) {
         $temp_data[] = $row;
@@ -251,24 +265,27 @@ if ($user_level >= 2) {
 
     if ($user_level == 2) {
         $kabag_name = $user_info['nama_lngkp'];
+        $kabag_name_safe = mysqli_real_escape_string($conn, $kabag_name);
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
-                          WHERE atasan='$kabag_name' 
+                          WHERE atasan='$kabag_name_safe' 
                           AND username NOT IN ('itboy', 'adminhrd')
                           ORDER BY nama_lngkp";
         $comparison_title = "My Team Members Performance";
     
     } elseif ($user_level == 3) {
         $kabag_name = $user_info['nama_lngkp'];
+        $kabag_name_safe = mysqli_real_escape_string($conn, $kabag_name);
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
-                          WHERE atasan='$kabag_name' 
+                          WHERE atasan='$kabag_name_safe' 
                           AND username NOT IN ('itboy', 'adminhrd')
                           ORDER BY nama_lngkp";
         $comparison_title = "My Team Members Performance";
 
     } elseif ($user_level == 4) {
         $target_dept = $user_info['departement'];
+        $target_dept_safe = mysqli_real_escape_string($conn, $target_dept);
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
-                          WHERE departement='$target_dept' 
+                          WHERE departement='$target_dept_safe' 
                           AND username NOT IN ('itboy', 'adminhrd')
                           ORDER BY nama_lngkp";
         $comparison_title = "Department Team - " . $target_dept;
@@ -276,8 +293,9 @@ if ($user_level >= 2) {
     } elseif ($user_level >= 5) {
         if (!empty($filter_departemen)) {
             $target_dept = $filter_departemen;
+            $target_dept_safe = mysqli_real_escape_string($conn, $target_dept);
             $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
-                              WHERE departement='$target_dept' 
+                              WHERE departement='$target_dept_safe' 
                               AND username NOT IN ('itboy', 'adminhrd')
                               ORDER BY nama_lngkp";
             $comparison_title = "Department Team - " . $target_dept;
@@ -331,8 +349,9 @@ if ($user_level >= 5) {
                       ORDER BY departement";
     $result_all_depts = mysqli_query($conn, $sql_all_depts);
     
-    while ($dept_row = mysqli_fetch_assoc($result_all_depts)) {
+    while ($result_all_depts && ($dept_row = mysqli_fetch_assoc($result_all_depts))) {
         $dept_name = $dept_row['departement'];
+        $dept_name_safe = mysqli_real_escape_string($conn, $dept_name);
         
         $excellent_count = 0;
         $very_good_count = 0;
@@ -341,11 +360,11 @@ if ($user_level >= 5) {
         $total_members = 0;
         
         $sql_dept_members = "SELECT id FROM tb_users 
-                            WHERE departement='$dept_name' 
+                            WHERE departement='$dept_name_safe' 
                             AND username NOT IN ('itboy', 'adminhrd')";
         $result_dept_members = mysqli_query($conn, $sql_dept_members);
         
-        while ($member = mysqli_fetch_assoc($result_dept_members)) {
+        while ($result_dept_members && ($member = mysqli_fetch_assoc($result_dept_members))) {
             $member_kpi = calculateKPI($conn, $member['id'], false);
             $score = $member_kpi['total_kpi'];
             
@@ -614,7 +633,7 @@ if ($user_level >= 5) {
                                                                     ORDER BY departement";
                                                     $result_all_depts = mysqli_query($conn, $sql_all_depts);
                                                     
-                                                    while ($dept = mysqli_fetch_assoc($result_all_depts)) { 
+                                                    while ($result_all_depts && ($dept = mysqli_fetch_assoc($result_all_depts))) { 
                                                     ?>
                                                         <option value="<?= $dept['departement'] ?>" <?= $filter_departemen == $dept['departement'] ? 'selected' : '' ?>>
                                                             <?= $dept['departement'] ?>
@@ -630,14 +649,14 @@ if ($user_level >= 5) {
                                             <div class="col-md-<?= $user_level >= 5 ? '3' : ($user_level == 4 ? '4' : '6') ?>">
                                                 <label class="form-label fw-bold">
                                                     Select Employee
-                                                    <?php if (isset($result_users) && mysqli_num_rows($result_users) > 0) { ?>
+                                                    <?php if (isset($result_users) && $result_users && mysqli_num_rows($result_users) > 0) { ?>
                                                         <span class="badge bg-secondary"><?= mysqli_num_rows($result_users) ?> users</span>
                                                     <?php } ?>
                                                 </label>
                                                 <select name="filter_user" class="form-select" id="userSelect" onchange="this.form.submit()">
                                                     <option value="<?= $id_user ?>" <?= $filter_user == $id_user ? 'selected' : '' ?>>My KPI</option>
                                                     <?php 
-                                                    if (isset($result_users) && mysqli_num_rows($result_users) > 0) {
+                                                    if (isset($result_users) && $result_users && mysqli_num_rows($result_users) > 0) {
                                                         mysqli_data_seek($result_users, 0);
                                                         
                                                         $current_dept = '';
@@ -1438,10 +1457,12 @@ if ($user_level >= 5) {
         const realVsTargetCtx = document.getElementById('realVsTargetChart').getContext('2d');
         const realValue = <?= $kpi_real['total_kpi'] ?>;
         const targetValue = <?= $kpi_sim['total_kpi'] ?>;
-        const achievementPercentage = (realValue / targetValue) * 100;
+        const achievementPercentage = targetValue > 0 ? (realValue / targetValue) * 100 : 0;
 
         let chartData, chartColors, chartLabels;
-        if (realValue >= targetValue) {
+        if (targetValue <= 0) {
+            chartData = [100]; chartColors = ['#6c757d']; chartLabels = ['Target belum tersedia'];
+        } else if (realValue >= targetValue) {
             chartData = [100]; chartColors = ['#0d6efd']; chartLabels = ['Target Tercapai ✓'];
         } else {
             chartData = [realValue, targetValue - realValue]; chartColors = ['#0d6efd', '#198754']; chartLabels = ['Real Performance', 'Gap to Target'];
@@ -1455,6 +1476,7 @@ if ($user_level >= 5) {
                 plugins: {
                     legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 } } },
                     tooltip: { callbacks: { label: function(context) {
+                        if (targetValue <= 0) return 'Target belum tersedia';
                         if (realValue >= targetValue) return 'Real: ' + realValue.toFixed(2) + ' / Target: ' + targetValue.toFixed(2) + ' (100%)';
                         let label = context.label || '';
                         if (label === 'Real Performance') return 'Real: ' + realValue.toFixed(2) + ' (' + achievementPercentage.toFixed(1) + '%)';

@@ -29,6 +29,13 @@
                 </thead>
                 <tbody>
                     <?php
+                    $archive_bobot_filter = '';
+                    if (isset($current_archive_id)) {
+                        $archive_bobot_filter = ' AND id_arcv=' . intval($current_archive_id);
+                    } elseif (isset($idar) && is_numeric($idar)) {
+                        $archive_bobot_filter = ' AND id_arcv=' . intval($idar);
+                    }
+
                     $totalw = 0;
                     $totalbobot = 0;
                     $totalnilai4 = 0;
@@ -92,7 +99,7 @@
                 <tr>
                     <?php
                     $bobotkpiw = 0;
-                    $sql5 = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_user";
+                    $sql5 = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_user$archive_bobot_filter";
                     $result5 = mysqli_query($conn, $sql5);
                     while ($row5 = mysqli_fetch_assoc($result5)) {
                         $bobotkpiw = $row5['bw'];
@@ -212,7 +219,7 @@
                     <tr>
                         <?php
                         $bobotkpih = 0;
-                        $sql8 = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_user";
+                        $sql8 = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_user$archive_bobot_filter";
                         $result8 = mysqli_query($conn, $sql8);
                         while ($row8 = mysqli_fetch_assoc($result8)) {
                             $bobotkpih = $row8['bh'];

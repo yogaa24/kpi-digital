@@ -7,7 +7,6 @@ if (!isset($_SESSION['id_user'])) {
 } else {
 
     require 'helper/config.php';
-    require 'helper/config.php';
     require_once 'helper/sp_functions.php';
 
     // Ambil level user yang sedang login
@@ -19,9 +18,16 @@ if (!isset($_SESSION['id_user'])) {
         $leveel_login = $hasil_login['level'];
     }
 
-    $id_user = $_GET['id'];
+    $id_user = isset($_GET['id']) ? intval($_GET['id']) : 0;
+    $idar = isset($_GET['idar']) ? $_GET['idar'] : '';
+    $idar_safe = mysqli_real_escape_string($conn, $idar);
 
-    $sql = "SELECT * FROM tb_users WHERE id='$id_user'";
+    if ($id_user <= 0 || $idar === '') {
+        header("Location: archivekabag");
+        exit();
+    }
+
+    $sql = "SELECT * FROM tb_users WHERE id=$id_user";
     $result = mysqli_query($conn, $sql);
 
     $username;
@@ -44,9 +50,17 @@ if (!isset($_SESSION['id_user'])) {
         $leveel = $hasil['level'];
     }
 
-    $idar = $_GET['idar'];
+    $query_archive = mysqli_query($conn, "SELECT id_archive FROM tbar_archive WHERE bulan = '$idar_safe' AND id_user = $id_user LIMIT 1");
+    if (!$query_archive || mysqli_num_rows($query_archive) == 0) {
+        echo "<script>alert('Data archive tidak ditemukan!'); window.location.href='archiveanggota?id=$id_user';</script>";
+        exit();
+    }
 
-    $sql= "SELECT tbar_kpi.* FROM tbar_kpi INNER JOIN tbar_archive ON tbar_archive.id_archive = tbar_kpi.id_arcv WHERE tbar_archive.bulan = '$idar' AND tbar_archive.id_user = $id_user";
+    $row_archive = mysqli_fetch_assoc($query_archive);
+    $id_archive = intval($row_archive['id_archive']);
+    $current_archive_id = $id_archive;
+
+    $sql = "SELECT * FROM tbar_kpi WHERE id_user = $id_user AND id_arcv = $id_archive";
     $result = mysqli_query($conn, $sql);
     $idKPI;
     $idUSER;
@@ -55,7 +69,7 @@ if (!isset($_SESSION['id_user'])) {
     $poin2;
     $bobot2;
 
-    $sql2 = "SELECT sum(bobot) FROM tbar_kpi WHERE id_user=$id_user AND bulan = '$idar'";
+    $sql2 = "SELECT sum(bobot) FROM tbar_kpi WHERE id_user=$id_user AND id_arcv = $id_archive";
     $result2 = mysqli_query($conn, $sql2);
 
     $zboth = 0;
@@ -77,7 +91,7 @@ if (!isset($_SESSION['id_user'])) {
         $totalws += $nilaiws;
     }
     $bobotkpid = 0;
-    $sql5a = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_user";
+    $sql5a = "SELECT bobotwhat as bw FROM tbar_bobotkpi WHERE id_user=$id_user AND id_arcv=$id_archive";
     $result5a = mysqli_query($conn, $sql5a);
     while ($row5a = mysqli_fetch_assoc($result5a)) {
         $bobotkpid = $row5a['bw'];
@@ -100,7 +114,7 @@ if (!isset($_SESSION['id_user'])) {
         $totalhfg += $nilaihfg;
     }
     $bobotkpias = 0;
-    $sql8a = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_user";
+    $sql8a = "SELECT bobothow as bh FROM tbar_bobotkpi WHERE id_user=$id_user AND id_arcv=$id_archive";
     $result8a = mysqli_query($conn, $sql8a);
     while ($row8a = mysqli_fetch_assoc($result8a)) {
         $bobotkpias = $row8a['bh'];
@@ -108,10 +122,10 @@ if (!isset($_SESSION['id_user'])) {
     $zboth = ($totalhfg * $bobotkpias) / 100;
     // ==================================================================================
 
-    $archivec = "SELECT * FROM tbar_kpi where id_user = $id_user group by bulan";
+    $archivec = "SELECT * FROM tbar_archive WHERE id_user = $id_user ORDER BY bulan DESC";
     $getArch = mysqli_query($conn, $archivec);
     
-    $blan = $_GET['idar'];
+    $blan = $idar;
 
     $bulannnn = '';
     if ($blan != '') {
@@ -155,13 +169,19 @@ if (!isset($_SESSION['id_user'])) {
     }
     $nilai_asli = $zbotw + $zboth;
 
-    // Hitung dengan pengurangan SP untuk user yang dilihat
-    $kpi_result = calculateKPIWithSP($conn, $id_user, $nilai_asli);
+    $nilai_akhir = $nilai_asli;
+    $sp_archive_data = null;
+    $pengurangan = 0;
 
-    // Extract variabel untuk digunakan di archiveProfile.php
-    $nilai_akhir = $kpi_result['nilai_akhir'];
-    $sp_archive_data = $kpi_result['sp_data'];
-    $pengurangan = $kpi_result['pengurangan'];
+    $cek_tabel_sp_archive = mysqli_query($conn, "SHOW TABLES LIKE 'tbar_sp_archive'");
+    if ($cek_tabel_sp_archive && mysqli_num_rows($cek_tabel_sp_archive) > 0) {
+        $cek_sp_archive = mysqli_query($conn, "SELECT * FROM tbar_sp_archive WHERE id_archive = $id_archive AND id_user = $id_user");
+        if ($cek_sp_archive && $sp_row = mysqli_fetch_assoc($cek_sp_archive)) {
+            $sp_archive_data = $sp_row;
+            $nilai_akhir = $sp_row['nilai_akhir'];
+            $pengurangan = $sp_row['pengurangan'];
+        }
+    }
 }
 
 ?>
@@ -185,7 +205,7 @@ if (!isset($_SESSION['id_user'])) {
                             <a href="archiveanggota?id=<?= $id_user ?>" class="nav-link">Kembali</a>
                         </li>
                     <?php } ?>
-                    <li class="nav-item d-none d-md-block"> <a href="archiveangdet?id=<?= $id_user ?>&idar=<?= $idar ?>" class="nav-link">Detail KPI</a> </li>
+                    <li class="nav-item d-none d-md-block"> <a href="archiveangdet?id=<?= $id_user ?>&idar=<?= urlencode($idar) ?>" class="nav-link">Detail KPI</a> </li>
                 </ul>
 
                 <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->
