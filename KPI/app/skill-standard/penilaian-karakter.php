@@ -8,6 +8,11 @@ if (!isset($_SESSION['id_user'])) {
 require 'helper/config.php';
 require 'helper/getUser.php';
 
+$karakter_autoload_path = __DIR__ . '/../../vendor/autoload.php';
+if (is_file($karakter_autoload_path)) {
+    require_once $karakter_autoload_path;
+}
+    
 function karakterQuestions()
 {
     return [
@@ -160,6 +165,83 @@ function karakterFormatScore($value)
     return $value === null ? '-' : number_format((float) $value, 2);
 }
 
+function karakterPointLabel($point)
+{
+    $labels = [
+        'Tidak mengeluh' => 'Mengeluh',
+        'Tidak menyalahkan' => 'Menyalahkan',
+        'Selalu berpegang pada hasil' => 'Berpegang pada hasil',
+        'Terus melakukan perbaikan' => "Terus melakukan\nperbaikan",
+        'Daya juang tinggi' => 'Daya Juang Tinggi',
+        'Tidak mudah menyerah' => 'Tidak Mudah Menyerah',
+        'Tidak mudah dijatuhkan' => 'Tidak Mudah Dijatuhkan',
+        'Berani mengungkapkan kejujuran apa adanya' => 'Jujur apa adanya',
+        'Keterbukaan' => 'Keterbukaan',
+        'Tidak defensif' => 'Tidak Defensif',
+        'Memilih dan bertindak menghadapi hambatan' => 'Realistis'
+    ];
+
+    return $labels[$point] ?? $point;
+}
+
+function karakterCategoryLabel($category)
+{
+    $labels = [
+        'Tanggung jawab' => 'Tanggung Jawab',
+        'Persisten' => 'Persisten',
+        'Komunikasi' => 'Komunikasi',
+        'Realistis' => 'Realistis'
+    ];
+
+    return $labels[$category] ?? $category;
+}
+
+function karakterScoreQuestionForAssignments($assignments, $question, $number)
+{
+    $submitted_count = 0;
+    $correct_count = 0;
+
+    foreach ($assignments as $assignment) {
+        if (empty($assignment['submitted_at'])) {
+            continue;
+        }
+
+        $answer = $assignment['q' . $number . '_jawaban'] ?? null;
+        if ($answer === null || $answer === '') {
+            continue;
+        }
+
+        $submitted_count++;
+        if ($answer === $question['ideal']) {
+            $correct_count++;
+        }
+    }
+
+    return $submitted_count > 0 ? ($correct_count / $submitted_count) * 4 : null;
+}
+
+function karakterMonthLabel($month)
+{
+    $timestamp = strtotime($month . '-01');
+    $nama_bulan = [
+        'January' => 'Januari',
+        'February' => 'Februari',
+        'March' => 'Maret',
+        'April' => 'April',
+        'May' => 'Mei',
+        'June' => 'Juni',
+        'July' => 'Juli',
+        'August' => 'Agustus',
+        'September' => 'September',
+        'October' => 'Oktober',
+        'November' => 'November',
+        'December' => 'Desember'
+    ];
+    $month_name = date('F', $timestamp);
+
+    return ($nama_bulan[$month_name] ?? $month_name) . ' ' . date('Y', $timestamp);
+}
+
 function karakterTrendBadge($current, $previous)
 {
     if ($current === null || $previous === null) {
@@ -283,6 +365,141 @@ function karakterFlash($type, $text)
 function karakterRedirect()
 {
     header('Location: penilaian-karakter');
+    exit();
+}
+
+function karakterExportAllResults($anggota_rows, $assignment_rows, $assignments_by_user, $questions, $bulan, $nama_atasan)
+{
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $spreadsheet->getProperties()
+        ->setCreator('KPI')
+        ->setTitle('Export Penilaian Karakter ' . karakterMonthLabel($bulan))
+        ->setSubject('Penilaian Karakter')
+        ->setDescription('Hasil penilaian karakter seluruh anggota periode ' . karakterMonthLabel($bulan));
+
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle(substr('Rekap ' . karakterMonthLabel($bulan), 0, 31));
+
+    $blue = '002060';
+    $green = '00B050';
+    $yellow = 'FFC000';
+    $red = 'FF0000';
+
+    $dark_header_style = [
+        'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+        'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => $blue]],
+        'alignment' => [
+            'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+            'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            'wrapText' => true
+        ],
+        'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]
+    ];
+    $border_style = [
+        'borders' => [
+            'allBorders' => [
+                'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                'color' => ['rgb' => '000000']
+            ]
+        ]
+    ];
+
+    $last_col_index = max(1, count($anggota_rows) + 1);
+    $last_col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($last_col_index);
+    $row_number = 1;
+    $current_category = null;
+    $member_totals = [];
+    $member_counts = [];
+
+    foreach ($anggota_rows as $member_index => $anggota) {
+        $member_totals[$member_index] = 0;
+        $member_counts[$member_index] = 0;
+    }
+
+    foreach ($questions as $index => $question) {
+        if ($current_category !== $question['kategori']) {
+            $current_category = $question['kategori'];
+            $category_label = $current_category === 'Tanggung jawab' ? 'Karakter Bertanggung Jawab' : karakterCategoryLabel($current_category);
+            $sheet->setCellValue('A' . $row_number, $category_label);
+            if ($row_number === 1) {
+                foreach ($anggota_rows as $member_index => $anggota) {
+                    $sheet->setCellValueByColumnAndRow($member_index + 2, $row_number, $anggota['nama_lngkp']);
+                }
+            }
+            $sheet->getStyle('A' . $row_number . ':' . $last_col . $row_number)->applyFromArray($dark_header_style);
+            $row_number++;
+        }
+
+        $number = $index + 1;
+        $sheet->setCellValue('A' . $row_number, karakterPointLabel($question['poin']));
+
+        foreach ($anggota_rows as $member_index => $anggota) {
+            $score = karakterScoreQuestionForAssignments($assignments_by_user[$anggota['id']] ?? [], $question, $number);
+            $cell = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($member_index + 2) . $row_number;
+            if ($score !== null) {
+                $sheet->setCellValue($cell, $score);
+                $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('0.0');
+                $member_totals[$member_index] += $score;
+                $member_counts[$member_index]++;
+                if ($score < 4) {
+                    $sheet->getStyle($cell)->getFont()->getColor()->setRGB($red);
+                    $sheet->getStyle($cell)->getFont()->setBold(true);
+                }
+            } else {
+                $sheet->setCellValue($cell, '-');
+            }
+        }
+
+        $row_number++;
+    }
+
+    $average_row = $row_number;
+    $sheet->setCellValue('A' . $average_row, 'Rata2');
+    $sheet->getStyle('A' . $average_row)->applyFromArray([
+        'font' => ['bold' => true],
+        'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => $yellow]],
+        'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]
+    ]);
+
+    foreach ($anggota_rows as $member_index => $anggota) {
+        $cell = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($member_index + 2) . $average_row;
+        $average = $member_counts[$member_index] > 0 ? $member_totals[$member_index] / $member_counts[$member_index] : null;
+        if ($average !== null) {
+            $sheet->setCellValue($cell, $average);
+            $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('0.00');
+            $sheet->getStyle($cell)->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => $average < 4 ? $red : $green]
+                ],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER]
+            ]);
+        } else {
+            $sheet->setCellValue($cell, '-');
+        }
+    }
+
+    $sheet->getStyle('A1:' . $last_col . $average_row)->applyFromArray($border_style);
+    $sheet->getStyle('A1:' . $last_col . $average_row)->getAlignment()
+        ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+        ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER)
+        ->setWrapText(true);
+    $sheet->getColumnDimension('A')->setWidth(24);
+    for ($i = 2; $i <= $last_col_index; $i++) {
+        $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i))->setWidth(17);
+    }
+    for ($i = 1; $i <= $average_row; $i++) {
+        $sheet->getRowDimension($i)->setRowHeight(21);
+    }
+    $sheet->freezePane('B2');
+
+    $filename = 'penilaian-karakter-' . $bulan . '.xlsx';
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer->save('php://output');
     exit();
 }
 
@@ -445,6 +662,48 @@ foreach ($anggota_rows as $anggota) {
         'current' => karakterAverageScores($assignments_by_user[$id_anggota] ?? [], $questions),
         'previous' => karakterAverageScores($assignments_by_user_lalu[$id_anggota] ?? [], $questions)
     ];
+}
+
+$karakter_chart_data = [];
+$karakter_chart_labels = [];
+foreach ($anggota_rows as $anggota) {
+    $karakter_chart_labels[] = $anggota['nama_lngkp'];
+}
+foreach ($questions as $index => $question) {
+    $category = $question['kategori'];
+    if (!isset($karakter_chart_data[$category])) {
+        $karakter_chart_data[$category] = [
+            'id' => preg_replace('/[^A-Za-z0-9]/', '', $category),
+            'title' => karakterCategoryLabel($category),
+            'labels' => $karakter_chart_labels,
+            'series' => []
+        ];
+    }
+
+    $number = $index + 1;
+    $data = [];
+    foreach ($anggota_rows as $anggota) {
+        $score = karakterScoreQuestionForAssignments($assignments_by_user[$anggota['id']] ?? [], $question, $number);
+        $data[] = $score === null ? null : round($score, 2);
+    }
+    $karakter_chart_data[$category]['series'][] = [
+        'name' => str_replace("\n", ' ', karakterPointLabel($question['poin'])),
+        'data' => $data
+    ];
+}
+
+if (isset($_GET['export_karakter'])) {
+    if (!$can_manage) {
+        karakterFlash('danger', 'Anda tidak memiliki akses export hasil penilaian karakter.');
+        karakterRedirect();
+    }
+
+    if (!class_exists('\PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+        karakterFlash('danger', 'Export Excel belum bisa digunakan karena dependency Composer belum terpasang. Jalankan composer install di folder KPI.');
+        karakterRedirect();
+    }
+
+    karakterExportAllResults($anggota_rows, $assignment_rows, $assignments_by_user, $questions, $bulan_penilaian, $nama_lngkp);
 }
 
 $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lngkp AS nama_dinilai, dinilai.bagian, dinilai.departement, dinilai.jabatan,
@@ -640,8 +899,11 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                         <?php if ($can_manage) { ?>
                             <div class="col-12">
                                 <div class="card shadow-sm">
-                                    <div class="card-header bg-primary text-white">
+                                    <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between flex-wrap gap-2" style="justify-content: space-between !important;">
                                         <h5 class="card-title mb-0"><i class="bi bi-people"></i> Daftar Anggota & Hasil Penilaian Karakter</h5>
+                                        <a href="penilaian-karakter?export_karakter=1" class="btn btn-light btn-sm ms-auto">
+                                            <i class="bi bi-file-earmark-excel me-1"></i> Export
+                                        </a>
                                     </div>
                                     <div class="card-body p-0">
                                         <div class="table-responsive">
@@ -707,6 +969,31 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                 </tbody>
                                             </table>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="card-title mb-0"><i class="bi bi-bar-chart"></i> Analisa Grafik Per Poin Karakter</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <?php if (!empty($anggota_rows)) { ?>
+                                            <div class="row g-3">
+                                                <?php foreach ($karakter_chart_data as $chart_key => $chart_group) { ?>
+                                                    <div class="col-12">
+                                                        <div class="border rounded p-3 bg-white">
+                                                            <div class="karakter-chart-scroll">
+                                                                <div id="karakterChart<?= h($chart_group['id']); ?>" class="karakter-chart"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                <?php } ?>
+                                            </div>
+                                        <?php } else { ?>
+                                            <div class="text-center text-muted py-4">Belum ada anggota untuk ditampilkan pada grafik.</div>
+                                        <?php } ?>
                                     </div>
                                 </div>
                             </div>
@@ -1062,8 +1349,99 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
 
         <?php include("pages/part/p_footer.php"); ?>
     </div>
+    <style>
+        .karakter-chart-scroll {
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        .karakter-chart {
+            min-width: 980px;
+            height: 360px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.37.1/dist/apexcharts.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            var karakterChartData = <?= json_encode(array_values($karakter_chart_data), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+            var karakterChartColors = ['#4F81BD', '#C0504D', '#9BBB59', '#8064A2'];
+
+            if (typeof ApexCharts !== 'undefined' && Array.isArray(karakterChartData)) {
+                karakterChartData.forEach(function (group) {
+                    var chartEl = document.getElementById('karakterChart' + group.id);
+                    if (!chartEl) return;
+
+                    var chartColors = group.series.length === 1 ? ['#C0504D'] : karakterChartColors;
+                    var chart = new ApexCharts(chartEl, {
+                        chart: {
+                            type: 'bar',
+                            height: 340,
+                            toolbar: { show: false },
+                            fontFamily: 'Source Sans 3, Arial, sans-serif'
+                        },
+                        series: group.series,
+                        colors: chartColors,
+                        plotOptions: {
+                            bar: {
+                                horizontal: false,
+                                columnWidth: '68%',
+                                dataLabels: { position: 'top' }
+                            }
+                        },
+                        dataLabels: { enabled: false },
+                        stroke: {
+                            show: true,
+                            width: 1,
+                            colors: ['#ffffff']
+                        },
+                        title: {
+                            text: group.title,
+                            align: 'center',
+                            style: { fontSize: '18px', fontWeight: 700, color: '#111827' }
+                        },
+                        legend: {
+                            position: 'bottom',
+                            horizontalAlign: 'center',
+                            markers: { width: 10, height: 10, radius: 0 }
+                        },
+                        xaxis: {
+                            categories: group.labels,
+                            labels: {
+                                rotate: -15,
+                                trim: true,
+                                style: { fontSize: '11px' }
+                            }
+                        },
+                        yaxis: {
+                            min: 0,
+                            max: 4.5,
+                            tickAmount: 9,
+                            labels: {
+                                formatter: function (value) {
+                                    return Number(value).toFixed(1).replace('.', ',');
+                                }
+                            }
+                        },
+                        grid: {
+                            borderColor: '#d1d5db',
+                            strokeDashArray: 0,
+                            yaxis: { lines: { show: true } }
+                        },
+                        tooltip: {
+                            y: {
+                                formatter: function (value) {
+                                    if (value === null || typeof value === 'undefined') return '-';
+                                    return Number(value).toFixed(2).replace('.', ',');
+                                }
+                            }
+                        },
+                        noData: {
+                            text: 'Belum ada data penilaian'
+                        }
+                    });
+                    chart.render();
+                });
+            }
+
             function filterPenilai(memberId) {
                 var searchInput = document.querySelector('.penilai-search[data-member-id="' + memberId + '"]');
                 var filterInput = document.querySelector('.penilai-filter[data-member-id="' + memberId + '"]');
