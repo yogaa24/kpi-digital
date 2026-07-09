@@ -606,6 +606,18 @@ updateExpiredSP($conn);
                             </div>
                         </div>
                     </div>
+                    <!-- Penilaian Karakter -->
+                    <div class="col-xl-4 col-lg-6 col-md-6 mb-4">
+                        <div class="card shadow-sm menu-card" onclick="window.location.href='penilaian-karakter-adminhrd'">
+                            <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
+                                <div class="icon-wrapper icon-bg-purple">
+                                    <i class="bi bi-heart-pulse-fill text-purple" style="font-size:2.2rem; color: #8b5cf6;"></i>
+                                </div>
+                                <h5 class="card-title">Penilaian Karakter</h5>
+                                <p class="card-text">Monitoring penilaian karakter seluruh karyawan</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- ========== TOMBOL RESET KPI ========== -->

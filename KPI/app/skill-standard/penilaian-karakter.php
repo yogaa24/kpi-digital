@@ -729,7 +729,6 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                 <ul class="navbar-nav nav-underline">
                     <li class="nav-item"><a class="nav-link" data-lte-toggle="sidebar" href="#" role="button"><i class="bi bi-list"></i></a></li>
                     <li class="nav-item d-none d-md-block"><a href="skillstandard" class="nav-link">Kembali</a></li>
-                    <li class="nav-item d-none d-md-block"><a href="ssanggota" class="nav-link">SS Anggota</a></li>
                 </ul>
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item dropdown user-menu">
@@ -810,6 +809,7 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                         <th>Bagian</th>
                                                         <th>Departemen</th>
                                                         <th>Status</th>
+                                                        <th><center>Skor Penilaian</center></th>
                                                         <th width="12%" style="text-align:right; padding-right:16px;">Aksi</th>
                                                     </tr>
                                                 </thead>
@@ -827,6 +827,19 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                                     <?php } else { ?>
                                                                         <span class="badge bg-warning text-dark">Menunggu</span>
                                                                     <?php } ?>
+                                                                </td>
+                                                                <td style="vertical-align:middle;">
+                                                                    <center>
+                                                                        <?php if (!empty($request['submitted_at'])) { 
+                                                                            $req_score = karakterScoreResponse($request, $questions);
+                                                                            $score_val = $req_score['total'];
+                                                                            $badge_class = $score_val == 4 ? 'bg-success' : ($score_val >= 3 ? 'bg-info text-dark' : 'bg-danger');
+                                                                        ?>
+                                                                            <span class="badge <?= $badge_class; ?>"><?= karakterFormatScore($score_val); ?> / 4.00</span>
+                                                                        <?php } else { ?>
+                                                                            <span class="badge bg-secondary">-</span>
+                                                                        <?php } ?>
+                                                                    </center>
                                                                 </td>
                                                                 <td style="vertical-align:middle; padding:6px 12px;">
                                                                     <div style="display:flex; justify-content:flex-end;">
@@ -886,7 +899,7 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                             </div>
                                                         <?php } ?>
                                                     <?php } else { ?>
-                                                        <tr><td colspan="5" class="text-center text-muted py-4">Belum ada permintaan penilaian karakter.</td></tr>
+                                                        <tr><td colspan="6" class="text-center text-muted py-4">Belum ada permintaan penilaian karakter.</td></tr>
                                                     <?php } ?>
                                                 </tbody>
                                             </table>
