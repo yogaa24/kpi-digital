@@ -12,7 +12,7 @@ if (!isset($_SESSION['id_user'])) {
     function getss($conn, $id)
     {
         $row3sd = 0;
-        $totil = 1;
+        $totil = 0;
         $sqler = "select * from tb_ss where id_user=$id";
         $tewg = mysqli_query($conn, $sqler);
         while ($hasil = mysqli_fetch_assoc($tewg)) {
@@ -22,9 +22,12 @@ if (!isset($_SESSION['id_user'])) {
                 if ($hasilsd['total'] != 0 &&  $hasilsd['totil'] != 0) {
                     $row3cf = $hasilsd['total'] / $hasilsd['totil'];
                     $row3sd += $row3cf;
+                    $totil++;
                 }
             }
-            $totil++;
+        }
+        if ($totil == 0) {
+            return "0.00";
         }
         return number_format($row3sd / $totil, 2);
     }

@@ -86,6 +86,25 @@ if (!isset($_SESSION['id_user'])) {
         return '<span class="badge bg-secondary">0.00</span>';
     }
 
+    function getSSEditorName($conn, $editor_id)
+    {
+        $editor_id = intval($editor_id);
+        if ($editor_id <= 0) {
+            return '';
+        }
+
+        $result = mysqli_query($conn, "SELECT nama_lngkp FROM tb_users WHERE id = $editor_id LIMIT 1");
+        $row = $result ? mysqli_fetch_assoc($result) : null;
+
+        return $row['nama_lngkp'] ?? '';
+    }
+
+    function shortSSValue($value, $length = 55)
+    {
+        $value = (string) $value;
+        return htmlspecialchars(strlen($value) > $length ? substr($value, 0, $length) . '...' : $value);
+    }
+
     function ssEnsureHistoryTable($conn)
     {
         return mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_ss_history` (
@@ -394,12 +413,19 @@ if (!isset($_SESSION['id_user'])) {
         }
     }
     if (isset($_POST['ss_nilai'])) {
-        $id = $_POST['idnilai'];
-        $nilai = $_POST['nilai'];
-        $keterangan = $_POST['keterangan'];
+        $id = intval($_POST['idnilai']);
+        $nilai = mysqli_real_escape_string($conn, $_POST['nilai']);
+        $keterangan = mysqli_real_escape_string($conn, $_POST['keterangan']);
     
         $sql = "UPDATE tb_sspoin 
-        SET nilaiss='$nilai', deskripsi='$keterangan' 
+        SET nilaiss='$nilai', 
+            deskripsi='$keterangan', 
+            is_edited=0, 
+            edited_by=NULL, 
+            edited_at=NULL, 
+            original_poinss=NULL, 
+            original_nilaiss=NULL, 
+            original_deskripsi=NULL 
         WHERE id_sspoin=$id";
         $result = mysqli_query($conn, $sql);
         if ($result) {
@@ -468,6 +494,37 @@ if (!isset($_SESSION['id_user'])) {
 
 <html lang="en">
 <?php include("pages/part/p_header.php"); ?>
+    <style>
+        .edited-badge {
+            display: inline-block;
+            background-color: #ffc107;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-left: 6px;
+        }
+        .edited-row {
+            background-color: #fff8e1 !important;
+        }
+        .change-info {
+            margin-top: 4px;
+            padding: 5px 7px;
+            background-color: #fff3cd;
+            border-left: 3px solid #ffc107;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .change-info .old-val {
+            color: #dc3545;
+            text-decoration: line-through;
+        }
+        .change-info .new-val {
+            color: #198754;
+            font-weight: 700;
+        }
+    </style>
 
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
     <div class="app-wrapper">
@@ -590,6 +647,9 @@ if (!isset($_SESSION['id_user'])) {
                 while ($hasil = mysqli_fetch_assoc($tewg)) {
                     $current_category_average = ssGetAverage($conn, $id_user, $hasil['id_poinss']);
                     $previous_category_average = ssGetAverage($conn, $id_user, $hasil['id_poinss'], $bulan_lalu_ss);
+                    $is_category_edited_by_superior = !empty($hasil['is_edited']) && !empty($hasil['edited_by']) && intval($hasil['edited_by']) !== intval($id_user);
+                    $category_editor_name = $is_category_edited_by_superior ? getSSEditorName($conn, $hasil['edited_by']) : '';
+                    $category_edit_label = empty($hasil['original_poin_ss']) ? 'DITAMBAH ATASAN' : 'DIUBAH ATASAN';
                 ?>
                     <div class="row">
                         <div class="col-lg connectedSortable">
@@ -607,6 +667,11 @@ if (!isset($_SESSION['id_user'])) {
                                                 Lalu (<?= $label_bulan_lalu_pendek_ss; ?>): <?= ssFormatValue($previous_category_average); ?>
                                             </span>
                                             <?= ssTrendBadge($current_category_average ?? 0, $previous_category_average); ?>
+                                            <?php if ($is_category_edited_by_superior) { ?>
+                                                <span class="edited-badge" title="Diubah <?= !empty($hasil['edited_at']) ? date('d/m/Y H:i', strtotime($hasil['edited_at'])) : ''; ?><?= !empty($category_editor_name) ? ' oleh ' . htmlspecialchars($category_editor_name) : ''; ?>">
+                                                    <i class="bi bi-pencil-fill"></i> <?= $category_edit_label; ?>
+                                                </span>
+                                            <?php } ?>
                                         </div>
                                         <div class="card-tools d-flex align-items-center gap-1 ms-auto">
                                             <button style="color: white;"
@@ -664,13 +729,33 @@ if (!isset($_SESSION['id_user'])) {
                                                 $ql = mysqli_query($conn, $sql1);
                                                 $nodd = 1;
                                                 while ($res = mysqli_fetch_assoc($ql)) {
+                                                    $is_edited_by_superior = !empty($res['is_edited']) && !empty($res['edited_by']) && intval($res['edited_by']) !== intval($id_user);
+                                                    $row_class = $is_edited_by_superior ? 'edited-row' : '';
+                                                    $has_original_change = !empty($res['original_poinss'])
+                                                        || $res['original_nilaiss'] !== null
+                                                        || $res['original_deskripsi'] !== null;
                                                     $previous_score = array_key_exists($res['id_sspoin'], $ss_previous_scores)
                                                         ? $ss_previous_scores[$res['id_sspoin']]
                                                         : null;
                                                 ?>
-                                                    <tr class="align-middle">
+                                                    <tr class="align-middle <?= $row_class ?>">
                                                         <td><?= $no . '.' . $nodd ?></td>
-                                                        <td><?= $res['poinss']; ?></td>
+                                                        <td>
+                                                            <?= $res['poinss']; ?>
+                                                            <?php if ($is_edited_by_superior) { ?>
+                                                                <span class="edited-badge">
+                                                                    <i class="bi bi-pencil-fill"></i> <?= $has_original_change ? 'DIUBAH ATASAN' : 'DITAMBAH ATASAN'; ?>
+                                                                </span>
+                                                            <?php } ?>
+                                                            <?php if ($is_edited_by_superior && !empty($res['original_poinss']) && $res['original_poinss'] != $res['poinss']) { ?>
+                                                                <div class="change-info">
+                                                                    <strong>Sebelum:</strong>
+                                                                    <span class="old-val"><?= shortSSValue($res['original_poinss']); ?></span><br>
+                                                                    <strong>Sesudah:</strong>
+                                                                    <span class="new-val"><?= shortSSValue($res['poinss']); ?></span>
+                                                                </div>
+                                                            <?php } ?>
+                                                        </td>
                                                         <td>
                                                             <center>
                                                                 <?php if ($previous_score !== null) { ?>
@@ -691,6 +776,13 @@ if (!isset($_SESSION['id_user'])) {
                                                                 <?php } else { ?>
                                                                     <span class="badge bg-warning fs-8">Belum Dinilai</span>
                                                                 <?php } ?>
+                                                                <?php if ($is_edited_by_superior && $res['original_nilaiss'] !== null && $res['original_nilaiss'] != $res['nilaiss']) { ?>
+                                                                    <div class="change-info" style="text-align:left;">
+                                                                        <span class="old-val"><?= number_format($res['original_nilaiss'], 2); ?></span>
+                                                                        &rarr;
+                                                                        <span class="new-val"><?= number_format($res['nilaiss'], 2); ?></span>
+                                                                    </div>
+                                                                <?php } ?>
                                                             </center>
                                                         </td>
                                                         <td>
@@ -703,6 +795,14 @@ if (!isset($_SESSION['id_user'])) {
                                                                 <small><?= $res['deskripsi']; ?></small>
                                                             <?php } else { ?>
                                                                 <small class="text-muted fst-italic">Belum ada deskripsi. Klik "Nilai" untuk menambahkan.</small>
+                                                            <?php } ?>
+                                                            <?php if ($is_edited_by_superior && $res['original_deskripsi'] !== null && $res['original_deskripsi'] != $res['deskripsi']) { ?>
+                                                                <div class="change-info">
+                                                                    <strong>Sebelum:</strong>
+                                                                    <span class="old-val"><?= shortSSValue($res['original_deskripsi']); ?></span><br>
+                                                                    <strong>Sesudah:</strong>
+                                                                    <span class="new-val"><?= shortSSValue($res['deskripsi']); ?></span>
+                                                                </div>
                                                             <?php } ?>
                                                         </td>
                                                         <td class="text-center">
