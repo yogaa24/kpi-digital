@@ -353,7 +353,8 @@ function karakterExportAllResults($anggota_rows, $assignment_rows, $assignments_
             $sheet->setCellValue('A' . $row_number, $category_label);
             if ($row_number === 1) {
                 foreach ($anggota_rows as $member_index => $anggota) {
-                    $sheet->setCellValueByColumnAndRow($member_index + 2, $row_number, $anggota['nama_lngkp']);
+                    $header_text = $anggota['nama_lngkp'] . "\n" . $anggota['departement'];
+                    $sheet->setCellValueByColumnAndRow($member_index + 2, $row_number, $header_text);
                 }
             }
             $sheet->getStyle('A' . $row_number . ':' . $last_col . $row_number)->applyFromArray($dark_header_style);
@@ -419,7 +420,8 @@ function karakterExportAllResults($anggota_rows, $assignment_rows, $assignments_
     for ($i = 2; $i <= $last_col_index; $i++) {
         $sheet->getColumnDimension(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i))->setWidth(17);
     }
-    for ($i = 1; $i <= $average_row; $i++) {
+    $sheet->getRowDimension(1)->setRowHeight(35);
+    for ($i = 2; $i <= $average_row; $i++) {
         $sheet->getRowDimension($i)->setRowHeight(21);
     }
     $sheet->freezePane('B2');

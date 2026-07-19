@@ -105,6 +105,14 @@ if (!isset($_SESSION['id_user'])) {
         return htmlspecialchars(strlen($value) > $length ? substr($value, 0, $length) . '...' : $value);
     }
 
+    function ssEnsureTipeColumn($conn)
+    {
+        $check = mysqli_query($conn, "SHOW COLUMNS FROM tb_ss LIKE 'tipe_ss'");
+        if ($check && mysqli_num_rows($check) == 0) {
+            mysqli_query($conn, "ALTER TABLE tb_ss ADD COLUMN tipe_ss ENUM('umum','teknis') NOT NULL DEFAULT 'umum' AFTER poin_ss");
+        }
+    }
+
     function ssEnsureHistoryTable($conn)
     {
         return mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_ss_history` (
@@ -219,18 +227,19 @@ if (!isset($_SESSION['id_user'])) {
         return trim((string) $value);
     }
 
-    function ssFindOrCreateCategory($conn, $id_user, $category)
+    function ssFindOrCreateCategory($conn, $id_user, $category, $tipe_ss = 'umum')
     {
         $id_user = intval($id_user);
         $category_safe = mysqli_real_escape_string($conn, $category);
-        $result = mysqli_query($conn, "SELECT id_poinss FROM tb_ss WHERE id_user=$id_user AND poin_ss='$category_safe' LIMIT 1");
+        $tipe_ss_safe = mysqli_real_escape_string($conn, $tipe_ss);
+        $result = mysqli_query($conn, "SELECT id_poinss FROM tb_ss WHERE id_user=$id_user AND poin_ss='$category_safe' AND tipe_ss='$tipe_ss_safe' LIMIT 1");
 
         if ($result && mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);
             return intval($row['id_poinss']);
         }
 
-        $insert = mysqli_query($conn, "INSERT INTO tb_ss (id_user, poin_ss) VALUES ($id_user, '$category_safe')");
+        $insert = mysqli_query($conn, "INSERT INTO tb_ss (id_user, poin_ss, tipe_ss) VALUES ($id_user, '$category_safe', '$tipe_ss_safe')");
         if (!$insert) {
             return null;
         }
@@ -238,7 +247,7 @@ if (!isset($_SESSION['id_user'])) {
         return mysqli_insert_id($conn);
     }
 
-    function ssImportSkillStandardFromSpreadsheet($conn, $id_user, $file_path)
+    function ssImportSkillStandardFromSpreadsheet($conn, $id_user, $file_path, $tipe_ss = 'umum')
     {
         $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file_path);
         $sheet = $spreadsheet->getActiveSheet();
@@ -267,7 +276,7 @@ if (!isset($_SESSION['id_user'])) {
                 continue;
             }
 
-            $category_id = ssFindOrCreateCategory($conn, $id_user, $category);
+            $category_id = ssFindOrCreateCategory($conn, $id_user, $category, $tipe_ss);
             if (!$category_id) {
                 $skipped++;
                 $errors[] = "Baris $row gagal: kategori tidak bisa dibuat.";
@@ -312,12 +321,13 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['submitSS'])) {
         $poin = $_POST['poin'];
         $poin_safe = mysqli_real_escape_string($conn, $poin);
-        $sql = "INSERT INTO tb_ss (id_user, poin_ss)
-        VALUES ($id_user, '$poin_safe')";
+        $tipe_ss = in_array($_POST['tipe_ss'] ?? '', ['umum', 'teknis']) ? $_POST['tipe_ss'] : 'umum';
+        $sql = "INSERT INTO tb_ss (id_user, poin_ss, tipe_ss)
+        VALUES ($id_user, '$poin_safe', '$tipe_ss')";
         $result = mysqli_query($conn, $sql);
         if ($result) {
-            header('Location: ' . $_SERVER['REQUEST_URI']);
-            echo "<script>alert('Berhasil, Tambah Skill Standard')</script>";
+            header('Location: skillstandard?tab=' . $tipe_ss);
+            exit();
         } else {
             echo "<script>alert('Gagal, Tambah Skill Standard')</script>";
         }
@@ -355,7 +365,8 @@ if (!isset($_SESSION['id_user'])) {
         }
 
         try {
-            $summary = ssImportSkillStandardFromSpreadsheet($conn, $id_user, $_FILES['file_ss']['tmp_name']);
+            $tipe_ss_import = in_array($_POST['tipe_ss'] ?? '', ['umum', 'teknis']) ? $_POST['tipe_ss'] : 'umum';
+            $summary = ssImportSkillStandardFromSpreadsheet($conn, $id_user, $_FILES['file_ss']['tmp_name'], $tipe_ss_import);
             $error_text = '';
             if (!empty($summary['errors'])) {
                 $error_text = ' Detail: ' . implode(' ', array_slice($summary['errors'], 0, 5));
@@ -478,6 +489,7 @@ if (!isset($_SESSION['id_user'])) {
         }
     }
 
+    ssEnsureTipeColumn($conn);
     ssSyncCurrentMonthHistory($conn, $id_user);
 
     $bulan_ini_ss = date('Y-m', strtotime('-1 month'));
@@ -489,6 +501,7 @@ if (!isset($_SESSION['id_user'])) {
     $ss_current_average = ssGetAverage($conn, $id_user);
     $ss_previous_average = ssGetAverage($conn, $id_user, null, $bulan_lalu_ss);
     $ss_previous_scores = ssGetPreviousScores($conn, $id_user, $bulan_lalu_ss);
+    $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab'] : 'umum';
 }
 ?>
 
@@ -579,6 +592,19 @@ if (!isset($_SESSION['id_user'])) {
                     </div>
                     <div class="modal-body">
                         <form method="POST" action="" class="input">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Jenis Skill Standard</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipe_ss" id="tipe_umum" value="umum" <?= $active_tab_ss === 'umum' ? 'checked' : ''; ?> required>
+                                        <label class="form-check-label" for="tipe_umum"><span class="badge bg-primary">Umum</span></label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipe_ss" id="tipe_teknis" value="teknis" <?= $active_tab_ss === 'teknis' ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="tipe_teknis"><span class="badge bg-success">Teknis</span></label>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="input-group mb-3">
                                 <span style="color : #343A40;" class="input-group-text fw-bold" id="poin">Kategori :</span>
                                 <input type="input" class="form-control" name="poin" placeholder="Contoh: Komunikasi, Leadership, dll"
@@ -611,6 +637,19 @@ if (!isset($_SESSION['id_user'])) {
                                 Baris pertama adalah header dan data dimulai dari baris kedua.
                             </div>
                             <div class="mb-3">
+                                <label class="form-label fw-bold">Jenis Skill Standard</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipe_ss" id="import_tipe_umum" value="umum" <?= $active_tab_ss === 'umum' ? 'checked' : ''; ?> required>
+                                        <label class="form-check-label" for="import_tipe_umum"><span class="badge bg-primary">Umum</span></label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipe_ss" id="import_tipe_teknis" value="teknis" <?= $active_tab_ss === 'teknis' ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="import_tipe_teknis"><span class="badge bg-success">Teknis</span></label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label fw-bold">File Excel</label>
                                 <input type="file" class="form-control" name="file_ss" accept=".xlsx,.xls,.csv" required>
                             </div>
@@ -640,9 +679,25 @@ if (!isset($_SESSION['id_user'])) {
                     </div>
                     <?php unset($_SESSION['ss_import_message']); ?>
                 <?php } ?>
+
+                <!-- Tabs Umum / Teknis -->
+                <ul class="nav nav-tabs mb-3">
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold <?= $active_tab_ss === 'umum' ? 'active' : ''; ?>" href="skillstandard?tab=umum">
+                            <i class="bi bi-person-check me-1"></i>Skill Standard Umum
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold <?= $active_tab_ss === 'teknis' ? 'active' : ''; ?>" href="skillstandard?tab=teknis">
+                            <i class="bi bi-tools me-1"></i>Skill Standard Teknis
+                        </a>
+                    </li>
+                </ul>
+
                 <?php
                 $no = 1;
-                $sqler = "SELECT * FROM tb_ss WHERE id_user=$id_user";
+                $tipe_filter = mysqli_real_escape_string($conn, $active_tab_ss);
+                $sqler = "SELECT * FROM tb_ss WHERE id_user=$id_user AND tipe_ss='$tipe_filter'";
                 $tewg = mysqli_query($conn, $sqler);
                 while ($hasil = mysqli_fetch_assoc($tewg)) {
                     $current_category_average = ssGetAverage($conn, $id_user, $hasil['id_poinss']);

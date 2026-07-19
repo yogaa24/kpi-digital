@@ -10,6 +10,7 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/config.php';
     require 'helper/getUser.php';
     require 'helper/getKPI.php';
+    require 'helper/verified_functions.php';
 }
 function getnilai($conn, $id)
 {
@@ -420,6 +421,9 @@ function getKPISimulasi($conn, $id)
                                             <?= $hasilsfa['nama_lngkp']; ?>
                                             <?php if ($hasilsfa['nama_lngkp'] == $nama_lngkp) { ?>
                                                 <span class="badge bg-primary">Saya</span>
+                                            <?php } ?>
+                                            <?php if (checkKPIVerified($conn, $hasilsfa['id'], date('m/Y'))) { ?>
+                                                <i class="bi bi-check-circle-fill text-success ms-1" title="Sudah Diverifikasi"></i>
                                             <?php } ?>
                                         </td>
                                         

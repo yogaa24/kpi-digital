@@ -9,11 +9,12 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/config.php';
     require 'helper/getUser.php';
 
-    function getss($conn, $id)
+    function getSSByTipe($conn, $id, $tipe)
     {
         $row3sd = 0;
         $totil = 0;
-        $sqler = "select * from tb_ss where id_user=$id";
+        $tipe = mysqli_real_escape_string($conn, $tipe);
+        $sqler = "select * from tb_ss where id_user=$id AND tipe_ss='$tipe'";
         $tewg = mysqli_query($conn, $sqler);
         while ($hasil = mysqli_fetch_assoc($tewg)) {
             $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_sspoin WHERE id_user=$id AND id_ss=" . $hasil['id_poinss'];
@@ -27,7 +28,7 @@ if (!isset($_SESSION['id_user'])) {
             }
         }
         if ($totil == 0) {
-            return "0.00";
+            return "-";
         }
         return number_format($row3sd / $totil, 2);
     }
@@ -108,8 +109,11 @@ if (!isset($_SESSION['id_user'])) {
                                         <th width="15%">
                                             <center>Bagian</center>
                                         </th>
-                                        <th width="20%">
-                                            <center>Nilai</center>
+                                        <th width="13%">
+                                            <center>Nilai Umum</center>
+                                        </th>
+                                        <th width="13%">
+                                            <center>Nilai Teknis</center>
                                         </th>
                                         <th width="10%">
                                             <center>#</center>
@@ -140,11 +144,28 @@ ORDER BY
                                                 <center><?= $hasilsfa['bagian']; ?></center>
                                             </td>
                                             <td>
-                                                <center><?php echo getss($conn, $hasilsfa['id']); ?></center>
+                                                <center>
+                                                    <?php $val_umum = getSSByTipe($conn, $hasilsfa['id'], 'umum'); ?>
+                                                    <?php if ($val_umum !== '-') { ?>
+                                                        <span class="badge bg-primary"><?= $val_umum; ?></span>
+                                                    <?php } else { ?>
+                                                        <span class="badge bg-secondary">-</span>
+                                                    <?php } ?>
+                                                </center>
+                                            </td>
+                                            <td>
+                                                <center>
+                                                    <?php $val_teknis = getSSByTipe($conn, $hasilsfa['id'], 'teknis'); ?>
+                                                    <?php if ($val_teknis !== '-') { ?>
+                                                        <span class="badge bg-success"><?= $val_teknis; ?></span>
+                                                    <?php } else { ?>
+                                                        <span class="badge bg-secondary">-</span>
+                                                    <?php } ?>
+                                                </center>
                                             </td>
                                             <td>
                                                 <?php if ($hasilsfa['nama_lngkp'] != $nama_lngkp) { ?>
-                                                    <center><a type="button" href="ssanggotadetail?id=<?= $hasilsfa['id']; ?>"
+                                                    <center><a type="button" href="ssanggotadetail?id=<?= $hasilsfa['id']; ?>&tab=umum"
                                                             class="btn btn-success btn-sm">
                                                             <i class="bi bi-eye fs-8"></i>
                                                         </a></center>

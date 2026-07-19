@@ -8,6 +8,7 @@ if (!isset($_SESSION['id_user'])) {
 
 require 'helper/config.php';
 require 'helper/getUser.php';
+require 'helper/verified_functions.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
@@ -36,6 +37,31 @@ if ($notif_result) {
         if (empty($notif_row['submitted_at'])) {
             $notif_pending_rows[] = $notif_row;
             $notif_pending_count++;
+        }
+    }
+}
+
+// ==================== NOTIFIKASI VERIFIKASI KPI ====================
+$bulan_verifikasi_kpi = date('m/Y');
+$notif_kpi_unverified_count = 0;
+$notif_kpi_unverified_rows = [];
+
+if ($user_level >= 2 && $user_level <= 4) {
+    // Cari anggota tim (atasan = user login)
+    $nama_atasan_safe = mysqli_real_escape_string($conn, $nama_lngkp);
+    
+    // Sesuaikan query berdasarkan level (2,3 = Kadep/Kabag/Koordinator -> atasan, 4 = Manager/Kadep -> atasan)
+    // Query default untuk bawahan langsung
+    $sql_bawahan = "SELECT id, nama_lngkp, bagian, departement FROM tb_users WHERE atasan = '$nama_atasan_safe' AND id != $id_user";
+    $res_bawahan = mysqli_query($conn, $sql_bawahan);
+    
+    if ($res_bawahan) {
+        while ($row_bawahan = mysqli_fetch_assoc($res_bawahan)) {
+            // Cek apakah sudah diverifikasi
+            if (!checkKPIVerified($conn, $row_bawahan['id'], $bulan_verifikasi_kpi)) {
+                $notif_kpi_unverified_count++;
+                $notif_kpi_unverified_rows[] = $row_bawahan;
+            }
         }
     }
 }
@@ -500,6 +526,22 @@ if ($user_level >= 5) {
                                                 </span>
                                             </button>
                                             <?php } ?>
+                                            
+                                            <?php if (isset($notif_kpi_unverified_count) && $notif_kpi_unverified_count > 0) { ?>
+                                            <button type="button"
+                                                    class="btn btn-info btn-sm position-relative ms-2"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalNotifVerifikasi"
+                                                    title="Ada KPI anggota yang belum diverifikasi"
+                                                    style="border-radius:50px; padding:8px 16px; font-size:14px; box-shadow:0 2px 8px rgba(0,0,0,0.25); animation: bellRing 1.2s infinite;">
+                                                <i class="bi bi-shield-exclamation me-1"></i>
+                                                Verifikasi KPI
+                                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                                    <?= $notif_kpi_unverified_count ?>
+                                                    <span class="visually-hidden">pending verifikasi</span>
+                                                </span>
+                                            </button>
+                                            <?php } ?>
                                         </div>
                                     </div>
                                 </div>
@@ -542,6 +584,50 @@ if ($user_level >= 5) {
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                                     <a href="penilaian-karakter" class="btn btn-success">
                                         <i class="bi bi-pencil-square me-1"></i>Buka Penilaian Karakter
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php } ?>
+
+                    <!-- Modal Notifikasi Verifikasi KPI -->
+                    <?php if (isset($notif_kpi_unverified_count) && $notif_kpi_unverified_count > 0) { ?>
+                    <div class="modal fade" id="modalNotifVerifikasi" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-info text-white">
+                                    <h5 class="modal-title fw-bold">
+                                        <i class="bi bi-shield-exclamation me-2"></i>Verifikasi KPI Anggota
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="text-muted mb-3">
+                                        Ada <strong><?= $notif_kpi_unverified_count ?> anggota tim</strong> yang KPI-nya belum Anda verifikasi untuk bulan <?= $bulan_verifikasi_kpi ?>:
+                                    </p>
+                                    <ul class="list-group">
+                                        <?php foreach ($notif_kpi_unverified_rows as $ur) { ?>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong><?= htmlspecialchars($ur['nama_lngkp'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                                <small class="text-muted d-block"><?= htmlspecialchars($ur['bagian'] . ' / ' . $ur['departement'], ENT_QUOTES, 'UTF-8') ?></small>
+                                            </div>
+                                            <span class="badge bg-warning text-dark">Belum Diverifikasi</span>
+                                        </li>
+                                        <?php } ?>
+                                    </ul>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                    <?php 
+                                    $link_verifikasi = 'kpikabag';
+                                    if ($user_level == 3) $link_verifikasi = 'kpikabag';
+                                    elseif ($user_level == 4) $link_verifikasi = 'kpikadep';
+                                    elseif ($user_level >= 5) $link_verifikasi = 'kpidirektur';
+                                    ?>
+                                    <a href="<?= $link_verifikasi ?>" class="btn btn-info text-white">
+                                        <i class="bi bi-people-fill me-1"></i>Ke Halaman Anggota
                                     </a>
                                 </div>
                             </div>

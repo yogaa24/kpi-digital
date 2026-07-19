@@ -58,12 +58,21 @@ if (!isset($_SESSION['id_user'])) {
         return trim((string) $value);
     }
 
-    function ssFindOrCreateCategoryForMember($conn, $id_target_user, $id_editor_user, $category, $is_editing)
+    function ssEnsureTipeColumn($conn)
+    {
+        $check = mysqli_query($conn, "SHOW COLUMNS FROM tb_ss LIKE 'tipe_ss'");
+        if ($check && mysqli_num_rows($check) == 0) {
+            mysqli_query($conn, "ALTER TABLE tb_ss ADD COLUMN tipe_ss ENUM('umum','teknis') NOT NULL DEFAULT 'umum' AFTER poin_ss");
+        }
+    }
+
+    function ssFindOrCreateCategoryForMember($conn, $id_target_user, $id_editor_user, $category, $is_editing, $tipe_ss = 'umum')
     {
         $id_target_user = intval($id_target_user);
         $id_editor_user = intval($id_editor_user);
         $category_safe = mysqli_real_escape_string($conn, $category);
-        $result = mysqli_query($conn, "SELECT id_poinss FROM tb_ss WHERE id_user=$id_target_user AND poin_ss='$category_safe' LIMIT 1");
+        $tipe_ss_safe = mysqli_real_escape_string($conn, $tipe_ss);
+        $result = mysqli_query($conn, "SELECT id_poinss FROM tb_ss WHERE id_user=$id_target_user AND poin_ss='$category_safe' AND tipe_ss='$tipe_ss_safe' LIMIT 1");
 
         if ($result && mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);
@@ -71,9 +80,9 @@ if (!isset($_SESSION['id_user'])) {
         }
 
         if ($is_editing) {
-            $insert = mysqli_query($conn, "INSERT INTO tb_ss (id_user, poin_ss, is_edited, edited_by, edited_at) VALUES ($id_target_user, '$category_safe', 1, $id_editor_user, NOW())");
+            $insert = mysqli_query($conn, "INSERT INTO tb_ss (id_user, poin_ss, tipe_ss, is_edited, edited_by, edited_at) VALUES ($id_target_user, '$category_safe', '$tipe_ss_safe', 1, $id_editor_user, NOW())");
         } else {
-            $insert = mysqli_query($conn, "INSERT INTO tb_ss (id_user, poin_ss) VALUES ($id_target_user, '$category_safe')");
+            $insert = mysqli_query($conn, "INSERT INTO tb_ss (id_user, poin_ss, tipe_ss) VALUES ($id_target_user, '$category_safe', '$tipe_ss_safe')");
         }
         if (!$insert) {
             return null;
@@ -82,7 +91,7 @@ if (!isset($_SESSION['id_user'])) {
         return mysqli_insert_id($conn);
     }
 
-    function ssImportSkillStandardForMember($conn, $id_target_user, $id_editor_user, $file_path, $is_editing)
+    function ssImportSkillStandardForMember($conn, $id_target_user, $id_editor_user, $file_path, $is_editing, $tipe_ss = 'umum')
     {
         $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file_path);
         $sheet = $spreadsheet->getActiveSheet();
@@ -111,7 +120,7 @@ if (!isset($_SESSION['id_user'])) {
                 continue;
             }
 
-            $category_id = ssFindOrCreateCategoryForMember($conn, $id_target_user, $id_editor_user, $category, $is_editing);
+            $category_id = ssFindOrCreateCategoryForMember($conn, $id_target_user, $id_editor_user, $category, $is_editing, $tipe_ss);
             if (!$category_id) {
                 $skipped++;
                 $errors[] = "Baris $row gagal: kategori tidak bisa dibuat.";
@@ -337,21 +346,23 @@ if (!isset($_SESSION['id_user'])) {
     }
 
     ensureSSAnggotaEditColumns($conn);
+    ssEnsureTipeColumn($conn);
 
     if (isset($_POST['submitSS'])) {
         $poin = $_POST['poin'];
         $poin_safe = mysqli_real_escape_string($conn, $poin);
+        $tipe_ss = in_array($_POST['tipe_ss'] ?? '', ['umum', 'teknis']) ? $_POST['tipe_ss'] : 'umum';
         if ($is_editing_member_ss) {
-            $sql = "INSERT INTO tb_ss (id_user, poin_ss, is_edited, edited_by, edited_at)
-            VALUES ($id_sf, '$poin_safe', 1, $id_user, NOW())";
+            $sql = "INSERT INTO tb_ss (id_user, poin_ss, tipe_ss, is_edited, edited_by, edited_at)
+            VALUES ($id_sf, '$poin_safe', '$tipe_ss', 1, $id_user, NOW())";
         } else {
-            $sql = "INSERT INTO tb_ss (id_user, poin_ss)
-            VALUES ($id_sf, '$poin_safe')";
+            $sql = "INSERT INTO tb_ss (id_user, poin_ss, tipe_ss)
+            VALUES ($id_sf, '$poin_safe', '$tipe_ss')";
         }
         $result = mysqli_query($conn, $sql);
         if ($result) {
-            header('Location: ' . $_SERVER['REQUEST_URI']);
-            echo "<script>alert('Berhasil, Tambah Skill Standard')</script>";
+            header('Location: ssanggotadetail?id=' . $id_sf . '&tab=' . $tipe_ss);
+            exit();
         } else {
             echo "<script>alert('Gagal, Tambah Skill Standard')</script>";
         }
@@ -524,7 +535,8 @@ if (isset($_POST['hapus_kategori_ss'])) {
         }
 
         try {
-            $summary = ssImportSkillStandardForMember($conn, $id_sf, $id_user, $_FILES['file_ss']['tmp_name'], $is_editing_member_ss);
+            $tipe_ss_import = in_array($_POST['tipe_ss'] ?? '', ['umum', 'teknis']) ? $_POST['tipe_ss'] : 'umum';
+            $summary = ssImportSkillStandardForMember($conn, $id_sf, $id_user, $_FILES['file_ss']['tmp_name'], $is_editing_member_ss, $tipe_ss_import);
             $error_text = '';
             if (!empty($summary['errors'])) {
                 $error_text = ' Detail: ' . implode(' ', array_slice($summary['errors'], 0, 5));
@@ -550,6 +562,7 @@ $bulan_lalu_ss = date('Y-m', strtotime('-2 month'));
 $label_bulan_ini_pendek_ss = ssShortMonthLabel($bulan_ini_ss);
 $label_bulan_lalu_pendek_ss = ssShortMonthLabel($bulan_lalu_ss);
 $ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
+$active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab'] : 'umum';
 } ?>
 <html lang="en">
 
@@ -676,6 +689,19 @@ $ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
                     </div>
                     <div class="modal-body">
                         <form method="POST" action="" class="input">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Jenis Skill Standard</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipe_ss" id="tipe_umum" value="umum" <?= $active_tab_ss === 'umum' ? 'checked' : ''; ?> required>
+                                        <label class="form-check-label" for="tipe_umum"><span class="badge bg-primary">Umum</span></label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipe_ss" id="tipe_teknis" value="teknis" <?= $active_tab_ss === 'teknis' ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="tipe_teknis"><span class="badge bg-success">Teknis</span></label>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="input-group mb-3">
                                 <span style="color : #343A40;" class="input-group-text fw-bold" id="poin">Poin :</span>
                                 <input type="input" class="form-control" name="poin" placeholder="Poin Skill Standard"
@@ -716,6 +742,19 @@ $ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
                             <div class="alert alert-info">
                                 <strong>Format kolom:</strong> Kategori SS, Poin SS, Nilai 1, Nilai 2, Nilai 3, Nilai 4, Nilai Bulan Ini, Deskripsi Penilaian.
                                 Baris pertama adalah header dan data dimulai dari baris kedua.
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Jenis Skill Standard</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipe_ss" id="import_tipe_umum" value="umum" <?= $active_tab_ss === 'umum' ? 'checked' : ''; ?> required>
+                                        <label class="form-check-label" for="import_tipe_umum"><span class="badge bg-primary">Umum</span></label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipe_ss" id="import_tipe_teknis" value="teknis" <?= $active_tab_ss === 'teknis' ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="import_tipe_teknis"><span class="badge bg-success">Teknis</span></label>
+                                    </div>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">File Excel</label>
@@ -774,9 +813,25 @@ $ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
                     </div>
                     <?php unset($_SESSION['ss_import_message']); ?>
                 <?php } ?>
+
+                <!-- Tabs Umum / Teknis -->
+                <ul class="nav nav-tabs mb-3">
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold <?= $active_tab_ss === 'umum' ? 'active' : ''; ?>" href="ssanggotadetail?id=<?= $id_sf ?>&tab=umum">
+                            <i class="bi bi-person-check me-1"></i>Skill Standard Umum
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold <?= $active_tab_ss === 'teknis' ? 'active' : ''; ?>" href="ssanggotadetail?id=<?= $id_sf ?>&tab=teknis">
+                            <i class="bi bi-tools me-1"></i>Skill Standard Teknis
+                        </a>
+                    </li>
+                </ul>
+
                 <?php
                 $no = 1;
-                $sqler = "select * from tb_ss where id_user=$id_sf";
+                $tipe_filter = mysqli_real_escape_string($conn, $active_tab_ss);
+                $sqler = "select * from tb_ss where id_user=$id_sf AND tipe_ss='$tipe_filter'";
                 $tewg = mysqli_query($conn, $sqler);
                 while ($hasil = mysqli_fetch_assoc($tewg)) {
                     $current_category_average = ssGetAverage($conn, $id_sf, $hasil['id_poinss']);

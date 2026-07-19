@@ -266,7 +266,7 @@ if ($zip->open($tmpZip, ZipArchive::OVERWRITE) !== true) {
 $usedNames = [];
 foreach ($users as $entry) {
     $user = $entry['user'];
-    $baseName = safeExportFilename(($user['nama_lngkp'] ?: 'Karyawan') . '_' . ($user['nik'] ?: $user['id']));
+    $baseName = safeExportFilename(($user['nama_lngkp'] ?: 'Karyawan') . '_' . ($user['departement'] ?: 'Dept'));
     $fileName = 'Detail_KPI_' . $baseName . '.xls';
     $counter = 2;
 

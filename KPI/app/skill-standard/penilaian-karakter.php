@@ -17,8 +17,8 @@ if (is_file($karakter_autoload_path)) {
 function karakterQuestions()
 {
     return [
-        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak mengeluh', 'ideal' => 'Tidak', 'tanya' => 'Apakah ybs masih mengeluh ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin mengeluh'],
-        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak menyalahkan', 'ideal' => 'Tidak', 'tanya' => 'Apakah Ybs masih menyalahkan ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin menyalahkan'],
+        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak mengeluh', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs tidak mengeluh ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin mengeluh'],
+        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak menyalahkan', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs tidak menyalahkan ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin menyalahkan'],
         ['kategori' => 'Tanggung jawab', 'poin' => 'Selalu berpegang pada hasil', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs Selalu berpegang kepada hasil ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Selalu berpegang kepada hasil'],
         ['kategori' => 'Tanggung jawab', 'poin' => 'Terus melakukan perbaikan', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs Terus melakukan perbaikan ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Terus melakukan perbaikan'],
         ['kategori' => 'Persisten', 'poin' => 'Daya juang tinggi', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs memiliki daya juang tinggi ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Daya Juang Tinggi'],
@@ -601,11 +601,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $updates = [];
         for ($i = 1; $i <= count($questions); $i++) {
             $jawaban = ($_POST['q' . $i . '_jawaban'] ?? '') === 'Ya' ? 'Ya' : 'Tidak';
-            $fakta = mysqli_real_escape_string($conn, trim($_POST['q' . $i . '_fakta'] ?? ''));
-            if ($fakta === '') {
+            $fakta_raw = trim($_POST['q' . $i . '_fakta'] ?? '');
+            if ($fakta_raw === '') {
                 karakterFlash('warning', 'Semua fakta penilaian wajib diisi.');
                 karakterRedirect();
             }
+            if (strlen($fakta_raw) < 10) {
+                karakterFlash('warning', 'Setiap fakta penilaian harus minimal 10 huruf/karakter.');
+                karakterRedirect();
+            }
+            $fakta = mysqli_real_escape_string($conn, $fakta_raw);
 
             $columns[] = "q{$i}_jawaban";
             $columns[] = "q{$i}_fakta";
@@ -886,7 +891,7 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                                                             </div>
                                                                                         </div>
                                                                                         <label class="form-label text-muted"><?= h($question['fakta']); ?></label>
-                                                                                        <textarea class="form-control" name="q<?= $number; ?>_fakta" rows="2" required><?= h($request[$fakta_key] ?? ''); ?></textarea>
+                                                                                        <textarea class="form-control" name="q<?= $number; ?>_fakta" rows="2" minlength="10" required><?= h($request[$fakta_key] ?? ''); ?></textarea>
                                                                                     </div>
                                                                                 <?php } ?>
                                                                             </div>

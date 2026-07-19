@@ -9,6 +9,7 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/getUser.php';
     require 'helper/checkAdmin.php';
     require 'helper/sp_functions.php';
+    require 'helper/verified_functions.php';
 
     // Hanya Admin HRD yang bisa akses
     requireAdminHRD();
@@ -470,6 +471,9 @@ function getkpi($nilair)
                                                     <span class="sp-indicator" title="SP Aktif"></span>
                                                 <?php } ?>
                                                 <strong><?= $hasilsfa['nama_lngkp']; ?></strong>
+                                                <?php if (checkKPIVerified($conn, $hasilsfa['id'], date('m/Y'))) { ?>
+                                                    <i class="bi bi-check-circle-fill text-success ms-1" title="Sudah Diverifikasi"></i>
+                                                <?php } ?>
                                                 <br>
                                                 <small class="text-muted">NIK: <?= $hasilsfa['nik']; ?></small>
                                                 <?php if ($sp_aktif_user) { ?>

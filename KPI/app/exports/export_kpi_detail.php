@@ -103,7 +103,7 @@ function getkpi($nilair)
 }
 
 // Set nama file
-$filename = 'Detail_KPI_' . str_replace(' ', '_', $data_anggota['nama_lngkp']) . '_' . date('Ymd_His') . '.xls';
+$filename = 'Detail_KPI_' . str_replace(' ', '_', $data_anggota['departement']) . '_' . str_replace(' ', '_', $data_anggota['nama_lngkp']) . '_' . date('Ymd_His') . '.xls';
 
 // Set header untuk download Excel
 header("Content-Type: application/vnd.ms-excel");

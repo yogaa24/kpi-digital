@@ -309,7 +309,7 @@ if (!isset($_SESSION['id_user'])) {
 
             echo "<script>
                 alert('KPI berhasil diverifikasi!' + ' ' + '" . addslashes($archive_msg) . "');
-                window.location.href = '" . $_SERVER['PHP_SELF'] . "?id=" . $id_sf . "';
+                window.location.href = 'kpianggota?id=" . $id_sf . "';
             </script>";
 
         } else {
@@ -321,7 +321,7 @@ if (!isset($_SESSION['id_user'])) {
         if (unverifyKPI($conn, $id_sf, $bulan_sekarang)) {
             echo "<script>
                 alert('Verifikasi KPI berhasil dibatalkan!');
-                window.location.href = '" . $_SERVER['PHP_SELF'] . "?id=" . $id_sf . "';
+                window.location.href = 'kpianggota?id=" . $id_sf . "';
             </script>";
         } else {
             echo "<script>alert('Gagal membatalkan verifikasi!');</script>";
