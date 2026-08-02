@@ -71,41 +71,15 @@ function getkpi($nilair)
         return "Excellent";
     }
 }
-// Fungsi untuk mendapatkan bulan dan tahun sebelumnya
-function getPreviousMonth() {
-    $currentMonth = date('n');
-    $currentYear = date('Y');
-    
-    if ($currentMonth == 1) {
-        return ['month' => 12, 'year' => $currentYear - 2];
-    } else {
-        return ['month' => $currentMonth - 2, 'year' => $currentYear];
-    }
-}
+$currPeriod          = getAppCurrentPeriod();
+$prevPeriod          = getAppPreviousPeriod();
 
-// Fungsi untuk mendapatkan nama bulan
-function getNamaBulan($bulan) {
-    $namaBulan = [
-        1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
-        5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu',
-        9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
-    ];
-    return $namaBulan[$bulan];
-}
+$bulanIni            = $currPeriod['month'];
+$tahunIni            = $currPeriod['year'];
+$namaBulanIni        = getNamaBulan($bulanIni);
 
-// Samakan periode KPI dengan kpidepartemen:
-// "Bulan Ini" = bulan lalu dari kalender sistem, "Bulan Lalu" = 2 bulan mundur.
-$referensi = new DateTime('first day of last month');
-
-$bulanIni = $referensi->format('n');
-$tahunIni = $referensi->format('Y');
-$namaBulanIni = getNamaBulan($bulanIni);
-
-$bulanLaluDate = clone $referensi;
-$bulanLaluDate->modify('-1 month');
-
-$bulanSebelumnya = $bulanLaluDate->format('n');
-$tahunSebelumnya = $bulanLaluDate->format('Y');
+$bulanSebelumnya     = $prevPeriod['month'];
+$tahunSebelumnya     = $prevPeriod['year'];
 $namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
 
 // Fungsi untuk mendapatkan nilai KPI dari tb_kpi_history berdasarkan bulan
@@ -422,8 +396,11 @@ function getKPISimulasi($conn, $id)
                                             <?php if ($hasilsfa['nama_lngkp'] == $nama_lngkp) { ?>
                                                 <span class="badge bg-primary">Saya</span>
                                             <?php } ?>
-                                            <?php if (checkKPIVerified($conn, $hasilsfa['id'], date('m/Y'))) { ?>
-                                                <i class="bi bi-check-circle-fill text-success ms-1" title="Sudah Diverifikasi"></i>
+                                            <?php $kpi_verified_info = checkKPIVerified($conn, $hasilsfa['id'], date('m/Y'));
+                                            if ($kpi_verified_info) { ?>
+                                                <span class="badge bg-success ms-1" title="Diverifikasi oleh <?= getVerifierName($conn, $kpi_verified_info['verified_by']) ?> pada <?= date('d/m/Y H:i', strtotime($kpi_verified_info['verified_at'])) ?>">
+                                                    <i class="bi bi-check-circle-fill me-1"></i>Verified
+                                                </span>
                                             <?php } ?>
                                         </td>
                                         

@@ -614,8 +614,8 @@ function tmapil($bl, $th){
                                     <h5 style="color:black;" class="card-title fw-bolder">
                                         TOTAL NILAI KPI
                                         <?php if ($verified_status) { ?>
-                                            <span class="badge bg-success ms-2">
-                                                <i class="bi bi-check-circle-fill"></i> Verified
+                                            <span class="badge bg-success ms-2" title="Diverifikasi oleh <?= getVerifierName($conn, $verified_status['verified_by']) ?> pada <?= date('d/m/Y H:i', strtotime($verified_status['verified_at'])) ?>">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Verified
                                             </span>
                                         <?php } ?>
                                     </h5>

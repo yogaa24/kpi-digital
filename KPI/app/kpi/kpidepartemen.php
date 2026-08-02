@@ -74,26 +74,6 @@ function getkpi($nilair)
     }
 }
 
-function getPreviousMonth()
-{
-    $currentMonth = date('n');
-    $currentYear = date('Y');
-    if ($currentMonth == 1) {
-        return ['month' => 12, 'year' => $currentYear - 1];
-    } else {
-        return ['month' => $currentMonth - 1, 'year' => $currentYear];
-    }
-}
-
-function getNamaBulan($bulan)
-{
-    $namaBulan = [
-        1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
-        5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu',
-        9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
-    ];
-    return $namaBulan[$bulan];
-}
 
 function getKPIFromHistory($conn, $id_user, $bulan, $tahun)
 {

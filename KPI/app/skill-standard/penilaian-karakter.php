@@ -17,17 +17,17 @@ if (is_file($karakter_autoload_path)) {
 function karakterQuestions()
 {
     return [
-        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak mengeluh', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs tidak mengeluh ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin mengeluh'],
-        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak menyalahkan', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs tidak menyalahkan ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin menyalahkan'],
-        ['kategori' => 'Tanggung jawab', 'poin' => 'Selalu berpegang pada hasil', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs Selalu berpegang kepada hasil ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Selalu berpegang kepada hasil'],
-        ['kategori' => 'Tanggung jawab', 'poin' => 'Terus melakukan perbaikan', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs Terus melakukan perbaikan ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Terus melakukan perbaikan'],
-        ['kategori' => 'Persisten', 'poin' => 'Daya juang tinggi', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs memiliki daya juang tinggi ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Daya Juang Tinggi'],
-        ['kategori' => 'Persisten', 'poin' => 'Tidak mudah menyerah', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs tidak mudah menyerah ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Tidak mudah menyerah'],
-        ['kategori' => 'Persisten', 'poin' => 'Tidak mudah dijatuhkan', 'ideal' => 'Ya', 'tanya' => 'Apakah Ybs tidak mudah dijatuhkan ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Tidak mudah dijatuhkan'],
-        ['kategori' => 'Komunikasi', 'poin' => 'Berani mengungkapkan kejujuran apa adanya', 'ideal' => 'Ya', 'tanya' => 'Apakah dalam berkomunikasi ybs berani mengungkapkan kejujuran apa adanya ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Berani mengungkapkan kejujuran apa adanya"'],
-        ['kategori' => 'Komunikasi', 'poin' => 'Keterbukaan', 'ideal' => 'Ya', 'tanya' => 'Apakah dalam berkomunikasi ybs sdh menerapkan "Keterbukaan" ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Keterbukaan"'],
-        ['kategori' => 'Komunikasi', 'poin' => 'Tidak defensif', 'ideal' => 'Ya', 'tanya' => 'Apakah dalam berkomunikasi ybs "Tidak Defensif" ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Tidak Defensif"'],
-        ['kategori' => 'Realistis', 'poin' => 'Memilih dan bertindak menghadapi hambatan', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs memilih dan bertindak untuk menghadapi hambatan atau kesulitan, bukan menghindar atau menunggu ?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Realistis'],
+        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak mengeluh', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs masih mengeluh?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin mengeluh'],
+        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak menyalahkan', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs masih menyalahkan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin menyalahkan'],
+        ['kategori' => 'Tanggung jawab', 'poin' => 'Selalu berpegang pada hasil', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs selalu berpegang pada hasil?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Selalu berpegang pada hasil'],
+        ['kategori' => 'Tanggung jawab', 'poin' => 'Terus melakukan perbaikan', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs terus melakukan perbaikan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Terus melakukan perbaikan'],
+        ['kategori' => 'Persisten', 'poin' => 'Daya juang tinggi', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs memiliki daya juang tinggi?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Daya Juang Tinggi'],
+        ['kategori' => 'Persisten', 'poin' => 'Tidak mudah menyerah', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs mudah menyerah?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Tidak mudah menyerah'],
+        ['kategori' => 'Persisten', 'poin' => 'Tidak mudah dijatuhkan', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs mudah dijatuhkan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Tidak mudah dijatuhkan'],
+        ['kategori' => 'Komunikasi', 'poin' => 'Berani mengungkapkan kejujuran apa adanya', 'ideal' => 'Ya', 'tanya' => 'Apakah dalam berkomunikasi ybs berani mengungkapkan kejujuran dan apa adanya?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Berani mengungkapkan kejujuran apa adanya"'],
+        ['kategori' => 'Komunikasi', 'poin' => 'Keterbukaan', 'ideal' => 'Ya', 'tanya' => 'Apakah dalam berkomunikasi ybs menerapkan keterbukaan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Keterbukaan"'],
+        ['kategori' => 'Komunikasi', 'poin' => 'Tidak defensif', 'ideal' => 'Ya', 'tanya' => 'Apakah dalam berkomunikasi ybs defensif?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Tidak Defensif"'],
+        ['kategori' => 'Realistis', 'poin' => 'Memilih dan bertindak menghadapi hambatan', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs realistis?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Realistis'],
     ];
 }
 

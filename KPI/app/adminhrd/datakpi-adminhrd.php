@@ -471,8 +471,11 @@ function getkpi($nilair)
                                                     <span class="sp-indicator" title="SP Aktif"></span>
                                                 <?php } ?>
                                                 <strong><?= $hasilsfa['nama_lngkp']; ?></strong>
-                                                <?php if (checkKPIVerified($conn, $hasilsfa['id'], date('m/Y'))) { ?>
-                                                    <i class="bi bi-check-circle-fill text-success ms-1" title="Sudah Diverifikasi"></i>
+                                                <?php $kpi_verified_info = checkKPIVerified($conn, $hasilsfa['id'], date('m/Y'));
+                                                if ($kpi_verified_info) { ?>
+                                                    <span class="badge bg-success ms-1" title="Diverifikasi oleh <?= getVerifierName($conn, $kpi_verified_info['verified_by']) ?> pada <?= date('d/m/Y H:i', strtotime($kpi_verified_info['verified_at'])) ?>">
+                                                        <i class="bi bi-check-circle-fill me-1"></i>Verified
+                                                    </span>
                                                 <?php } ?>
                                                 <br>
                                                 <small class="text-muted">NIK: <?= $hasilsfa['nik']; ?></small>

@@ -8,19 +8,34 @@ if (!isset($_SESSION['id_user'])) {
 
     require 'helper/config.php';
     require 'helper/getUser.php';
+    require 'helper/verified_functions.php';
 
-    function getSSByTipe($conn, $id, $tipe)
+    function getSSByTipe($conn, $id, $tipe, $period_ym = null, $is_simulasi = false)
     {
         $row3sd = 0;
         $totil = 0;
         $tipe = mysqli_real_escape_string($conn, $tipe);
-        $sqler = "select * from tb_ss where id_user=$id AND tipe_ss='$tipe'";
+        
+        $sqler = "SELECT id_poinss FROM tb_ss WHERE id_user=$id AND tipe_ss='$tipe'";
         $tewg = mysqli_query($conn, $sqler);
+        
         while ($hasil = mysqli_fetch_assoc($tewg)) {
-            $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_sspoin WHERE id_user=$id AND id_ss=" . $hasil['id_poinss'];
+            $id_poinss = $hasil['id_poinss'];
+            
+            if ($is_simulasi) {
+                $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_ss_simulasi WHERE id_user=$id AND id_ss=$id_poinss";
+            } else if ($period_ym !== null) {
+                $period_ym = mysqli_real_escape_string($conn, $period_ym);
+                $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_ss_history WHERE id_user=$id AND id_ss=$id_poinss AND bulan='$period_ym'";
+            } else {
+                // Default fallback (meskipun kita akan gunakan period_ym untuk bulan ini juga)
+                $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_sspoin WHERE id_user=$id AND id_ss=$id_poinss";
+            }
+            
             $sggh = mysqli_query($conn, $fiub);
-            while ($hasilsd = mysqli_fetch_assoc($sggh)) {
-                if ($hasilsd['total'] != 0 &&  $hasilsd['totil'] != 0) {
+            if ($sggh) {
+                $hasilsd = mysqli_fetch_assoc($sggh);
+                if ($hasilsd && $hasilsd['total'] != 0 && $hasilsd['totil'] != 0) {
                     $row3cf = $hasilsd['total'] / $hasilsd['totil'];
                     $row3sd += $row3cf;
                     $totil++;
@@ -97,27 +112,42 @@ if (!isset($_SESSION['id_user'])) {
                 <div class="container-fluid">
                     <div class="mt-4">
                         <div class="table-responsive">
+                            <?php
+                            $currPeriod          = getAppCurrentPeriod();
+                            $prevPeriod          = getAppPreviousPeriod();
+
+                            $bulanIni            = $currPeriod['month'];
+                            $tahunIni            = $currPeriod['year'];
+                            $namaBulanIni        = getNamaBulan($bulanIni);
+
+                            $bulanSebelumnya     = $prevPeriod['month'];
+                            $tahunSebelumnya     = $prevPeriod['year'];
+                            $namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
+                            
+                            $period_lalu = $prevPeriod['formatted_ym'];
+                            // Untuk bulan ini secara nilai aktual kita bisa passing null ke getSSByTipe karena default query ke tb_sspoin
+                            ?>
                             <table id="datatablenya" class="table align-midle table-hover table-bordered">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th width="3%">
-                                            <center>No</center>
-                                        </th>
-                                        <th>
-                                            <center>Nama Anggota</center>
-                                        </th>
-                                        <th width="15%">
-                                            <center>Bagian</center>
-                                        </th>
-                                        <th width="13%">
-                                            <center>Nilai Umum</center>
-                                        </th>
-                                        <th width="13%">
-                                            <center>Nilai Teknis</center>
-                                        </th>
-                                        <th width="10%">
-                                            <center>#</center>
-                                        </th>
+                                        <th width="3%" rowspan="2"><center>No</center></th>
+                                        <th rowspan="2"><center>Nama Anggota</center></th>
+                                        <th width="15%" rowspan="2"><center>Bagian</center></th>
+                                        <th colspan="2"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
+                                        <th colspan="2"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
+                                        <th colspan="2"><center>Simulasi</center></th>
+                                        <th width="7%" rowspan="2"><center>#</center></th>
+                                    </tr>
+                                    <tr>
+                                        <!-- Bulan Lalu -->
+                                        <th width="8%"><center>Umum</center></th>
+                                        <th width="8%"><center>Teknis</center></th>
+                                        <!-- Bulan Ini -->
+                                        <th width="8%"><center>Umum</center></th>
+                                        <th width="8%"><center>Teknis</center></th>
+                                        <!-- Simulasi -->
+                                        <th width="8%"><center>Umum</center></th>
+                                        <th width="8%"><center>Teknis</center></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -132,43 +162,79 @@ ORDER BY
     END,
     nama_lngkp";
                                     $sgdah = mysqli_query($conn, $sqlhd);
-                                    while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { ?>
+                                    while ($hasilsfa = mysqli_fetch_assoc($sgdah)) {
+                                        $ss_verified_info = checkSSVerified($conn, $hasilsfa['id']);
+                                    ?>
                                         <tr>
                                             <td>
                                                 <center><?= $no; ?></center>
                                             </td>
                                             <td style="padding-left: 20px;">
                                                 <?= $hasilsfa['nama_lngkp']; ?>
+                                                <?php if ($ss_verified_info) { ?>
+                                                    <span class="badge bg-success ms-1" title="Diverifikasi oleh <?= getVerifierName($conn, $ss_verified_info['verified_by']) ?> pada <?= date('d/m/Y H:i', strtotime($ss_verified_info['verified_at'])) ?>">
+                                                        <i class="bi bi-check-circle-fill me-1"></i>Verified
+                                                    </span>
+                                                <?php } ?>
                                             </td>
                                             <td>
                                                 <center><?= $hasilsfa['bagian']; ?></center>
                                             </td>
+                                            
+                                            <!-- Bulan Lalu -->
                                             <td>
                                                 <center>
-                                                    <?php $val_umum = getSSByTipe($conn, $hasilsfa['id'], 'umum'); ?>
-                                                    <?php if ($val_umum !== '-') { ?>
-                                                        <span class="badge bg-primary"><?= $val_umum; ?></span>
-                                                    <?php } else { ?>
-                                                        <span class="badge bg-secondary">-</span>
-                                                    <?php } ?>
+                                                    <?php $val_umum_lalu = getSSByTipe($conn, $hasilsfa['id'], 'umum', $period_lalu); ?>
+                                                    <span class="badge bg-secondary"><?= $val_umum_lalu !== '-' ? $val_umum_lalu : '-' ?></span>
                                                 </center>
                                             </td>
                                             <td>
                                                 <center>
-                                                    <?php $val_teknis = getSSByTipe($conn, $hasilsfa['id'], 'teknis'); ?>
-                                                    <?php if ($val_teknis !== '-') { ?>
-                                                        <span class="badge bg-success"><?= $val_teknis; ?></span>
-                                                    <?php } else { ?>
-                                                        <span class="badge bg-secondary">-</span>
-                                                    <?php } ?>
+                                                    <?php $val_teknis_lalu = getSSByTipe($conn, $hasilsfa['id'], 'teknis', $period_lalu); ?>
+                                                    <span class="badge bg-secondary"><?= $val_teknis_lalu !== '-' ? $val_teknis_lalu : '-' ?></span>
                                                 </center>
                                             </td>
+                                            
+                                            <!-- Bulan Ini -->
+                                            <td>
+                                                <center>
+                                                    <?php $val_umum = getSSByTipe($conn, $hasilsfa['id'], 'umum', null, false); ?>
+                                                    <span class="badge bg-primary"><?= $val_umum !== '-' ? $val_umum : '-' ?></span>
+                                                </center>
+                                            </td>
+                                            <td>
+                                                <center>
+                                                    <?php $val_teknis = getSSByTipe($conn, $hasilsfa['id'], 'teknis', null, false); ?>
+                                                    <span class="badge bg-success"><?= $val_teknis !== '-' ? $val_teknis : '-' ?></span>
+                                                </center>
+                                            </td>
+
+                                            <!-- Simulasi -->
+                                            <td>
+                                                <center>
+                                                    <?php $val_umum_sim = getSSByTipe($conn, $hasilsfa['id'], 'umum', null, true); ?>
+                                                    <span class="badge bg-warning text-dark"><?= $val_umum_sim !== '-' ? $val_umum_sim : '-' ?></span>
+                                                </center>
+                                            </td>
+                                            <td>
+                                                <center>
+                                                    <?php $val_teknis_sim = getSSByTipe($conn, $hasilsfa['id'], 'teknis', null, true); ?>
+                                                    <span class="badge bg-warning text-dark"><?= $val_teknis_sim !== '-' ? $val_teknis_sim : '-' ?></span>
+                                                </center>
+                                            </td>
+
                                             <td>
                                                 <?php if ($hasilsfa['nama_lngkp'] != $nama_lngkp) { ?>
-                                                    <center><a type="button" href="ssanggotadetail?id=<?= $hasilsfa['id']; ?>&tab=umum"
-                                                            class="btn btn-success btn-sm">
+                                                    <center>
+                                                        <a type="button" href="ssanggotadetail?id=<?= $hasilsfa['id']; ?>&tab=umum"
+                                                            class="btn btn-success btn-sm" title="Lihat/Edit Bulan Ini">
                                                             <i class="bi bi-eye fs-8"></i>
-                                                        </a></center>
+                                                        </a>
+                                                        <a type="button" href="ssanggotadetail?id=<?= $hasilsfa['id']; ?>&tab=umum&periode=next"
+                                                            class="btn btn-warning btn-sm" title="Lihat/Edit Simulasi">
+                                                            <i class="bi bi-clipboard-data fs-8"></i>
+                                                        </a>
+                                                    </center>
                                                 <?php } ?>
                                             </td>
                                         </tr>

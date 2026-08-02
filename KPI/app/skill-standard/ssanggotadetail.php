@@ -8,6 +8,8 @@ if (!isset($_SESSION['id_user'])) {
 
     require 'helper/config.php';
     require 'helper/getUser.php';
+    require 'helper/verified_functions.php';
+    require 'helper/ss_functions.php';
 
     $autoload_path = __DIR__ . '/../../vendor/autoload.php';
     $ss_import_ready = is_file($autoload_path);
@@ -19,6 +21,34 @@ if (!isset($_SESSION['id_user'])) {
 
     $rsd = mysqli_fetch_assoc(mysqli_query($conn, 'Select * from tb_users where id = ' . $id_sf));
     $is_editing_member_ss = intval($id_user) !== intval($id_sf);
+
+    // Status SS Verified
+    $bulan_sekarang_ss = date('m/Y');
+    $ss_verified_status = checkSSVerified($conn, $id_sf, $bulan_sekarang_ss);
+
+    // Process verify/unverify SS
+    if (isset($_POST['verifySS'])) {
+        $keterangan = $_POST['keterangan'] ?? '';
+        if (verifySS($conn, $id_sf, $id_user, $keterangan, $bulan_sekarang_ss)) {
+            echo "<script>
+                alert('Skill Standard anggota berhasil diverifikasi!');
+                window.location.href = 'ssanggotadetail?id=" . $id_sf . "';
+            </script>";
+        } else {
+            echo "<script>alert('Gagal memverifikasi Skill Standard!');</script>";
+        }
+    }
+
+    if (isset($_POST['unverifySS'])) {
+        if (unverifySS($conn, $id_sf, $bulan_sekarang_ss)) {
+            echo "<script>
+                alert('Verifikasi Skill Standard berhasil dibatalkan!');
+                window.location.href = 'ssanggotadetail?id=" . $id_sf . "';
+            </script>";
+        } else {
+            echo "<script>alert('Gagal membatalkan verifikasi!');</script>";
+        }
+    }
 
     function ensureSSAnggotaEditColumns($conn)
     {
@@ -50,19 +80,6 @@ if (!isset($_SESSION['id_user'])) {
             if ($check && mysqli_num_rows($check) == 0) {
                 mysqli_query($conn, $query);
             }
-        }
-    }
-
-    function ssNormalizeImportValue($value)
-    {
-        return trim((string) $value);
-    }
-
-    function ssEnsureTipeColumn($conn)
-    {
-        $check = mysqli_query($conn, "SHOW COLUMNS FROM tb_ss LIKE 'tipe_ss'");
-        if ($check && mysqli_num_rows($check) == 0) {
-            mysqli_query($conn, "ALTER TABLE tb_ss ADD COLUMN tipe_ss ENUM('umum','teknis') NOT NULL DEFAULT 'umum' AFTER poin_ss");
         }
     }
 
@@ -168,183 +185,6 @@ if (!isset($_SESSION['id_user'])) {
         ];
     }
 
-    function getSSEditorName($conn, $editor_id)
-    {
-        $editor_id = intval($editor_id);
-        if ($editor_id <= 0) {
-            return '';
-        }
-
-        $result = mysqli_query($conn, "SELECT nama_lngkp FROM tb_users WHERE id = $editor_id LIMIT 1");
-        $row = $result ? mysqli_fetch_assoc($result) : null;
-
-        return $row['nama_lngkp'] ?? '';
-    }
-
-    function shortSSValue($value, $length = 55)
-    {
-        $value = (string) $value;
-        return htmlspecialchars(strlen($value) > $length ? substr($value, 0, $length) . '...' : $value);
-    }
-
-    function ssFormatValue($value)
-    {
-        if ($value === null || $value === '') {
-            return 'Belum dinilai';
-        }
-
-        return number_format((float) $value, 2);
-    }
-
-    function ssShortMonthLabel($month)
-    {
-        $timestamp = strtotime($month . '-01');
-        $nama_bulan = [
-            'Jan' => 'Jan',
-            'Feb' => 'Feb',
-            'Mar' => 'Mar',
-            'Apr' => 'Apr',
-            'May' => 'Mei',
-            'Jun' => 'Jun',
-            'Jul' => 'Jul',
-            'Aug' => 'Agu',
-            'Sep' => 'Sep',
-            'Oct' => 'Okt',
-            'Nov' => 'Nov',
-            'Dec' => 'Des'
-        ];
-        $month_name = date('M', $timestamp);
-
-        return $nama_bulan[$month_name] ?? $month_name;
-    }
-
-    function ssTrendBadge($current, $previous)
-    {
-        if ($previous === null || $previous === '') {
-            return '<span class="badge bg-secondary">N/A</span>';
-        }
-
-        $difference = (float) $current - (float) $previous;
-        if ($difference > 0) {
-            return '<span class="badge bg-success">+' . number_format($difference, 2) . '</span>';
-        }
-
-        if ($difference < 0) {
-            return '<span class="badge bg-danger">' . number_format($difference, 2) . '</span>';
-        }
-
-        return '<span class="badge bg-secondary">0.00</span>';
-    }
-
-    function ssEnsureHistoryTable($conn)
-    {
-        return mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_ss_history` (
-            `id` INT NOT NULL AUTO_INCREMENT,
-            `id_user` INT NOT NULL,
-            `id_ss` INT NOT NULL,
-            `id_sspoin` INT NOT NULL,
-            `bulan` VARCHAR(7) NOT NULL,
-            `kategori_ss` VARCHAR(255) DEFAULT NULL,
-            `poinss` TEXT,
-            `nilaiss` DECIMAL(10,2) NOT NULL DEFAULT '0.00',
-            `deskripsi` TEXT,
-            `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-            `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (`id`),
-            UNIQUE KEY `unique_ss_history_month` (`id_user`, `id_sspoin`, `bulan`),
-            KEY `idx_ss_history_user_month` (`id_user`, `bulan`),
-            KEY `idx_ss_history_category` (`id_user`, `id_ss`, `bulan`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    }
-
-    function ssSyncCurrentMonthHistory($conn, $id_user)
-    {
-        $id_user = intval($id_user);
-        $bulan = date('Y-m', strtotime('-1 month'));
-
-        if (!ssEnsureHistoryTable($conn)) {
-            return false;
-        }
-
-        $sql = "SELECT sp.id_sspoin, sp.id_ss, sp.poinss, sp.nilaiss, sp.deskripsi, s.poin_ss
-                FROM tb_sspoin sp
-                INNER JOIN tb_ss s ON s.id_poinss = sp.id_ss
-                WHERE sp.id_user = $id_user";
-        $result = mysqli_query($conn, $sql);
-
-        if (!$result) {
-            return false;
-        }
-
-        while ($row = mysqli_fetch_assoc($result)) {
-            $id_ss = intval($row['id_ss']);
-            $id_sspoin = intval($row['id_sspoin']);
-            $kategori = mysqli_real_escape_string($conn, $row['poin_ss']);
-            $poinss = mysqli_real_escape_string($conn, $row['poinss']);
-            $nilai = mysqli_real_escape_string($conn, $row['nilaiss']);
-            $deskripsi = mysqli_real_escape_string($conn, $row['deskripsi'] ?? '');
-
-            mysqli_query($conn, "INSERT INTO tb_ss_history
-                (id_user, id_ss, id_sspoin, bulan, kategori_ss, poinss, nilaiss, deskripsi)
-                VALUES ($id_user, $id_ss, $id_sspoin, '$bulan', '$kategori', '$poinss', '$nilai', '$deskripsi')
-                ON DUPLICATE KEY UPDATE
-                    id_ss = VALUES(id_ss),
-                    kategori_ss = VALUES(kategori_ss),
-                    poinss = VALUES(poinss),
-                    nilaiss = VALUES(nilaiss),
-                    deskripsi = VALUES(deskripsi)");
-        }
-
-        return true;
-    }
-
-    function ssGetAverage($conn, $id_user, $id_ss = null, $bulan = null)
-    {
-        $id_user = intval($id_user);
-        $where = "id_user = $id_user";
-
-        if ($id_ss !== null) {
-            $where .= " AND id_ss = " . intval($id_ss);
-        }
-
-        if ($bulan !== null) {
-            $bulan = mysqli_real_escape_string($conn, $bulan);
-            $table = 'tb_ss_history';
-            $where .= " AND bulan = '$bulan'";
-        } else {
-            $table = 'tb_sspoin';
-        }
-
-        $result = mysqli_query($conn, "SELECT SUM(nilaiss) AS total, COUNT(nilaiss) AS total_poin FROM $table WHERE $where");
-        $row = $result ? mysqli_fetch_assoc($result) : null;
-
-        if ($row && $row['total'] && $row['total_poin']) {
-            return (float) $row['total'] / (float) $row['total_poin'];
-        }
-
-        return null;
-    }
-
-    function ssGetPreviousScores($conn, $id_user, $bulan)
-    {
-        $id_user = intval($id_user);
-        $bulan = mysqli_real_escape_string($conn, $bulan);
-        $scores = [];
-
-        if (!ssEnsureHistoryTable($conn)) {
-            return $scores;
-        }
-
-        $result = mysqli_query($conn, "SELECT id_sspoin, nilaiss FROM tb_ss_history WHERE id_user = $id_user AND bulan = '$bulan'");
-        if ($result) {
-            while ($row = mysqli_fetch_assoc($result)) {
-                $scores[$row['id_sspoin']] = (float) $row['nilaiss'];
-            }
-        }
-
-        return $scores;
-    }
-
     ensureSSAnggotaEditColumns($conn);
     ssEnsureTipeColumn($conn);
 
@@ -431,28 +271,39 @@ if (!isset($_SESSION['id_user'])) {
         }
     }
     if (isset($_POST['ss_nilai'])) {
-        $id = $_POST['idnilai'];
+        $id = intval($_POST['idnilai']);
         $nilai = $_POST['nilai'];
         $keterangan = $_POST['keterangan'];
         $nilai_safe = mysqli_real_escape_string($conn, $nilai);
         $keterangan_safe = mysqli_real_escape_string($conn, $keterangan);
-    
-        if ($is_editing_member_ss) {
-            $sql = "UPDATE tb_sspoin 
-            SET original_nilaiss = CASE WHEN original_nilaiss IS NOT NULL THEN original_nilaiss ELSE nilaiss END,
-                original_deskripsi = CASE WHEN original_deskripsi IS NOT NULL THEN original_deskripsi ELSE deskripsi END,
-                nilaiss='$nilai_safe',
-                deskripsi='$keterangan_safe',
-                is_edited=1,
-                edited_by=$id_user,
-                edited_at=NOW()
-            WHERE id_sspoin=$id";
+        $periode_target = $_POST['periode_target'] ?? 'current';
+
+        if ($periode_target === 'next') {
+            $qp = mysqli_query($conn, "SELECT id_ss FROM tb_sspoin WHERE id_sspoin = $id");
+            if ($qp && $rp = mysqli_fetch_assoc($qp)) {
+                $id_ss = intval($rp['id_ss']);
+                $result = ssSaveSimulationScore($conn, $id_sf, $id_ss, $id, $nilai, $keterangan);
+            } else {
+                $result = false;
+            }
         } else {
-            $sql = "UPDATE tb_sspoin 
-            SET nilaiss='$nilai_safe', deskripsi='$keterangan_safe' 
-            WHERE id_sspoin=$id";
+            if ($is_editing_member_ss) {
+                $sql = "UPDATE tb_sspoin 
+                SET original_nilaiss = CASE WHEN original_nilaiss IS NOT NULL THEN original_nilaiss ELSE nilaiss END,
+                    original_deskripsi = CASE WHEN original_deskripsi IS NOT NULL THEN original_deskripsi ELSE deskripsi END,
+                    nilaiss='$nilai_safe',
+                    deskripsi='$keterangan_safe',
+                    is_edited=1,
+                    edited_by=$id_user,
+                    edited_at=NOW()
+                WHERE id_sspoin=$id";
+            } else {
+                $sql = "UPDATE tb_sspoin 
+                SET nilaiss='$nilai_safe', deskripsi='$keterangan_safe' 
+                WHERE id_sspoin=$id";
+            }
+            $result = mysqli_query($conn, $sql);
         }
-        $result = mysqli_query($conn, $sql);
         if ($result) {
             header('Location: ' . $_SERVER['REQUEST_URI']);
             exit();
@@ -556,12 +407,33 @@ if (isset($_POST['hapus_kategori_ss'])) {
         exit();
     }
 
+ssEnsureSimulasiTable($conn);
 ssSyncCurrentMonthHistory($conn, $id_sf);
-$bulan_ini_ss = date('Y-m', strtotime('-1 month'));
-$bulan_lalu_ss = date('Y-m', strtotime('-2 month'));
+
+$periode_ss = $_GET['periode'] ?? 'current'; // 'current' (Bulan Ini) atau 'next' (Simulasi Bulan Depan)
+$currPeriod = getAppCurrentPeriod();
+$prevPeriod = getAppPreviousPeriod();
+$bulan_depan_ss = $currPeriod['formatted_ym'];
+$bulan_ini_ss   = $prevPeriod['formatted_ym'];
+$bulan_lalu_ss  = getAppCurrentPeriod(-2)['formatted_ym'];
+
+$label_bulan_depan_pendek_ss = ssShortMonthLabel($bulan_depan_ss);
 $label_bulan_ini_pendek_ss = ssShortMonthLabel($bulan_ini_ss);
 $label_bulan_lalu_pendek_ss = ssShortMonthLabel($bulan_lalu_ss);
-$ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
+
+if ($periode_ss === 'next') {
+    $ss_next_scores_data = ssGetSimulationScores($conn, $id_sf);
+    $ss_next_scores = [];
+    $ss_next_desc = [];
+    foreach ($ss_next_scores_data as $id_sp => $item) {
+        $ss_next_scores[$id_sp] = $item['nilaiss'];
+        $ss_next_desc[$id_sp] = $item['deskripsi'];
+    }
+    $ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_ini_ss);
+} else {
+    $ss_previous_scores = ssGetPreviousScores($conn, $id_sf, $bulan_lalu_ss);
+}
+
 $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab'] : 'umum';
 } ?>
 <html lang="en">
@@ -792,7 +664,7 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="d-flex">
+                        <div class="d-flex align-items-center mb-2">
                             <div class="input-group mb-1 w-75" style="margin-right: 20px;">
                                 <span style="color : #343A40;" class="input-group-text fw-bold" id="nama-addon">Nama : </span>
                                 <input disabled type="text" value="<?php echo $rsd['nama_lngkp']; ?>" class="form-control" placeholder="Nama"
@@ -802,6 +674,39 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                 <span style="color : #343A40;" class="input-group-text fw-bold" id="depart-addon">Departement :</span>
                                 <input disabled type="text" value="<?php echo $rsd['departement']; ?>" class="form-control"
                                     placeholder="Departement" aria-label="Departement" aria-describedby="depart-addon">
+                            </div>
+                        </div>
+
+                        <!-- Verification Status & Action Row -->
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                            <div>
+                                <span class="fw-bold me-2">Status Verifikasi Skill Standard (Bulan Ini):</span>
+                                <?php if ($ss_verified_status) { ?>
+                                    <span class="badge bg-success fs-7">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Verified oleh <?= getVerifierName($conn, $ss_verified_status['verified_by']); ?>
+                                        (<?= date('d/m/Y H:i', strtotime($ss_verified_status['verified_at'])); ?>)
+                                    </span>
+                                    <?php if (!empty($ss_verified_status['keterangan'])) { ?>
+                                        <div class="small text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Catatan: <?= htmlspecialchars($ss_verified_status['keterangan']); ?></div>
+                                    <?php } ?>
+                                <?php } else { ?>
+                                    <span class="badge bg-secondary fs-7">
+                                        <i class="bi bi-hourglass-split me-1"></i>Belum Diverifikasi
+                                    </span>
+                                <?php } ?>
+                            </div>
+                            <div>
+                                <?php if ($jabatan == "Manager" || $jabatan == "Kadep" || $jabatan == "Koordinator" || $jabatan == "Direktur" || $jabatan == "Wadir Utama" || $jabatan == "Admin HRD" || $leveel == 7) { ?>
+                                    <?php if ($ss_verified_status) { ?>
+                                        <button type="button" class="btn btn-warning btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#UnverifySSModal">
+                                            <i class="bi bi-x-circle me-1"></i>Batalkan Verifikasi
+                                        </button>
+                                    <?php } else { ?>
+                                        <button type="button" class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#VerifySSModal">
+                                            <i class="bi bi-check-circle me-1"></i>Verifikasi Skill Standard
+                                        </button>
+                                    <?php } ?>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -814,19 +719,29 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                     <?php unset($_SESSION['ss_import_message']); ?>
                 <?php } ?>
 
-                <!-- Tabs Umum / Teknis -->
-                <ul class="nav nav-tabs mb-3">
-                    <li class="nav-item">
-                        <a class="nav-link fw-bold <?= $active_tab_ss === 'umum' ? 'active' : ''; ?>" href="ssanggotadetail?id=<?= $id_sf ?>&tab=umum">
-                            <i class="bi bi-person-check me-1"></i>Skill Standard Umum
+                <!-- Periode & Tabs Header -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <ul class="nav nav-tabs mb-0">
+                        <li class="nav-item">
+                            <a class="nav-link fw-bold <?= $active_tab_ss === 'umum' ? 'active' : ''; ?>" href="ssanggotadetail?id=<?= $id_sf ?>&tab=umum&periode=<?= $periode_ss; ?>">
+                                <i class="bi bi-person-check me-1"></i>Skill Standard Umum
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-bold <?= $active_tab_ss === 'teknis' ? 'active' : ''; ?>" href="ssanggotadetail?id=<?= $id_sf ?>&tab=teknis&periode=<?= $periode_ss; ?>">
+                                <i class="bi bi-tools me-1"></i>Skill Standard Teknis
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="btn-group" role="group" aria-label="Periode Mode">
+                        <a href="ssanggotadetail?id=<?= $id_sf ?>&tab=<?= $active_tab_ss ?>&periode=current" class="btn btn-outline-primary btn-sm fw-bold <?= $periode_ss === 'current' ? 'active' : ''; ?>">
+                            <i class="bi bi-calendar-check me-1"></i>SS Real
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-bold <?= $active_tab_ss === 'teknis' ? 'active' : ''; ?>" href="ssanggotadetail?id=<?= $id_sf ?>&tab=teknis">
-                            <i class="bi bi-tools me-1"></i>Skill Standard Teknis
+                        <a href="ssanggotadetail?id=<?= $id_sf ?>&tab=<?= $active_tab_ss ?>&periode=next" class="btn btn-outline-warning btn-sm fw-bold <?= $periode_ss === 'next' ? 'active' : ''; ?>">
+                            <i class="bi bi-rocket-takeoff me-1"></i>SS Simulasi
                         </a>
-                    </li>
-                </ul>
+                    </div>
+                </div>
 
                 <?php
                 $no = 1;
@@ -893,11 +808,11 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                 <tr>
                                                     <th style="width: 5%">No</th>
                                                     <th style="padding-left : 30px">Poin</th>
-                                                    <th style="width: 10%">
-                                                        <center>Bulan Lalu (<?= $label_bulan_lalu_pendek_ss; ?>)</center>
+                                                    <th style="width: 12%">
+                                                        <center><?= $periode_ss === 'next' ? 'Bulan Ini (' . $label_bulan_ini_pendek_ss . ')' : 'Bulan Lalu (' . $label_bulan_lalu_pendek_ss . ')'; ?></center>
                                                     </th>
-                                                    <th style="width: 10%">
-                                                        <center>Bulan Ini (<?= $label_bulan_ini_pendek_ss; ?>)</center>
+                                                    <th style="width: 15%">
+                                                        <center><?= $periode_ss === 'next' ? 'Simulasi (' . $label_bulan_depan_pendek_ss . ')' : 'Bulan Ini (' . $label_bulan_ini_pendek_ss . ')'; ?></center>
                                                     </th>
                                                     <th style="width: 10%">
                                                         <center>Selisih</center>
@@ -921,9 +836,18 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                     $has_original_change = !empty($res['original_poinss'])
                                                         || $res['original_nilaiss'] !== null
                                                         || $res['original_deskripsi'] !== null;
+
                                                     $previous_score = array_key_exists($res['id_sspoin'], $ss_previous_scores)
                                                         ? $ss_previous_scores[$res['id_sspoin']]
                                                         : null;
+
+                                                    if ($periode_ss === 'next') {
+                                                        $display_nilai = array_key_exists($res['id_sspoin'], $ss_next_scores) ? $ss_next_scores[$res['id_sspoin']] : 0;
+                                                        $display_desc = array_key_exists($res['id_sspoin'], $ss_next_desc) ? $ss_next_desc[$res['id_sspoin']] : '';
+                                                    } else {
+                                                        $display_nilai = (float)$res['nilaiss'];
+                                                        $display_desc = $res['deskripsi'];
+                                                    }
                                                 ?>
                                                     <tr class="align-middle <?= $row_class ?>">
                                                         <td><?= $no . '.' . $nodd ?></td>
@@ -956,14 +880,14 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                         </td>
                                                         <td>
                                                             <center>
-                                                                <?php if ($res['nilaiss'] != 0) { ?>
-                                                                    <span class="badge bg-success fs-8">
-                                                                        <?= number_format($res['nilaiss'], 2); ?>
+                                                                <?php if ($display_nilai != 0) { ?>
+                                                                    <span class="badge <?= $periode_ss === 'next' ? 'bg-warning text-dark' : 'bg-success'; ?> fs-8">
+                                                                        <?= number_format($display_nilai, 2); ?>
                                                                     </span>
                                                                 <?php } else { ?>
                                                                     <span class="badge bg-warning fs-8">Belum Dinilai</span>
                                                                 <?php } ?>
-                                                                <?php if ($is_edited_by_superior && $res['original_nilaiss'] !== null && $res['original_nilaiss'] != $res['nilaiss']) { ?>
+                                                                <?php if ($periode_ss === 'current' && $is_edited_by_superior && $res['original_nilaiss'] !== null && $res['original_nilaiss'] != $res['nilaiss']) { ?>
                                                                     <div class="change-info" style="text-align:left;">
                                                                         <span class="old-val"><?= number_format($res['original_nilaiss'], 2); ?></span>
                                                                         &rarr;
@@ -974,15 +898,16 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                         </td>
                                                         <td>
                                                             <center>
-                                                                <?= ssTrendBadge($res['nilaiss'], $previous_score); ?>
+                                                                <?= ssTrendBadge($display_nilai, $previous_score); ?>
                                                             </center>
                                                         </td>
                                                         <td>
-                                                            <?php if (!empty($res['deskripsi'])) { ?>
-                                                                <small><?= $res['deskripsi']; ?></small>
+                                                            <?php if (!empty($display_desc)) { ?>
+                                                                <small><?= htmlspecialchars($display_desc); ?></small>
                                                             <?php } else { ?>
                                                                 <small class="text-muted fst-italic">Belum ada deskripsi. Klik "Nilai" untuk menambahkan.</small>
                                                             <?php } ?>
+                                                        </td>
                                                             <?php if ($is_edited_by_superior && $res['original_deskripsi'] !== null && $res['original_deskripsi'] != $res['deskripsi']) { ?>
                                                                 <div class="change-info">
                                                                     <strong>Sebelum:</strong>
@@ -1050,12 +975,16 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                                     </h5>
                                                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                 </div>
-                                                                <div class="modal-body">
+                                                                 <div class="modal-body">
                                                                     <form method="POST" action="" class="input">
                                                                         <input type="hidden" value="<?= $res['id_sspoin']; ?>" name="idnilai">
+                                                                        <input type="hidden" value="<?= $periode_ss; ?>" name="periode_target">
                                                                         
-                                                                        <div class="alert alert-info">
-                                                                            <strong>Poin:</strong> <?= $res['poinss']; ?>
+                                                                        <div class="alert alert-info d-flex justify-content-between align-items-center">
+                                                                            <div><strong>Poin:</strong> <?= $res['poinss']; ?></div>
+                                                                            <span class="badge <?= $periode_ss === 'next' ? 'bg-warning text-dark' : 'bg-primary'; ?>">
+                                                                                Mode: <?= $periode_ss === 'next' ? 'Simulasi Bulan Depan (' . $label_bulan_depan_pendek_ss . ')' : 'Bulan Ini (' . $label_bulan_ini_pendek_ss . ')'; ?>
+                                                                            </span>
                                                                         </div>
                                                                         
                                                                         <div class="input-group mb-3">
@@ -1064,7 +993,7 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                                                 step="0.01" 
                                                                                 min="0"
                                                                                 max="4"
-                                                                                value="<?= $res['nilaiss'] != 0 ? $res['nilaiss'] : ''; ?>" 
+                                                                                value="<?= $display_nilai != 0 ? $display_nilai : ''; ?>" 
                                                                                 class="form-control" 
                                                                                 name="nilai" 
                                                                                 placeholder="Masukkan nilai 1-4"
@@ -1075,7 +1004,7 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                                             <label class="form-label fw-bold">Keterangan / Next Step :</label>
                                                                             <textarea class="form-control" name="keterangan" rows="5" 
                                                                                     placeholder="Jelaskan pencapaian, bukti, atau alasan pemberian nilai ini..." 
-                                                                                    required><?= !empty($res['deskripsi']) ? $res['deskripsi'] : ''; ?></textarea>
+                                                                                    required><?= !empty($display_desc) ? htmlspecialchars($display_desc) : ''; ?></textarea>
                                                                         </div>
                                                                         
                                                                         <!-- Tampilkan Indikator Penilaian -->
@@ -1229,6 +1158,56 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                 } ?>
             </div>
         </div>
+
+        <!-- Modal Verifikasi SS -->
+        <div class="modal fade" id="VerifySSModal" tabindex="-1" aria-labelledby="VerifySSModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title fw-bold" id="VerifySSModalLabel"><i class="bi bi-shield-check me-2"></i>Verifikasi Skill Standard</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="">
+                        <div class="modal-body">
+                            <p>Apakah Anda yakin ingin memverifikasi penilaian Skill Standard untuk <strong><?= htmlspecialchars($rsd['nama_lngkp']); ?></strong> periode bulan ini (<?= date('m/Y'); ?>)?</p>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Catatan Verifikasi (Opsional):</label>
+                                <textarea class="form-control" name="keterangan" rows="3" placeholder="Masukkan catatan atau instruksi jika ada..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" name="verifySS" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Verifikasi Sekarang</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Batalkan Verifikasi SS -->
+        <div class="modal fade" id="UnverifySSModal" tabindex="-1" aria-labelledby="UnverifySSModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title fw-bold" id="UnverifySSModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Batalkan Verifikasi Skill Standard</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="">
+                        <div class="modal-body">
+                            <p>Apakah Anda yakin ingin membatalkan verifikasi Skill Standard untuk <strong><?= htmlspecialchars($rsd['nama_lngkp']); ?></strong> periode bulan ini?</p>
+                            <div class="alert alert-warning">
+                                <small>Membatalkan verifikasi akan mengembalikan status dokumen menjadi Belum Diverifikasi.</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" name="unverifySS" class="btn btn-warning"><i class="bi bi-x-circle me-1"></i>Batalkan Verifikasi</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <?php include("pages/part/p_footer.php"); ?>
     </div>
 </body>
