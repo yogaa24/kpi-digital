@@ -18,6 +18,7 @@ if (!function_exists('getGlobalPeriodDate')) {
     function getGlobalPeriodDate($time_str = 'now')
     {
         $dt = new DateTime($time_str);
+        $dt->modify('first day of this month');
         if (GLOBAL_MONTH_OFFSET !== 0) {
             $dt->modify(GLOBAL_MONTH_OFFSET . ' month');
         }

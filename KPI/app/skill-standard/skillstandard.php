@@ -277,9 +277,9 @@ if (!isset($_SESSION['id_user'])) {
     $periode_ss = $_GET['periode'] ?? 'current'; // 'current' (Bulan Ini) atau 'next' (Simulasi Bulan Depan)
     $currPeriod = getAppCurrentPeriod();
     $prevPeriod = getAppPreviousPeriod();
-    $bulan_depan_ss = $currPeriod['formatted_ym'];
-    $bulan_ini_ss = $prevPeriod['formatted_ym'];
-    $bulan_lalu_ss = getAppCurrentPeriod(-2)['formatted_ym'];
+    $bulan_depan_ss = getAppCurrentPeriod(1)['formatted_ym'];
+    $bulan_ini_ss = $currPeriod['formatted_ym'];
+    $bulan_lalu_ss = $prevPeriod['formatted_ym'];
 
     $label_bulan_depan_ss = ssMonthLabel($bulan_depan_ss);
     $label_bulan_ini_ss = ssMonthLabel($bulan_ini_ss);
