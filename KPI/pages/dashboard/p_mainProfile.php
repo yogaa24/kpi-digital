@@ -61,7 +61,6 @@
 
                 <div class="dropdown-menu dropdown-menu-end" role="menu">
                     <?php if ($sudah_archive) { ?>
-                        <!-- Jika sudah di-archive -->
                         <a href="#" class="dropdown-item disabled text-muted">
                             <i class="bi bi-check-circle"></i> Sudah Di-Archive - <?= tmapil($busd[0]-1,$busd[1]); ?>
                         </a>
@@ -132,7 +131,7 @@
                             <center>KPI BULAN : </center>
                         </th>
                         <th>
-                            <center><?= tmapil($busd[0],$busd[1]); ?></center>
+                            <center><?= tmapil($busd[0]-1,$busd[1]); ?></center>
                         </th>
                     </tr>
                 </thead>
@@ -423,7 +422,7 @@
     </div>
 
     <?php 
-    $bulan_sekarang = date('m/Y');
+    $bulan_sekarang = $blan;
     $feedback_data = getFeedback($conn, $id_user, $bulan_sekarang);
 
     // Cek apakah user yang login adalah atasan dari user ini
@@ -441,7 +440,7 @@
             <div class="modal-content">
                 <div class="modal-header bg-info text-white">
                     <h5 class="modal-title fw-bold" id="feedbackModalLabel">
-                        <i class="bi bi-chat-left-text-fill"></i> Feedback KPI - <?= tmapil($busd[0], $busd[1]); ?>
+                        <i class="bi bi-chat-left-text-fill"></i> Feedback KPI - <?= tmapil($busd[0]-1, $busd[1]); ?>
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -551,7 +550,7 @@
 
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">
-                                        <i class="bi bi-calendar"></i> Periode: <?= tmapil($busd[0], $busd[1]); ?>
+                                        <i class="bi bi-calendar"></i> Periode: <?= tmapil($busd[0]-1, $busd[1]); ?>
                                     </small>
                                     <button type="submit" name="saveFeedback" class="btn btn-primary">
                                         <i class="bi bi-save"></i> Simpan Feedback

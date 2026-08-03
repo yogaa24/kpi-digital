@@ -5,6 +5,7 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 } else {
     require 'helper/config.php';
+    require_once 'helper/period_helper.php';
     require 'helper/getUser.php';
     require 'helper/getKPI.php';
     require 'helper/getHow.php';

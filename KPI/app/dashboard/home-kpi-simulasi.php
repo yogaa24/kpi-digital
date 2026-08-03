@@ -6,6 +6,7 @@ if (!isset($_SESSION['id_user'])) {
     exit();
 } else {
     require 'helper/config.php';
+    require_once 'helper/period_helper.php';
     require 'helper/getUser.php';
 
     $current_user_id = intval($_SESSION['id_user']);
