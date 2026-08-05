@@ -29,7 +29,7 @@ $notif_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lngkp 
     FROM tb_penilaian_karakter_assignment a
     INNER JOIN tb_users dinilai ON dinilai.id = a.id_user_dinilai
     LEFT JOIN tb_penilaian_karakter_response r ON r.id_assignment = a.id_assignment AND r.bulan = '$bulan_penilaian_notif'
-    WHERE a.id_penilai = $id_user_login_notif AND a.status = 'aktif'
+    WHERE a.id_penilai = $id_user_login_notif AND a.status = 'aktif' AND a.bulan = '$bulan_penilaian_notif'
     ORDER BY r.submitted_at IS NULL DESC, dinilai.nama_lngkp");
 
 if ($notif_result) {

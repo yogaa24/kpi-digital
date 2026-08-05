@@ -285,7 +285,7 @@ function karakterFetchAllAssignmentRows($conn, $bulan)
         INNER JOIN tb_users dinilai ON dinilai.id = a.id_user_dinilai
         INNER JOIN tb_users penilai ON penilai.id = a.id_penilai
         LEFT JOIN tb_penilaian_karakter_response r ON r.id_assignment = a.id_assignment AND r.bulan = '$bulan'
-        WHERE a.status = 'aktif'
+        WHERE a.status = 'aktif' AND a.bulan = '$bulan'
         ORDER BY dinilai.nama_lngkp, penilai.nama_lngkp");
 
     if ($result) {

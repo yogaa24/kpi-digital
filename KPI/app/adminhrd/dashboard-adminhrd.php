@@ -12,6 +12,8 @@ require 'helper/config.php';
 require 'helper/getUser.php';
 require 'helper/checkAdmin.php';
 require 'helper/sp_functions.php';
+require_once 'helper/period_helper.php';
+require_once 'helper/ss_functions.php';
 
 requireAdminHRD();
 
@@ -39,6 +41,16 @@ function resetKPIData_adm($conn, $user_id) {
                        WHERE id_user = '$user_id'";
     $reset_hows = mysqli_query($conn, $sql_reset_hows);
     return $reset_whats && $reset_hows;
+}
+
+function resetSSData_adm($conn, $user_id) {
+    $user_id = intval($user_id);
+    $sql_reset = "UPDATE tb_sspoin 
+                  SET nilaiss = 0, deskripsi = '', 
+                      is_edited = 0, edited_by = NULL, edited_at = NULL,
+                      original_poinss = NULL, original_nilaiss = NULL, original_deskripsi = NULL
+                  WHERE id_user = '$user_id'";
+    return mysqli_query($conn, $sql_reset);
 }
 
 function kpiNumber_adm($value) {
@@ -239,7 +251,15 @@ if (isset($_POST['action']) && $_POST['action'] === 'reset_kpi_all_users') {
             $gagal++;
             continue;
         }
-        resetKPIData_adm($conn, $uid) ? $berhasil++ : $gagal++;
+        
+        // Simpan history Skill Standard ke tb_ss_history
+        ssSyncCurrentMonthHistory($conn, $uid);
+
+        // Reset data KPI dan Skill Standard menjadi 0
+        $reset_kpi = resetKPIData_adm($conn, $uid);
+        $reset_ss  = resetSSData_adm($conn, $uid);
+        
+        ($reset_kpi && $reset_ss) ? $berhasil++ : $gagal++;
     }
 
     $catatan    = $_POST['catatan'] ?? '';
@@ -633,10 +653,10 @@ updateExpiredSP($conn);
                                             </div>
                                             <div>
                                                 <h5 class="fw-bold mb-1" style="color:#991b1b;">
-                                                    Reset KPI Semua Karyawan
+                                                    Reset KPI & Skill Standard Semua Karyawan
                                                 </h5>
                                                 <p class="mb-0 text-muted" style="font-size:0.88rem; line-height:1.5;">
-                                                    Reset nilai KPI seluruh karyawan menjadi 0.
+                                                    Reset nilai KPI dan Skill Standard seluruh karyawan menjadi 0.
                                                     History bulan berjalan akan <strong>disimpan otomatis</strong> sebelum direset.
                                                     <span style="color:#dc2626; font-weight:600;">Tindakan ini tidak dapat dibatalkan.</span>
                                                 </p>
@@ -645,7 +665,7 @@ updateExpiredSP($conn);
                                     </div>
                                     <div class="col-md-4 text-md-right mt-3 mt-md-0">
                                         <button class="btn btn-reset-kpi" onclick="bukaModalReset()">
-                                            <i class="bi bi-arrow-counterclockwise mr-2"></i>Reset KPI Sekarang
+                                            <i class="bi bi-arrow-counterclockwise mr-2"></i>Reset Data Sekarang
                                         </button>
                                     </div>
                                 </div>

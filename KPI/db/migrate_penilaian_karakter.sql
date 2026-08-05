@@ -10,13 +10,14 @@ CREATE TABLE IF NOT EXISTS `tb_penilaian_karakter_assignment` (
   `id_user_dinilai` int NOT NULL,
   `id_penilai` int NOT NULL,
   `id_atasan` int NOT NULL,
+  `bulan` varchar(7) NOT NULL,
   `status` enum('aktif','nonaktif') NOT NULL DEFAULT 'aktif',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_assignment`),
-  UNIQUE KEY `unique_karakter_assignment` (`id_user_dinilai`,`id_penilai`),
-  KEY `idx_karakter_assignment_penilai` (`id_penilai`,`status`),
-  KEY `idx_karakter_assignment_atasan` (`id_atasan`,`status`)
+  UNIQUE KEY `unique_karakter_assignment` (`id_user_dinilai`,`id_penilai`,`bulan`),
+  KEY `idx_karakter_assignment_penilai` (`id_penilai`,`status`,`bulan`),
+  KEY `idx_karakter_assignment_atasan` (`id_atasan`,`status`,`bulan`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `tb_penilaian_karakter_response` (

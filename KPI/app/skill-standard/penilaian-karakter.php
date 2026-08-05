@@ -279,7 +279,7 @@ function karakterFetchAssignmentRows($conn, $nama_atasan, $bulan)
         INNER JOIN tb_users dinilai ON dinilai.id = a.id_user_dinilai
         INNER JOIN tb_users penilai ON penilai.id = a.id_penilai
         LEFT JOIN tb_penilaian_karakter_response r ON r.id_assignment = a.id_assignment AND r.bulan = '$bulan'
-        WHERE dinilai.atasan = '$nama_atasan' AND a.status = 'aktif'
+        WHERE dinilai.atasan = '$nama_atasan' AND a.status = 'aktif' AND a.bulan = '$bulan'
         ORDER BY dinilai.nama_lngkp, penilai.nama_lngkp");
 
     if ($result) {
@@ -304,14 +304,29 @@ function karakterEnsureTables($conn)
         `id_user_dinilai` int NOT NULL,
         `id_penilai` int NOT NULL,
         `id_atasan` int NOT NULL,
+        `bulan` varchar(7) NOT NULL,
         `status` enum('aktif','nonaktif') NOT NULL DEFAULT 'aktif',
         `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
         `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`id_assignment`),
-        UNIQUE KEY `unique_karakter_assignment` (`id_user_dinilai`,`id_penilai`),
-        KEY `idx_karakter_assignment_penilai` (`id_penilai`,`status`),
-        KEY `idx_karakter_assignment_atasan` (`id_atasan`,`status`)
+        UNIQUE KEY `unique_karakter_assignment` (`id_user_dinilai`,`id_penilai`,`bulan`),
+        KEY `idx_karakter_assignment_penilai` (`id_penilai`,`status`,`bulan`),
+        KEY `idx_karakter_assignment_atasan` (`id_atasan`,`status`,`bulan`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $check_bulan = mysqli_query($conn, "SHOW COLUMNS FROM `tb_penilaian_karakter_assignment` LIKE 'bulan'");
+    if ($check_bulan && mysqli_num_rows($check_bulan) == 0) {
+        mysqli_query($conn, "ALTER TABLE `tb_penilaian_karakter_assignment` DROP INDEX `unique_karakter_assignment`");
+        mysqli_query($conn, "ALTER TABLE `tb_penilaian_karakter_assignment` DROP INDEX `idx_karakter_assignment_penilai`");
+        mysqli_query($conn, "ALTER TABLE `tb_penilaian_karakter_assignment` DROP INDEX `idx_karakter_assignment_atasan`");
+        
+        $bulan_sekarang = date('Y-m', strtotime(date('Y-m-01') . ' -1 month'));
+        mysqli_query($conn, "ALTER TABLE `tb_penilaian_karakter_assignment` ADD `bulan` varchar(7) NOT NULL DEFAULT '$bulan_sekarang' AFTER `id_atasan`");
+        
+        mysqli_query($conn, "ALTER TABLE `tb_penilaian_karakter_assignment` ADD UNIQUE KEY `unique_karakter_assignment` (`id_user_dinilai`,`id_penilai`,`bulan`)");
+        mysqli_query($conn, "ALTER TABLE `tb_penilaian_karakter_assignment` ADD KEY `idx_karakter_assignment_penilai` (`id_penilai`,`status`,`bulan`)");
+        mysqli_query($conn, "ALTER TABLE `tb_penilaian_karakter_assignment` ADD KEY `idx_karakter_assignment_atasan` (`id_atasan`,`status`,`bulan`)");
+    }
 
     $response = mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_penilaian_karakter_response` (
         `id_response` int NOT NULL AUTO_INCREMENT,
@@ -550,8 +565,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $saved_count = 0;
         foreach ($id_penilai_list as $id_penilai) {
-            $sql = "INSERT INTO tb_penilaian_karakter_assignment (id_user_dinilai, id_penilai, id_atasan, status)
-                    VALUES ($id_user_dinilai, $id_penilai, $id_user_login, 'aktif')
+            $sql = "INSERT INTO tb_penilaian_karakter_assignment (id_user_dinilai, id_penilai, id_atasan, bulan, status)
+                    VALUES ($id_user_dinilai, $id_penilai, $id_user_login, '$bulan_penilaian', 'aktif')
                     ON DUPLICATE KEY UPDATE status = 'aktif', id_atasan = VALUES(id_atasan)";
             if (mysqli_query($conn, $sql)) {
                 $saved_count++;
@@ -561,11 +576,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($id_penilai_list)) {
             mysqli_query($conn, "UPDATE tb_penilaian_karakter_assignment
                 SET status = 'nonaktif', id_atasan = $id_user_login
-                WHERE id_user_dinilai = $id_user_dinilai AND id_penilai NOT IN ($id_penilai_sql)");
+                WHERE id_user_dinilai = $id_user_dinilai AND bulan = '$bulan_penilaian' AND id_penilai NOT IN ($id_penilai_sql)");
         } else {
             mysqli_query($conn, "UPDATE tb_penilaian_karakter_assignment
                 SET status = 'nonaktif', id_atasan = $id_user_login
-                WHERE id_user_dinilai = $id_user_dinilai");
+                WHERE id_user_dinilai = $id_user_dinilai AND bulan = '$bulan_penilaian'");
         }
 
         karakterFlash($saved_count > 0 || empty($id_penilai_list) ? 'success' : 'danger', empty($id_penilai_list) ? 'Semua penilai anggota ini dinonaktifkan.' : "$saved_count penilai berhasil disimpan.");
@@ -721,7 +736,7 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
     FROM tb_penilaian_karakter_assignment a
     INNER JOIN tb_users dinilai ON dinilai.id = a.id_user_dinilai
     LEFT JOIN tb_penilaian_karakter_response r ON r.id_assignment = a.id_assignment AND r.bulan = '$bulan_penilaian'
-    WHERE a.id_penilai = $id_user_login AND a.status = 'aktif'
+    WHERE a.id_penilai = $id_user_login AND a.status = 'aktif' AND a.bulan = '$bulan_penilaian'
     ORDER BY r.submitted_at IS NULL DESC, dinilai.nama_lngkp");
 ?>
 <!DOCTYPE html>
