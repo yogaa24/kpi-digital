@@ -17,16 +17,16 @@ if (is_file($karakter_autoload_path)) {
 function karakterQuestions()
 {
     return [
-        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak mengeluh', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs masih mengeluh?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin mengeluh'],
-        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak menyalahkan', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs masih menyalahkan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin menyalahkan'],
+        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak mengeluh', 'ideal' => 'Tidak', 'tanya' => 'Apakah ybs masih mengeluh?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin mengeluh'],
+        ['kategori' => 'Tanggung jawab', 'poin' => 'Tidak menyalahkan', 'ideal' => 'Tidak', 'tanya' => 'Apakah ybs masih menyalahkan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin menyalahkan'],
         ['kategori' => 'Tanggung jawab', 'poin' => 'Selalu berpegang pada hasil', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs selalu berpegang pada hasil?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Selalu berpegang pada hasil'],
         ['kategori' => 'Tanggung jawab', 'poin' => 'Terus melakukan perbaikan', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs terus melakukan perbaikan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Terus melakukan perbaikan'],
         ['kategori' => 'Persisten', 'poin' => 'Daya juang tinggi', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs memiliki daya juang tinggi?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Daya Juang Tinggi'],
-        ['kategori' => 'Persisten', 'poin' => 'Tidak mudah menyerah', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs mudah menyerah?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Tidak mudah menyerah'],
-        ['kategori' => 'Persisten', 'poin' => 'Tidak mudah dijatuhkan', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs mudah dijatuhkan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Tidak mudah dijatuhkan'],
+        ['kategori' => 'Persisten', 'poin' => 'Tidak mudah menyerah', 'ideal' => 'Tidak', 'tanya' => 'Apakah ybs mudah menyerah?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Tidak mudah menyerah'],
+        ['kategori' => 'Persisten', 'poin' => 'Tidak mudah dijatuhkan', 'ideal' => 'Tidak', 'tanya' => 'Apakah ybs mudah dijatuhkan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Tidak mudah dijatuhkan'],
         ['kategori' => 'Komunikasi', 'poin' => 'Berani mengungkapkan kejujuran apa adanya', 'ideal' => 'Ya', 'tanya' => 'Apakah dalam berkomunikasi ybs berani mengungkapkan kejujuran dan apa adanya?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Berani mengungkapkan kejujuran apa adanya"'],
         ['kategori' => 'Komunikasi', 'poin' => 'Keterbukaan', 'ideal' => 'Ya', 'tanya' => 'Apakah dalam berkomunikasi ybs menerapkan keterbukaan?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Keterbukaan"'],
-        ['kategori' => 'Komunikasi', 'poin' => 'Tidak defensif', 'ideal' => 'Ya', 'tanya' => 'Apakah dalam berkomunikasi ybs defensif?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Tidak Defensif"'],
+        ['kategori' => 'Komunikasi', 'poin' => 'Tidak defensif', 'ideal' => 'Tidak', 'tanya' => 'Apakah dalam berkomunikasi ybs defensif?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Komunikasi "Tidak Defensif"'],
         ['kategori' => 'Realistis', 'poin' => 'Memilih dan bertindak menghadapi hambatan', 'ideal' => 'Ya', 'tanya' => 'Apakah ybs realistis?', 'fakta' => 'Jelaskan fakta dari jawaban anda terkait poin Realistis'],
     ];
 }
@@ -262,7 +262,6 @@ function karakterTrendBadge($current, $previous)
 
 function karakterFetchAssignmentRows($conn, $nama_atasan, $bulan)
 {
-    $nama_atasan = mysqli_real_escape_string($conn, $nama_atasan);
     $bulan = mysqli_real_escape_string($conn, $bulan);
     $rows = [];
     $by_user = [];
@@ -368,7 +367,6 @@ function karakterEnsureTables($conn)
 function karakterCanManageUser($conn, $id_user_dinilai, $nama_atasan)
 {
     $id_user_dinilai = intval($id_user_dinilai);
-    $nama_atasan = mysqli_real_escape_string($conn, $nama_atasan);
     $result = mysqli_query($conn, "SELECT id FROM tb_users WHERE id = $id_user_dinilai AND atasan = '$nama_atasan' LIMIT 1");
     return $result && mysqli_num_rows($result) > 0;
 }
