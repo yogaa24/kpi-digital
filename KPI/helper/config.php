@@ -5,7 +5,7 @@
 $server = "localhost";
 $user = "root";
 $pass = "";
-$database = "u471548307_karismaerp";
+$database = "kiucoid_karismaerp_local";
 // $database = "db_kpi";
 $conn = mysqli_connect($server, $user, $pass, $database);
 if (!$conn) {

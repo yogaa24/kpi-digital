@@ -18,10 +18,10 @@
                         <p>Archive</p>
                     </a>
                 </li>
-                <!-- <li class="nav-item"> <a href="sop" class="nav-link"> <i class="nav-icon bi bi-journal-bookmark"></i>
+                <li class="nav-item"> <a href="sop" class="nav-link"> <i class="nav-icon bi bi-journal-bookmark"></i>
                         <p>SOP</p>
                     </a>
-                </li> -->
+                </li>
                 <li class="nav-item"> <a href="eviden" class="nav-link"> <i class="nav-icon bi bi-box2"></i>
                         <p>Eviden</p>
                     </a>
