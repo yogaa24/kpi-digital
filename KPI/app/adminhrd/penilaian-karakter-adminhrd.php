@@ -9,13 +9,10 @@ if (!isset($_SESSION['id_user'])) {
 
 require 'helper/config.php';
 require 'helper/getUser.php';
+require 'helper/checkAdmin.php';
 
-// Check level Admin HRD
-$sql_check = "SELECT level FROM tb_users WHERE id = '$id_user'";
-$result_check = mysqli_query($conn, $sql_check);
-$user_data = mysqli_fetch_assoc($result_check);
-
-if ($user_data['level'] != 7) {
+// Hanya Admin HRD dan Direktur (termasuk Diana Wulandari) yang bisa akses
+if (!canViewAllEmployees()) {
     header("Location: home-kpi-real");
     exit();
 }
@@ -531,7 +528,8 @@ if (isset($_GET['export_karakter'])) {
                                             <a href="penilaian-karakter-adminhrd?export_karakter=1" class="btn btn-success btn-sm shadow-sm">
                                                 <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
                                             </a>
-                                            <a href="dashboard-adminhrd" class="btn btn-light btn-sm shadow-sm">
+                                            <?php $back_url_pk = (isset($_SESSION['level']) && $_SESSION['level'] == 7) ? 'dashboard-adminhrd' : 'data-karyawan'; ?>
+                                            <a href="<?= $back_url_pk ?>" class="btn btn-light btn-sm shadow-sm">
                                                 <i class="bi bi-arrow-left me-1"></i> Kembali
                                             </a>
                                         </div>

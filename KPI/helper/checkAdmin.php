@@ -44,6 +44,32 @@ function requireAdminHRD() {
 }
 
 /**
+ * Cek apakah user adalah Direktur / Wadir Utama / ID 1 (Diana Wulandari)
+ */
+function isDirekturOrHigher() {
+    $level = intval($_SESSION['level'] ?? 0);
+    $id = intval($_SESSION['id_user'] ?? 0);
+    return ($level >= 5 || $id == 1);
+}
+
+/**
+ * Cek apakah user berhak melihat data seluruh karyawan (Admin HRD atau Direktur)
+ */
+function canViewAllEmployees() {
+    return isAdminHRD() || isDirekturOrHigher();
+}
+
+/**
+ * Redirect jika bukan Admin HRD atau Direktur
+ */
+function requireAdminHRDOrDirektur() {
+    if (!canViewAllEmployees()) {
+        header("Location: home-kpi-real");
+        exit();
+    }
+}
+
+/**
  * Get user level name
  */
 function getUserLevelName($level) {

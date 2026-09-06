@@ -688,7 +688,13 @@ if ($user_level >= 5) {
                                                 <i class="bi bi-archive me-2"></i>Archive KPI
                                             </a>
                                         </div>
-                                        <?php if ($user_level == 4 || $user_level >= 5 || $user_level >= 6) { ?>
+                                        <?php if ($user_level >= 5 || $id_user == 1) { ?>
+                                        <div class="col">
+                                            <a href="data-karyawan" class="btn btn-outline-success w-100">
+                                                <i class="bi bi-people-fill me-2"></i>Data Karyawan
+                                            </a>
+                                        </div>
+                                        <?php } elseif ($user_level == 4) { ?>
                                         <div class="col">
                                             <a href="kpidepartemen" class="btn btn-outline-success w-100">
                                                 <i class="bi bi-diagram-3-fill me-2"></i>KPI Departemen

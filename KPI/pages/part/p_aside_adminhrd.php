@@ -9,10 +9,17 @@
         <nav class="mt-2">
             <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
 
-                <li class="nav-item"> <a href="dashboard-adminhrd" class="nav-link"> <i class="nav-icon bi bi-plus-circle"></i>
+                <?php $aside_dash_url = (isset($_SESSION['level']) && $_SESSION['level'] == 7) ? 'dashboard-adminhrd' : 'dashboard-utama'; ?>
+                <li class="nav-item"> <a href="<?= $aside_dash_url ?>" class="nav-link"> <i class="nav-icon bi bi-speedometer2"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
+                <?php if (isset($_SESSION['level']) && ($_SESSION['level'] >= 5 || ($_SESSION['id_user'] ?? 0) == 1) && $_SESSION['level'] != 7) { ?>
+                <li class="nav-item"> <a href="data-karyawan" class="nav-link"> <i class="nav-icon bi bi-people-fill"></i>
+                        <p>Data Karyawan</p>
+                    </a>
+                </li>
+                <?php } ?>
 
                 <li class="nav-item"> <a href="archive-adminhrd" class="nav-link"> <i class="nav-icon bi bi-archive"></i>
                         <p>Archive</p>

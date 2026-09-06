@@ -10,7 +10,7 @@ require 'helper/getUser.php';
 require 'helper/checkAdmin.php';
 require 'helper/sp_functions.php';
 
-requireAdminHRD();
+requireAdminHRDOrDirektur();
 updateExpiredSP($conn);
 date_default_timezone_set('Asia/Jakarta');
 

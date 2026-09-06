@@ -21,7 +21,7 @@ if (!isset($_SESSION['id_user'])) {
     $bulan_sekarang = date('m/Y');
     $verified_status = checkKPIVerified($conn, $id_sf, $bulan_sekarang);
 
-    $allowedPages = ['kpidirektur', 'kpidepartemen', 'kpikadep', 'kpikabag'];
+    $allowedPages = ['kpidirektur', 'kpidepartemen', 'kpikadep', 'kpikabag', 'datakpi-adminhrd', 'data-karyawan'];
     $backUrl = "kpidepartemen";
     $from = $_GET['from'] ?? '';
 

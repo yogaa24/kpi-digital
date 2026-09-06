@@ -11,8 +11,8 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/sp_functions.php';
     require 'helper/verified_functions.php';
 
-    // Hanya Admin HRD yang bisa akses
-    requireAdminHRD();
+    // Admin HRD dan Direktur (termasuk Diana Wulandari) bisa akses
+    requireAdminHRDOrDirektur();
     
     // Update SP yang sudah expired
     updateExpiredSP($conn);
@@ -318,8 +318,9 @@ function getkpi($nilair)
                                 <a href="export_kpi_all_adminhrd.php" class="btn btn-success me-2">
                                     <i class="bi bi-file-earmark-excel me-2"></i>Export Semua KPI
                                 </a>
-                                <a href="dashboard-adminhrd" class="btn btn-light">
-                                    <i class="bi bi-arrow-left me-2"></i>Kembali ke Dashboard
+                                <?php $back_url_kpi = (isset($_SESSION['level']) && $_SESSION['level'] == 7) ? 'dashboard-adminhrd' : 'data-karyawan'; ?>
+                                <a href="<?= $back_url_kpi ?>" class="btn btn-light">
+                                    <i class="bi bi-arrow-left me-2"></i>Kembali
                                 </a>
                             </div>
                         </div>
@@ -546,7 +547,7 @@ function getkpi($nilair)
                                                 <center>
                                                     <div class="btn-group-compact">
                                                         <!-- Tombol Lihat KPI -->
-                                                        <a href="kpianggota?id=<?= $hasilsfa['id']; ?>" 
+                                                        <a href="kpianggota?id=<?= $hasilsfa['id']; ?>&from=datakpi-adminhrd" 
                                                         class="btn btn-primary btn-sm" 
                                                         title="Lihat KPI">
                                                             <i class="bi bi-eye"></i>

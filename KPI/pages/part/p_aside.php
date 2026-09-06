@@ -26,6 +26,12 @@
                         <p>Eviden</p>
                     </a>
                 </li>
+                <?php if (isset($_SESSION['level']) && ($_SESSION['level'] >= 5 || ($_SESSION['id_user'] ?? 0) == 1)) { ?>
+                <li class="nav-item"> <a href="data-karyawan" class="nav-link"> <i class="nav-icon bi bi-people-fill"></i>
+                        <p>Data Karyawan</p>
+                    </a>
+                </li>
+                <?php } ?>
             </ul>
         </nav>
     </div>

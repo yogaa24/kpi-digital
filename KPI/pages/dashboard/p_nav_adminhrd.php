@@ -8,8 +8,14 @@
             </li>
 
             <li class="nav-item d-none d-md-block">
-                <a href="dashboard-adminhrd" class="nav-link">Dashboard</a>
+                <?php $nav_dash_url = (isset($_SESSION['level']) && $_SESSION['level'] == 7) ? 'dashboard-adminhrd' : 'dashboard-utama'; ?>
+                <a href="<?= $nav_dash_url ?>" class="nav-link">Dashboard</a>
             </li>
+            <?php if (isset($_SESSION['level']) && ($_SESSION['level'] >= 5 || ($_SESSION['id_user'] ?? 0) == 1) && $_SESSION['level'] != 7) { ?>
+            <li class="nav-item d-none d-md-block">
+                <a href="data-karyawan" class="nav-link">Data Karyawan</a>
+            </li>
+            <?php } ?>
         </ul>
         <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
                 

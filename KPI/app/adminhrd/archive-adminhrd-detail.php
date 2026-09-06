@@ -6,15 +6,11 @@ if (!isset($_SESSION['id_user'])) {
 }
 
 require 'helper/config.php';
-require 'helper/config.php';
 require 'helper/getUser.php';
+require 'helper/checkAdmin.php';
 
-// Cek level Admin HRD
-$sql_check = "SELECT level FROM tb_users WHERE id = '$id_user'";
-$result_check = mysqli_query($conn, $sql_check);
-$user_data = mysqli_fetch_assoc($result_check);
-
-if ($user_data['level'] != 7) {
+// Hanya Admin HRD dan Direktur (termasuk Diana Wulandari) yang bisa akses
+if (!canViewAllEmployees()) {
     header("Location: home-kpi-real");
     exit();
 }

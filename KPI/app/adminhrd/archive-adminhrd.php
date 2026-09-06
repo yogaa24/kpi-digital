@@ -7,6 +7,7 @@ if (!isset($_SESSION['id_user'])) {
 
 require 'helper/config.php';
 require 'helper/getUser.php';
+require 'helper/checkAdmin.php';
 
 // Pastikan $id_user sudah terdefinisi dari getUser.php
 // Jika belum, ambil dari session
@@ -23,9 +24,8 @@ if (!$result_check) {
     die("Error pada query check level: " . mysqli_error($conn));
 }
 
-$user_data = mysqli_fetch_assoc($result_check);
-
-if ($user_data['level'] != 7) {
+// Hanya Admin HRD dan Direktur (termasuk Diana Wulandari) yang bisa akses
+if (!canViewAllEmployees()) {
     header("Location: home-kpi-real");
     exit();
 }
@@ -120,10 +120,11 @@ sort($bagian_list);
                                         </div>
 
                                         <div>
-                                            <a href="dashboard-adminhrd"
+                                            <?php $back_url_arch = (isset($_SESSION['level']) && $_SESSION['level'] == 7) ? 'dashboard-adminhrd' : 'data-karyawan'; ?>
+                                            <a href="<?= $back_url_arch ?>"
                                             class="btn btn-light btn-sm shadow-sm">
                                                 <i class="bi bi-arrow-left me-1"></i>
-                                                Kembali ke Dashboard
+                                                Kembali
                                             </a>
                                         </div>
                                     </div>
