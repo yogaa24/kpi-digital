@@ -53,21 +53,69 @@
                         </thead>
                         
                         <tbody>
-                            <?php $sql1 = "SELECT * FROM tbsim_whats WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
+                            <?php 
+                            $curr_kpi_w_idx = 0;
+                            $sql1 = "SELECT * FROM tbsim_whats WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
                             $ql = mysqli_query($conn, $sql1);
                             while ($res = mysqli_fetch_assoc($ql)) {
+                                $curr_kpi_w_idx++;
+                                $p_norm = mb_strtolower(trim($poin ?? ''));
+                                $w_norm = mb_strtolower(trim($res['p_what'] ?? ''));
+                                $key_pw = $p_norm . '|||' . $w_norm;
+                                $key_pi = $p_norm . '|||' . $curr_kpi_w_idx;
+                                $key_w  = $w_norm;
+
+                                $matched_real = $real_map_whats['poin_what'][$key_pw]
+                                    ?? $real_map_whats['what'][$key_w]
+                                    ?? $real_map_whats['poin_idx'][$key_pi]
+                                    ?? null;
+
+                                $sim_val = floatval($res['nilai']);
+                                $real_val = $matched_real ? floatval($matched_real['nilai']) : null;
+                                $diff_nilai = $real_val !== null ? ($sim_val - $real_val) : 0;
+                                $is_increased = ($diff_nilai > 0);
                             ?>
-                            <tr class="align-middle">
+                            <tr class="align-middle <?= $is_increased ? 'row-kpi-increased' : '' ?>">
                                 <td>
                                     <?= $res['p_what']; ?>
+                                    <?php if ($is_increased) { ?>
+                                        <span class="badge badge-increased ms-2"><i class="bi bi-arrow-up-circle-fill me-1"></i> Ditingkatkan (+<?= $diff_nilai ?>)</span>
+                                    <?php } ?>
                                     <?php if ($res['tipe_what'] == 'B' && $res['target_omset'] > 0) { ?>
                                         <br><small class="text-muted fw-semibold fs-6">Target: <?=number_format($res['target_omset'], 2)?></small>
                                     <?php } ?>
                                 </td>
-                                <td><?= $res['hasil']; ?></td>
-                                <td><center><?= $res['nilai']; ?></center></td>
+                                <td>
+                                    <div class="<?= $is_increased ? 'fw-bold text-success' : '' ?>"><?= $res['hasil']; ?></div>
+                                    <?php if ($is_increased && $matched_real) { ?>
+                                        <div class="small mt-1 text-muted">
+                                            <span class="badge bg-light text-secondary border me-1"><i class="bi bi-clock-history"></i> Real:</span>
+                                            <span class="text-decoration-line-through"><?= htmlspecialchars($matched_real['hasil']) ?></span>
+                                        </div>
+                                    <?php } ?>
+                                </td>
+                                <td>
+                                    <?php if ($is_increased && $matched_real) { ?>
+                                        <center>
+                                            <strong class="text-success fs-6"><?= $res['nilai']; ?></strong>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle d-block mt-1" style="font-size: 10px;"><i class="bi bi-arrow-up"></i> +<?= $diff_nilai ?></span>
+                                            <small class="text-muted d-block" style="font-size: 10px;">(Real: <?= $real_val ?>)</small>
+                                        </center>
+                                    <?php } else { ?>
+                                        <center><?= $res['nilai']; ?></center>
+                                    <?php } ?>
+                                </td>
                                 <td><center><?= $res['bobot']; ?>%</center></td>
-                                <td><center><?= $res['total']; ?></center></td>
+                                <td>
+                                    <?php if ($is_increased && $matched_real) { ?>
+                                        <center>
+                                            <strong class="text-success"><?= $res['total']; ?></strong>
+                                            <small class="text-muted d-block" style="font-size: 10px;">(Real: <?= $matched_real['total']; ?>)</small>
+                                        </center>
+                                    <?php } else { ?>
+                                        <center><?= $res['total']; ?></center>
+                                    <?php } ?>
+                                </td>
                                 <td class="text-center">
                                     <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
                                         <i class="bi bi-eye fs-8"></i>
@@ -126,15 +174,26 @@
                                         <span style="color: #343A40;" class="input-group-text fw-bold" id="tujuan">Tujuan :</span>
                                         <textarea type="input" class="form-control" name="indikatorwhat" disabled placeholder="" aria-label="Tujuan KPI" aria-describedby="tujuan"><?=$res['p_what']?></textarea>
                                     </div>
+
+                                    <?php if ($matched_real) { ?>
+                                    <div class="alert alert-light border py-2 px-3 mb-3 d-flex align-items-center" style="font-size: 12px;">
+                                        <i class="bi bi-clock-history text-primary me-2 fs-6"></i>
+                                        <div>
+                                            <strong>Nilai KPI Real Saat Ini:</strong> <?= htmlspecialchars($matched_real['hasil']) ?> 
+                                            <span class="badge bg-primary ms-1">Nilai: <?= $real_val ?></span>
+                                            <span class="text-muted ms-1">(Total: <?= $matched_real['total'] ?>)</span>
+                                        </div>
+                                    </div>
+                                    <?php } ?>
                                     
                                     <?php if ($tipe_what == 'A') { ?>
                                         <!-- WHAT A: Pilih dari indikator -->
                                         <div class="mb-3">
                                         <label class="form-label fw-bold">Pilih Nilai Penilaian:</label>
                                         <select required class="form-select" name="nilaisi" id="nilaisi<?=$res['id_what']?>">
-                                            <option selected disabled>-- Pilih Nilai --</option>
+                                            <option disabled <?= empty($res['nilai']) ? 'selected' : '' ?>>-- Pilih Nilai --</option>
                                             <?php 
-                                            $id_what = $res['id_what'];
+                                             $id_what = $res['id_what'];
                                             $sql_indikator = "SELECT * FROM tbsim_indikator_whats 
                                                             WHERE id_what = '$id_what' 
                                                             ORDER BY urutan ASC";
@@ -145,9 +204,11 @@
                                                 $ket_display = strlen($indikator['keterangan']) > 80 
                                                             ? substr($indikator['keterangan'], 0, 80) . '...' 
                                                             : $indikator['keterangan'];
+                                                $is_selected = (floatval($indikator['nilai']) == floatval($res['nilai'])) ? 'selected' : '';
+                                                $real_tag = ($matched_real && floatval($indikator['nilai']) == floatval($matched_real['nilai'])) ? ' [REAL SAAT INI]' : '';
                                                 
-                                                echo '<option value="'.$indikator['id_indikator'].'" title="'.$indikator['keterangan'].'">';
-                                                echo htmlspecialchars($ket_display) . ' = ' . $indikator['nilai'];
+                                                echo '<option value="'.$indikator['id_indikator'].'" '.$is_selected.' title="'.$indikator['keterangan'].'">';
+                                                echo htmlspecialchars($ket_display) . ' = ' . $indikator['nilai'] . $real_tag;
                                                 echo '</option>';
                                             }
                                             ?>
@@ -233,21 +294,68 @@
                         </thead>
                         <tbody>
                             <?php
+                            $curr_kpi_h_idx = 0;
                             $sql1 = "SELECT * FROM tbsim_hows WHERE id_user='$id_user' AND id_kpi='" . $hasil['id'] . "'";
                             $ql = mysqli_query($conn, $sql1);
                             while ($res = mysqli_fetch_assoc($ql)) {
+                                $curr_kpi_h_idx++;
+                                $p2_norm = mb_strtolower(trim($poin2 ?? ''));
+                                $h_norm  = mb_strtolower(trim($res['p_how'] ?? ''));
+                                $key_ph = $p2_norm . '|||' . $h_norm;
+                                $key_pi = $p2_norm . '|||' . $curr_kpi_h_idx;
+                                $key_h  = $h_norm;
+
+                                $matched_real_h = $real_map_hows['poin_how'][$key_ph]
+                                    ?? $real_map_hows['how'][$key_h]
+                                    ?? $real_map_hows['poin_idx'][$key_pi]
+                                    ?? null;
+
+                                $sim_val_h = floatval($res['nilai']);
+                                $real_val_h = $matched_real_h ? floatval($matched_real_h['nilai']) : null;
+                                $diff_nilai_h = $real_val_h !== null ? ($sim_val_h - $real_val_h) : 0;
+                                $is_increased_h = ($diff_nilai_h > 0);
                             ?>
-                            <tr class="align-middle">
+                            <tr class="align-middle <?= $is_increased_h ? 'row-kpi-increased' : '' ?>">
                                 <td>
                                     <?= $res['p_how']; ?>
+                                    <?php if ($is_increased_h) { ?>
+                                        <span class="badge badge-increased ms-2"><i class="bi bi-arrow-up-circle-fill me-1"></i> Ditingkatkan (+<?= $diff_nilai_h ?>)</span>
+                                    <?php } ?>
                                     <?php if ($res['tipe_how'] == 'B' && $res['target_omset'] > 0) { ?>
                                         <br><small class="text-muted fw-semibold fs-6">Target: <?=number_format($res['target_omset'], 2)?></small>
                                     <?php } ?>
                                 </td>
-                                <td><?= $res['hasil']; ?></td>
-                                <td><center><?= $res['nilai']; ?></center></td>
+                                <td>
+                                    <div class="<?= $is_increased_h ? 'fw-bold text-success' : '' ?>"><?= $res['hasil']; ?></div>
+                                    <?php if ($is_increased_h && $matched_real_h) { ?>
+                                        <div class="small mt-1 text-muted">
+                                            <span class="badge bg-light text-secondary border me-1"><i class="bi bi-clock-history"></i> Real:</span>
+                                            <span class="text-decoration-line-through"><?= htmlspecialchars($matched_real_h['hasil']) ?></span>
+                                        </div>
+                                    <?php } ?>
+                                </td>
+                                <td>
+                                    <?php if ($is_increased_h && $matched_real_h) { ?>
+                                        <center>
+                                            <strong class="text-success fs-6"><?= $res['nilai']; ?></strong>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle d-block mt-1" style="font-size: 10px;"><i class="bi bi-arrow-up"></i> +<?= $diff_nilai_h ?></span>
+                                            <small class="text-muted d-block" style="font-size: 10px;">(Real: <?= $real_val_h ?>)</small>
+                                        </center>
+                                    <?php } else { ?>
+                                        <center><?= $res['nilai']; ?></center>
+                                    <?php } ?>
+                                </td>
                                 <td><center><?= $res['bobot']; ?>%</center></td>
-                                <td><center><?= $res['total']; ?></center></td>
+                                <td>
+                                    <?php if ($is_increased_h && $matched_real_h) { ?>
+                                        <center>
+                                            <strong class="text-success"><?= $res['total']; ?></strong>
+                                            <small class="text-muted d-block" style="font-size: 10px;">(Real: <?= $matched_real_h['total']; ?>)</small>
+                                        </center>
+                                    <?php } else { ?>
+                                        <center><?= $res['total']; ?></center>
+                                    <?php } ?>
+                                </td>
                                 <td class="text-center">
                                     <button type="button" data-bs-toggle="dropdown" class="btn btn-success btn-sm">
                                         <i class="bi bi-eye fs-8"></i>
@@ -288,13 +396,24 @@
                                                     <span style="color: #343A40;" class="input-group-text fw-bold" id="tujuan">Tujuan :</span>
                                                     <textarea type="input" class="form-control" name="indikatorhow" disabled placeholder="" aria-label="Tujuan KPI" aria-describedby="tujuan"><?=$res['p_how']?></textarea>
                                                 </div>
+
+                                                <?php if ($matched_real_h) { ?>
+                                                <div class="alert alert-light border py-2 px-3 mb-3 d-flex align-items-center" style="font-size: 12px;">
+                                                    <i class="bi bi-clock-history text-primary me-2 fs-6"></i>
+                                                    <div>
+                                                        <strong>Nilai KPI Real Saat Ini:</strong> <?= htmlspecialchars($matched_real_h['hasil']) ?> 
+                                                        <span class="badge bg-primary ms-1">Nilai: <?= $real_val_h ?></span>
+                                                        <span class="text-muted ms-1">(Total: <?= $matched_real_h['total'] ?>)</span>
+                                                    </div>
+                                                </div>
+                                                <?php } ?>
                                                 
                                                 <?php if ($tipe_how == 'A') { ?>
                                                     <!-- HOW A: Pilih dari indikator -->
                                                     <div class="mb-3">
                                                         <label class="form-label fw-bold">Pilih Nilai Penilaian:</label>
                                                         <select required class="form-select" name="nilaisi" id="nilaisi<?=$res['id_how']?>">
-                                                            <option selected disabled>-- Pilih Nilai --</option>
+                                                            <option disabled <?= empty($res['nilai']) ? 'selected' : '' ?>>-- Pilih Nilai --</option>
                                                             <?php 
                                                             $id_how = $res['id_how'];
                                                             $sql_indikator = "SELECT * FROM tbsim_indikator_hows 
@@ -306,9 +425,11 @@
                                                                 $ket_display = strlen($indikator['keterangan']) > 80 
                                                                             ? substr($indikator['keterangan'], 0, 80) . '...' 
                                                                             : $indikator['keterangan'];
+                                                                $is_selected = (floatval($indikator['nilai']) == floatval($res['nilai'])) ? 'selected' : '';
+                                                                $real_tag = ($matched_real_h && floatval($indikator['nilai']) == floatval($matched_real_h['nilai'])) ? ' [REAL SAAT INI]' : '';
                                                                 
-                                                                echo '<option value="'.$indikator['id_indikator'].'" title="'.$indikator['keterangan'].'">';
-                                                                echo htmlspecialchars($ket_display) . ' = ' . $indikator['nilai'];
+                                                                echo '<option value="'.$indikator['id_indikator'].'" '.$is_selected.' title="'.$indikator['keterangan'].'">';
+                                                                echo htmlspecialchars($ket_display) . ' = ' . $indikator['nilai'] . $real_tag;
                                                                 echo '</option>';
                                                             }
                                                             ?>

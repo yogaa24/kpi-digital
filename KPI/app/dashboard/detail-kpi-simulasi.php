@@ -513,7 +513,70 @@ if (isset($_POST['kpi_hapus'])) {
         echo "<script>alert('Berhasil menghapus KPI')</script>";
         exit();
     } else {
-        echo "<script>alert('Gagal menghapus KPI')</script>";
+    }
+}
+
+// =========================================================================
+// DATA KOMPARASI KPI REAL VS SIMULASI
+// Digunakan untuk mendeteksi indikator yang ditingkatkan untuk bulan depan
+// =========================================================================
+$real_map_whats = [
+    'poin_what' => [],
+    'poin_idx'  => [],
+    'what'      => []
+];
+$rq_whats = mysqli_query($conn, "SELECT w.*, k.poin 
+    FROM tb_whats w 
+    LEFT JOIN tb_kpi k ON w.id_kpi = k.id 
+    WHERE w.id_user = $id_user 
+    ORDER BY k.id ASC, w.id_what ASC");
+$kpi_w_indices = [];
+if ($rq_whats) {
+    while ($rw = mysqli_fetch_assoc($rq_whats)) {
+        $p = trim($rw['poin'] ?? '');
+        $w = trim($rw['p_what'] ?? '');
+        $kpi_w_indices[$p] = ($kpi_w_indices[$p] ?? 0) + 1;
+        $idx = $kpi_w_indices[$p];
+        
+        $key_pw = mb_strtolower($p) . '|||' . mb_strtolower($w);
+        $key_pi = mb_strtolower($p) . '|||' . $idx;
+        $key_w  = mb_strtolower($w);
+        
+        $real_map_whats['poin_what'][$key_pw] = $rw;
+        $real_map_whats['poin_idx'][$key_pi]  = $rw;
+        if (!isset($real_map_whats['what'][$key_w])) {
+            $real_map_whats['what'][$key_w] = $rw;
+        }
+    }
+}
+
+$real_map_hows = [
+    'poin_how' => [],
+    'poin_idx' => [],
+    'how'      => []
+];
+$rq_hows = mysqli_query($conn, "SELECT h.*, k.poin2 
+    FROM tb_hows h 
+    LEFT JOIN tb_kpi k ON h.id_kpi = k.id 
+    WHERE h.id_user = $id_user 
+    ORDER BY k.id ASC, h.id_how ASC");
+$kpi_h_indices = [];
+if ($rq_hows) {
+    while ($rh = mysqli_fetch_assoc($rq_hows)) {
+        $p2 = trim($rh['poin2'] ?? '');
+        $h  = trim($rh['p_how'] ?? '');
+        $kpi_h_indices[$p2] = ($kpi_h_indices[$p2] ?? 0) + 1;
+        $idx = $kpi_h_indices[$p2];
+        
+        $key_ph = mb_strtolower($p2) . '|||' . mb_strtolower($h);
+        $key_pi = mb_strtolower($p2) . '|||' . $idx;
+        $key_h  = mb_strtolower($h);
+        
+        $real_map_hows['poin_how'][$key_ph] = $rh;
+        $real_map_hows['poin_idx'][$key_pi]  = $rh;
+        if (!isset($real_map_hows['how'][$key_h])) {
+            $real_map_hows['how'][$key_h] = $rh;
+        }
     }
 }
 }
@@ -523,6 +586,32 @@ if (isset($_POST['kpi_hapus'])) {
 
 <?php include("pages/part/p_header.php"); ?>
 
+<style>
+    /* Styling Pembeda Baris yang Ditingkatkan pada Simulasi */
+    .row-kpi-increased {
+        background-color: #d1e7dd !important;
+        border-left: 6px solid #198754 !important;
+    }
+    .row-kpi-increased > td {
+        background-color: #d1e7dd !important;
+        color: #0f5132 !important;
+    }
+    .row-kpi-increased:hover > td {
+        background-color: #c1e2d2 !important;
+    }
+    .badge-increased {
+        background: linear-gradient(135deg, #198754, #20c997) !important;
+        color: #ffffff !important;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(25, 135, 84, 0.25);
+        display: inline-flex;
+        align-items: center;
+    }
+</style>
+
 <body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
     <!--begin::App Wrapper-->
     <div class="app-wrapper">
@@ -530,14 +619,8 @@ if (isset($_POST['kpi_hapus'])) {
         <?php include("pages/kpi/k_nav_sim.php"); ?>
         <?php include("pages/part/p_aside.php"); ?>
         <main class="app-main">
-            <!--begin::App Content Header-->
-            <div class="mt-3">
-                <!--begin::Container-->
-                <!-- isi -->
-            </div>
-            <!--end::App Content Header-->
             <!--begin::App Content-->
-            <div class="app-content">
+            <div class="app-content mt-3">
                 <!--begin::Container-->
                 <div class="container-fluid" style="font-size:13px;">
                     <!--begin::Row-->
