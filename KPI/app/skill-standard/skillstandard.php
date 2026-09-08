@@ -607,7 +607,11 @@ if (!isset($_SESSION['id_user'])) {
                                                     $row_class = $is_edited_by_superior ? 'edited-row' : '';
                                                     $has_original_change = !empty($res['original_poinss'])
                                                         || $res['original_nilaiss'] !== null
-                                                        || $res['original_deskripsi'] !== null;
+                                                        || $res['original_deskripsi'] !== null
+                                                        || !empty($res['original_nilai1'])
+                                                        || !empty($res['original_nilai2'])
+                                                        || !empty($res['original_nilai3'])
+                                                        || !empty($res['original_nilai4']);
                                                     $previous_score = array_key_exists($res['id_sspoin'], $ss_previous_scores)
                                                         ? $ss_previous_scores[$res['id_sspoin']]
                                                         : null;
@@ -830,8 +834,13 @@ if (!isset($_SESSION['id_user'])) {
                                                                             <div class="mb-2">
                                                                                 <span class="badge bg-danger me-2">Nilai 1</span>
                                                                                 <span class="fw-semibold fs-7 text-dark">
-                                                                                    <?= $res['nilai1']; ?>
+                                                                                    <?= htmlspecialchars($res['nilai1']); ?>
                                                                                 </span>
+                                                                                <?php if ($is_edited_by_superior && !empty($res['original_nilai1']) && $res['original_nilai1'] != $res['nilai1']) { ?>
+                                                                                    <div class="change-info mt-1">
+                                                                                        <strong>Sebelum:</strong> <span class="old-val"><?= htmlspecialchars($res['original_nilai1']); ?></span>
+                                                                                    </div>
+                                                                                <?php } ?>
                                                                             </div>
                                                                             <?php } ?>
 
@@ -839,8 +848,13 @@ if (!isset($_SESSION['id_user'])) {
                                                                             <div class="mb-2">
                                                                                 <span class="badge me-2" style="background-color:#fd7e14; color:white;">Nilai 2</span>
                                                                                 <span class="fw-semibold fs-7 text-dark">
-                                                                                    <?= $res['nilai2']; ?>
+                                                                                    <?= htmlspecialchars($res['nilai2']); ?>
                                                                                 </span>
+                                                                                <?php if ($is_edited_by_superior && !empty($res['original_nilai2']) && $res['original_nilai2'] != $res['nilai2']) { ?>
+                                                                                    <div class="change-info mt-1">
+                                                                                        <strong>Sebelum:</strong> <span class="old-val"><?= htmlspecialchars($res['original_nilai2']); ?></span>
+                                                                                    </div>
+                                                                                <?php } ?>
                                                                             </div>
                                                                             <?php } ?>
 
@@ -848,8 +862,13 @@ if (!isset($_SESSION['id_user'])) {
                                                                             <div class="mb-2">
                                                                                 <span class="badge bg-warning me-2">Nilai 3</span>
                                                                                 <span class="fw-semibold fs-7 text-dark">
-                                                                                    <?= $res['nilai3']; ?>
+                                                                                    <?= htmlspecialchars($res['nilai3']); ?>
                                                                                 </span>
+                                                                                <?php if ($is_edited_by_superior && !empty($res['original_nilai3']) && $res['original_nilai3'] != $res['nilai3']) { ?>
+                                                                                    <div class="change-info mt-1">
+                                                                                        <strong>Sebelum:</strong> <span class="old-val"><?= htmlspecialchars($res['original_nilai3']); ?></span>
+                                                                                    </div>
+                                                                                <?php } ?>
                                                                             </div>
                                                                             <?php } ?>
 
@@ -857,8 +876,13 @@ if (!isset($_SESSION['id_user'])) {
                                                                             <div class="mb-2">
                                                                                 <span class="badge bg-success me-2">Nilai 4</span>
                                                                                 <span class="fw-semibold fs-7 text-dark">
-                                                                                    <?= $res['nilai4']; ?>
+                                                                                    <?= htmlspecialchars($res['nilai4']); ?>
                                                                                 </span>
+                                                                                <?php if ($is_edited_by_superior && !empty($res['original_nilai4']) && $res['original_nilai4'] != $res['nilai4']) { ?>
+                                                                                    <div class="change-info mt-1">
+                                                                                        <strong>Sebelum:</strong> <span class="old-val"><?= htmlspecialchars($res['original_nilai4']); ?></span>
+                                                                                    </div>
+                                                                                <?php } ?>
                                                                             </div>
                                                                             <?php } ?>
 

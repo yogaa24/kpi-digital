@@ -13,7 +13,7 @@ if (!isset($_SESSION['id_user'])) {
     $currentNama = stripslashes($nama_lngkp);
     $currentDepartement = $departement;
     $target_user_id = isset($_GET['id']) ? intval($_GET['id']) : $current_user_id;
-    $allowedPages = ['kpidirektur', 'kpidepartemen', 'kpikadep', 'kpikabag'];
+    $allowedPages = ['kpidirektur', 'kpidepartemen', 'kpikadep', 'kpikabag', 'datakpi-adminhrd', 'data-karyawan'];
     $from = $_GET['from'] ?? '';
     $backUrl = in_array($from, $allowedPages) ? $from : 'home-kpi-simulasi';
 

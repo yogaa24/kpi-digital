@@ -24,5 +24,8 @@ while ($hasil = mysqli_fetch_assoc($result)) {
     $penilai = $hasil['penilai'];
     $leveel = $hasil['level'];
 }
+if (isset($leveel)) {
+    $_SESSION['level'] = $leveel;
+}
 $nama_lngkp = mysqli_real_escape_string($conn, $nama_lngkp);
 ?>

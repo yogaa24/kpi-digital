@@ -56,6 +56,10 @@ if (!isset($_SESSION['id_user'])) {
             'original_poinss' => "ALTER TABLE tb_sspoin ADD COLUMN original_poinss TEXT NULL",
             'original_nilaiss' => "ALTER TABLE tb_sspoin ADD COLUMN original_nilaiss DECIMAL(10,2) NULL",
             'original_deskripsi' => "ALTER TABLE tb_sspoin ADD COLUMN original_deskripsi TEXT NULL",
+            'original_nilai1' => "ALTER TABLE tb_sspoin ADD COLUMN original_nilai1 TEXT NULL",
+            'original_nilai2' => "ALTER TABLE tb_sspoin ADD COLUMN original_nilai2 TEXT NULL",
+            'original_nilai3' => "ALTER TABLE tb_sspoin ADD COLUMN original_nilai3 TEXT NULL",
+            'original_nilai4' => "ALTER TABLE tb_sspoin ADD COLUMN original_nilai4 TEXT NULL",
             'is_edited' => "ALTER TABLE tb_sspoin ADD COLUMN is_edited TINYINT(1) NOT NULL DEFAULT 0",
             'edited_by' => "ALTER TABLE tb_sspoin ADD COLUMN edited_by INT NULL",
             'edited_at' => "ALTER TABLE tb_sspoin ADD COLUMN edited_at DATETIME NULL"
@@ -233,20 +237,36 @@ if (!isset($_SESSION['id_user'])) {
     }
     if (isset($_POST['ss_edit'])) {
         $poin = $_POST['poinsss'];
-        $id = $_POST['idsss'];
+        $id = intval($_POST['idsss']);
         $poin_safe = mysqli_real_escape_string($conn, $poin);
+        $indikator_1_safe = mysqli_real_escape_string($conn, $_POST['indikator_1'] ?? '');
+        $indikator_2_safe = mysqli_real_escape_string($conn, $_POST['indikator_2'] ?? '');
+        $indikator_3_safe = mysqli_real_escape_string($conn, $_POST['indikator_3'] ?? '');
+        $indikator_4_safe = mysqli_real_escape_string($conn, $_POST['indikator_4'] ?? '');
 
         if ($is_editing_member_ss) {
             $sql = "UPDATE tb_sspoin 
             SET original_poinss = CASE WHEN original_poinss IS NOT NULL THEN original_poinss ELSE poinss END,
+                original_nilai1 = CASE WHEN original_nilai1 IS NOT NULL THEN original_nilai1 ELSE nilai1 END,
+                original_nilai2 = CASE WHEN original_nilai2 IS NOT NULL THEN original_nilai2 ELSE nilai2 END,
+                original_nilai3 = CASE WHEN original_nilai3 IS NOT NULL THEN original_nilai3 ELSE nilai3 END,
+                original_nilai4 = CASE WHEN original_nilai4 IS NOT NULL THEN original_nilai4 ELSE nilai4 END,
                 poinss='$poin_safe',
+                nilai1='$indikator_1_safe',
+                nilai2='$indikator_2_safe',
+                nilai3='$indikator_3_safe',
+                nilai4='$indikator_4_safe',
                 is_edited=1,
                 edited_by=$id_user,
                 edited_at=NOW()
             WHERE id_sspoin=$id";
         } else {
             $sql = "UPDATE tb_sspoin 
-            SET poinss='$poin_safe'
+            SET poinss='$poin_safe',
+                nilai1='$indikator_1_safe',
+                nilai2='$indikator_2_safe',
+                nilai3='$indikator_3_safe',
+                nilai4='$indikator_4_safe'
             WHERE id_sspoin=$id";
         }
         $result = mysqli_query($conn, $sql);
@@ -835,7 +855,11 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                     $row_class = $is_edited_by_superior ? 'edited-row' : '';
                                                     $has_original_change = !empty($res['original_poinss'])
                                                         || $res['original_nilaiss'] !== null
-                                                        || $res['original_deskripsi'] !== null;
+                                                        || $res['original_deskripsi'] !== null
+                                                        || !empty($res['original_nilai1'])
+                                                        || !empty($res['original_nilai2'])
+                                                        || !empty($res['original_nilai3'])
+                                                        || !empty($res['original_nilai4']);
 
                                                     $previous_score = array_key_exists($res['id_sspoin'], $ss_previous_scores)
                                                         ? $ss_previous_scores[$res['id_sspoin']]
@@ -934,32 +958,62 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                             </div>
                                                         </td>
                                                     </tr>
-                                                    <!-- Modal Edit Poin SS -->
-                                                    <div class="modal fade" id="EditSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="EditModalLabel" aria-hidden="true">
+                                                    <!-- Modal Edit Poin & Indikator SS -->
+                                                    <div class="modal fade" id="EditSSS<?= $res['id_sspoin'] ?>" tabindex="-1" aria-labelledby="EditModalLabel<?= $res['id_sspoin'] ?>" aria-hidden="true">
                                                         <div class="modal-dialog modal-lg">
                                                             <div class="modal-content">
                                                                 <div class="modal-header">
-                                                                    <h5 class="modal-title fw-bold" id="EditModalLabel">Edit Poin Skill Standard</h5>
+                                                                    <h5 class="modal-title fw-bold" id="EditModalLabel<?= $res['id_sspoin'] ?>">Edit Poin & Indikator Skill Standard</h5>
                                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                                 </div>
-                                                                <div class="modal-body">
-                                                                    <form method="POST" action="" class="input">
+                                                                <form method="POST" action="" class="input">
+                                                                    <div class="modal-body">
                                                                         <input type="hidden" value="<?= $res['id_sspoin']; ?>" name="idsss">
                                                                         
                                                                         <div class="input-group mb-3">
                                                                             <span style="color : #343A40;" class="input-group-text fw-bold">Poin :</span>
-                                                                            <input type="text" value="<?= $res['poinss']; ?>" class="form-control" 
+                                                                            <input type="text" value="<?= htmlspecialchars($res['poinss']); ?>" class="form-control" 
                                                                                 name="poinsss" placeholder="Poin SS" required>
                                                                         </div>
                                                                         
-                                                                        <div class="alert alert-info">
-                                                                            <i class="bi bi-info-circle"></i> Untuk mengubah nilai, gunakan menu "Nilai"
+                                                                        <small class="fs-6 fw-bold">Indikator Penilaian</small>
+                                                                        
+                                                                        <div class="input-group mb-3">
+                                                                            <span style="color : #343A40;" class="input-group-text fw-bold">Nilai 1</span>
+                                                                            <input type="text" class="form-control" name="indikator_1" 
+                                                                                value="<?= htmlspecialchars($res['nilai1'] ?? ''); ?>"
+                                                                                placeholder="Contoh: Indikator 1 .." required>
                                                                         </div>
-                                                                </div>
-                                                                <div class="modal-footer">
-                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                                    <button type="submit" name="ss_edit" class="btn btn-primary">Simpan</button>
-                                                                </div>
+                                                                        
+                                                                        <div class="input-group mb-3">
+                                                                            <span style="color : #343A40;" class="input-group-text fw-bold">Nilai 2</span>
+                                                                            <input type="text" class="form-control" name="indikator_2" 
+                                                                                value="<?= htmlspecialchars($res['nilai2'] ?? ''); ?>"
+                                                                                placeholder="Indikator 2 ..." required>
+                                                                        </div>
+
+                                                                        <div class="input-group mb-3">
+                                                                            <span style="color : #343A40;" class="input-group-text fw-bold">Nilai 3</span>
+                                                                            <input type="text" class="form-control" name="indikator_3" 
+                                                                                value="<?= htmlspecialchars($res['nilai3'] ?? ''); ?>"
+                                                                                placeholder="Indikator 3 ..." required>
+                                                                        </div>
+
+                                                                        <div class="input-group mb-3">
+                                                                            <span style="color : #343A40;" class="input-group-text fw-bold">Nilai 4</span>
+                                                                            <input type="text" class="form-control" name="indikator_4" 
+                                                                                value="<?= htmlspecialchars($res['nilai4'] ?? ''); ?>"
+                                                                                placeholder="Indikator 4 ..." required>
+                                                                        </div>
+                                                                        
+                                                                        <div class="alert alert-info">
+                                                                            <i class="bi bi-info-circle"></i> Untuk mengubah nilai capaian/skor, gunakan menu "Nilai"
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="modal-footer">
+                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                                        <button type="submit" name="ss_edit" class="btn btn-primary">Simpan</button>
+                                                                    </div>
                                                                 </form>
                                                             </div>
                                                         </div>
@@ -1019,8 +1073,13 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                                             <div class="mb-2">
                                                                                 <span class="badge bg-danger me-2">Nilai 1</span>
                                                                                 <span class="fw-semibold fs-7 text-dark">
-                                                                                    <?= $res['nilai1']; ?>
+                                                                                    <?= htmlspecialchars($res['nilai1']); ?>
                                                                                 </span>
+                                                                                <?php if ($is_edited_by_superior && !empty($res['original_nilai1']) && $res['original_nilai1'] != $res['nilai1']) { ?>
+                                                                                    <div class="change-info mt-1">
+                                                                                        <strong>Sebelum:</strong> <span class="old-val"><?= htmlspecialchars($res['original_nilai1']); ?></span>
+                                                                                    </div>
+                                                                                <?php } ?>
                                                                             </div>
                                                                             <?php } ?>
 
@@ -1028,8 +1087,13 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                                             <div class="mb-2">
                                                                                 <span class="badge me-2" style="background-color:#fd7e14; color:white;">Nilai 2</span>
                                                                                 <span class="fw-semibold fs-7 text-dark">
-                                                                                    <?= $res['nilai2']; ?>
+                                                                                    <?= htmlspecialchars($res['nilai2']); ?>
                                                                                 </span>
+                                                                                <?php if ($is_edited_by_superior && !empty($res['original_nilai2']) && $res['original_nilai2'] != $res['nilai2']) { ?>
+                                                                                    <div class="change-info mt-1">
+                                                                                        <strong>Sebelum:</strong> <span class="old-val"><?= htmlspecialchars($res['original_nilai2']); ?></span>
+                                                                                    </div>
+                                                                                <?php } ?>
                                                                             </div>
                                                                             <?php } ?>
 
@@ -1037,8 +1101,13 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                                             <div class="mb-2">
                                                                                 <span class="badge bg-warning me-2">Nilai 3</span>
                                                                                 <span class="fw-semibold fs-7 text-dark">
-                                                                                    <?= $res['nilai3']; ?>
+                                                                                    <?= htmlspecialchars($res['nilai3']); ?>
                                                                                 </span>
+                                                                                <?php if ($is_edited_by_superior && !empty($res['original_nilai3']) && $res['original_nilai3'] != $res['nilai3']) { ?>
+                                                                                    <div class="change-info mt-1">
+                                                                                        <strong>Sebelum:</strong> <span class="old-val"><?= htmlspecialchars($res['original_nilai3']); ?></span>
+                                                                                    </div>
+                                                                                <?php } ?>
                                                                             </div>
                                                                             <?php } ?>
 
@@ -1046,8 +1115,13 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                                                                             <div class="mb-2">
                                                                                 <span class="badge bg-success me-2">Nilai 4</span>
                                                                                 <span class="fw-semibold fs-7 text-dark">
-                                                                                    <?= $res['nilai4']; ?>
+                                                                                    <?= htmlspecialchars($res['nilai4']); ?>
                                                                                 </span>
+                                                                                <?php if ($is_edited_by_superior && !empty($res['original_nilai4']) && $res['original_nilai4'] != $res['nilai4']) { ?>
+                                                                                    <div class="change-info mt-1">
+                                                                                        <strong>Sebelum:</strong> <span class="old-val"><?= htmlspecialchars($res['original_nilai4']); ?></span>
+                                                                                    </div>
+                                                                                <?php } ?>
                                                                             </div>
                                                                             <?php } ?>
 

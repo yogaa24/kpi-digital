@@ -2,35 +2,46 @@
 // File: helper/checkAdmin.php
 
 /**
- * Cek apakah user adalah Admin HRD (level 5)
+ * Cek apakah user adalah Admin HRD (level 7)
  */
 function isAdminHRD() {
-    return isset($_SESSION['level']) && $_SESSION['level'] == 7;
+    global $leveel, $username;
+    $level = intval($_SESSION['level'] ?? ($leveel ?? 0));
+    $user = strtolower($username ?? ($_SESSION['username'] ?? ''));
+    return $level == 7 || $user === 'adminhrd';
 }
 
 /**
  * Cek apakah user adalah Kadep (level 4)
  */
 function isKadepOrHigher() {
-    return isset($_SESSION['level']) && $_SESSION['level'] == 5;
+    global $leveel;
+    $level = intval($_SESSION['level'] ?? ($leveel ?? 0));
+    return $level >= 4;
 }
 
 /**
  * Cek apakah user adalah Kadep MT atau lebih tinggi (level >= 3)
  */
 function isKadepMTOrHigher() {
-    return isset($_SESSION['level']) && $_SESSION['level'] >= 4;
+    global $leveel;
+    $level = intval($_SESSION['level'] ?? ($leveel ?? 0));
+    return $level >= 4;
 }
 
 /**
  * Cek apakah user adalah Kabag atau lebih tinggi (level >= 2)
  */
 function isKabagOrHigher() {
-    return isset($_SESSION['level']) && $_SESSION['level'] >= 3;
+    global $leveel;
+    $level = intval($_SESSION['level'] ?? ($leveel ?? 0));
+    return $level >= 3;
 }
 
 function isKoorOrHigher() {
-    return isset($_SESSION['level']) && $_SESSION['level'] >= 2;
+    global $leveel;
+    $level = intval($_SESSION['level'] ?? ($leveel ?? 0));
+    return $level >= 2;
 }
 
 /**
@@ -47,9 +58,18 @@ function requireAdminHRD() {
  * Cek apakah user adalah Direktur / Wadir Utama / ID 1 (Diana Wulandari)
  */
 function isDirekturOrHigher() {
-    $level = intval($_SESSION['level'] ?? 0);
+    global $leveel, $jabatan, $nama_lngkp;
+    $level = intval($_SESSION['level'] ?? ($leveel ?? 0));
     $id = intval($_SESSION['id_user'] ?? 0);
-    return ($level >= 5 || $id == 1);
+    $user_jabatan = strtolower($jabatan ?? '');
+    $user_nama = strtolower($nama_lngkp ?? '');
+
+    // Level >= 5 (Direktur/Wadir), atau ID 1, atau jabatan Direktur/Wadir, atau nama Diana Wulandari
+    if ($level >= 5 || $id == 1 || strpos($user_jabatan, 'direktur') !== false || strpos($user_jabatan, 'wadir') !== false || strpos($user_nama, 'diana wulandari') !== false) {
+        return true;
+    }
+
+    return false;
 }
 
 /**

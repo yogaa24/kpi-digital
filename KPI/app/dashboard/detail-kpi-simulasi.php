@@ -11,7 +11,7 @@ require 'helper/getUser.php';
 
 $current_user_id = intval($_SESSION['id_user']);
 $target_user_id = isset($_GET['id']) ? intval($_GET['id']) : $current_user_id;
-$allowedPages = ['kpidirektur', 'kpidepartemen', 'kpikadep', 'kpikabag'];
+$allowedPages = ['kpidirektur', 'kpidepartemen', 'kpikadep', 'kpikabag', 'datakpi-adminhrd', 'data-karyawan'];
 $from = $_GET['from'] ?? '';
 $backUrl = in_array($from, $allowedPages) ? $from : 'home-kpi-simulasi';
 

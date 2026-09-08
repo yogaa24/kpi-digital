@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <?php
 session_start();
 if (!isset($_SESSION['id_user'])) {
@@ -22,7 +21,7 @@ $total_dept = ($total_dept_res) ? (mysqli_fetch_assoc($total_dept_res)['total'] 
 
 $periode_aktif = date('F Y');
 ?>
-
+<!DOCTYPE html>
 <html lang="id">
 <?php include("pages/part/p_header.php"); ?>
 
@@ -174,7 +173,7 @@ $periode_aktif = date('F Y');
                         
                         <!-- 1. DATA KPI SELURUH KARYAWAN -->
                         <div class="col-xl-3 col-md-6">
-                            <div class="card menu-hub-card card-kpi" onclick="window.location.href='datakpi-adminhrd'">
+                            <div class="card menu-hub-card card-kpi" onclick="window.location.href='kpidepartemen'">
                                 <div class="card-body p-4 d-flex flex-column justify-content-between">
                                     <div>
                                         <div class="icon-box icon-kpi">
@@ -186,7 +185,7 @@ $periode_aktif = date('F Y');
                                         </p>
                                     </div>
                                     <div class="pt-2 border-top">
-                                        <a href="datakpi-adminhrd" class="btn btn-outline-success w-100 btn-action-hub">
+                                        <a href="kpidepartemen" class="btn btn-outline-success w-100 btn-action-hub">
                                             <i class="bi bi-eye me-1"></i> Buka Data KPI
                                         </a>
                                     </div>
@@ -263,7 +262,7 @@ $periode_aktif = date('F Y');
                     </div>
 
                     <!-- Quick Information Banner -->
-                    <div class="row mt-4">
+                    <!-- <div class="row mt-4">
                         <div class="col-12">
                             <div class="card shadow-sm border-0 bg-white" style="border-radius: 14px;">
                                 <div class="card-body p-3 d-flex align-items-center justify-content-between">
@@ -284,7 +283,7 @@ $periode_aktif = date('F Y');
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                 </div>
             </div>

@@ -513,7 +513,7 @@ function tmapil($bl, $th){
                                 </li>
                             <?php } elseif ($leveel == 7) { ?>
                                 <li class="nav-item d-none d-md-block">
-                                    <a href="dashboard-adminhrd" class="nav-link">Kembali</a>
+                                    <a href="<?= $backUrl ?>" class="nav-link">Kembali</a>
                                 </li>
                             <?php } elseif ($leveel == 4) { ?>
                                 <li class="nav-item d-none d-md-block">
@@ -525,6 +525,11 @@ function tmapil($bl, $th){
                                 </li>
                             <?php } ?>
                     <li class="nav-item d-none d-md-block"> <a href="kpidetailanggota?id=<?= $_GET['id']; ?>&from=<?= $from ?>" class="nav-link">Detail KPI</a> </li>
+                    <li class="nav-item d-none d-md-block"> 
+                        <a href="home-kpi-simulasi?id=<?= $_GET['id']; ?>&from=<?= urlencode($from) ?>" class="nav-link">
+                            <span class="badge bg-warning text-dark"><i class="bi bi-rocket-takeoff me-1"></i>KPI Simulasi</span>
+                        </a> 
+                    </li>
                 </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
 
                 <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->

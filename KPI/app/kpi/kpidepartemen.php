@@ -11,8 +11,8 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/getKPI.php';
 }
 
-// Hanya boleh diakses oleh level 4 (Kadep) dan level 5 (Direktur)
-if (!isset($leveel) || ($leveel != 4 && $leveel != 5 && $leveel != 6)) {
+// Boleh diakses oleh level 4 (Kadep), level 5 (Direktur), level 6 (Wadir), level 7 (Admin HRD), atau ID 1 (Diana Wulandari)
+if (!isset($leveel) || ($leveel != 4 && $leveel != 5 && $leveel != 6 && $leveel != 7 && ($id_user ?? 0) != 1)) {
     header("Location: home-kpi-real");
     exit();
 }
@@ -222,7 +222,8 @@ $tahunSebelumnya = $bulanLaluDate->format('Y');
 $namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
 
 // Ambil daftar departemen/bagian unik untuk filter
-if ($leveel == 5 || $leveel == 6) {
+$isAllDeptViewer = ($leveel == 5 || $leveel == 6 || $leveel == 7 || ($id_user ?? 0) == 1);
+if ($isAllDeptViewer) {
     // Ambil daftar departemen unik
     $sqlDept = "SELECT DISTINCT departement FROM tb_users WHERE departement IS NOT NULL AND departement != '' ORDER BY departement ASC";
     $resultDept = mysqli_query($conn, $sqlDept);
@@ -347,8 +348,9 @@ if ($leveel == 5 || $leveel == 6) {
                                 Bulan Lalu: <strong><?= $namaBulanSebelumnya . ' ' . $tahunSebelumnya ?></strong>
                             </small>
                         </div>
-                        <?php if ($leveel == 5 || $leveel == 6 ): ?>
-                        <!-- Filter Departemen untuk Direktur -->
+                        <div class="d-flex align-items-center">
+                        <?php if ($isAllDeptViewer): ?>
+                        <!-- Filter Departemen untuk Direktur / All Dept Viewer -->
                         <form method="GET" action="kpidepartemen" class="form-inline">
                             <div class="input-group input-group-sm">
                                 <select name="bagian" class="form-control" onchange="this.form.submit()">
@@ -369,6 +371,10 @@ if ($leveel == 5 || $leveel == 6) {
                             </div>
                         </form>
                         <?php endif; ?>
+                        <a href="data-karyawan" class="btn btn-outline-secondary btn-sm ml-2" style="white-space:nowrap;">
+                            <i class="bi bi-arrow-left"></i> Kembali
+                        </a>
+                        </div>
                     </div>
 
                     <!-- Tabel KPI -->
@@ -380,7 +386,7 @@ if ($leveel == 5 || $leveel == 6) {
                                     <th rowspan="2"><center>Nama Karyawan</center></th>
                                     <th width="15%" rowspan="2"><center>Jabatan</center></th>
                                     <th width="15%" rowspan="2"><center>Departemen</center></th>
-                                    <?php if ($leveel == 5 || $leveel == 6): ?>
+                                    <?php if ($isAllDeptViewer): ?>
                                     <th width="12%" rowspan="2"><center>Atasan Langsung</center></th>
                                     <?php endif; ?>
                                     <th colspan="3"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
@@ -477,7 +483,7 @@ if ($leveel == 5 || $leveel == 6) {
                                 $total_team++;
 
                                 // Stats per departemen untuk chart direktur
-                                if ($leveel == 5 || $leveel == 6) {
+                                if ($isAllDeptViewer) {
                                     $bg = $hasilsfa['departement']; // <-- ganti dari bagian ke departement
                                     if (!isset($deptStats[$bg])) {
                                         $deptStats[$bg] = ['poor'=>0,'good'=>0,'very_good'=>0,'excellent'=>0,'total'=>0];
@@ -499,7 +505,7 @@ if ($leveel == 5 || $leveel == 6) {
                                     </td>
                                     <td><center><?= htmlspecialchars($hasilsfa['jabatan']) ?></center></td>
                                     <td><center><?= htmlspecialchars($hasilsfa['departement']) ?></center></td>
-                                    <?php if ($leveel == 5 || $leveel == 6): ?>
+                                    <?php if ($isAllDeptViewer): ?>
                                     <td><center><?= htmlspecialchars($hasilsfa['atasan'] ?? '-') ?></center></td>
                                     <?php endif; ?>
 
@@ -580,7 +586,7 @@ if ($leveel == 5 || $leveel == 6) {
                         <div class="col-md-6">
                             <div class="card">
                                 <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0"><i class="bi bi-pie-chart-fill me-1"></i> Distribusi KPI <?= ($leveel == 5 || $leveel == 6 && $filterBagian == '') ? 'Seluruh Perusahaan' : htmlspecialchars($filterBagian ?: $bagian) ?></h5>
+                                    <h5 class="mb-0"><i class="bi bi-pie-chart-fill me-1"></i> Distribusi KPI <?= ($isAllDeptViewer && $filterBagian == '') ? 'Seluruh Perusahaan' : htmlspecialchars($filterBagian ?: $bagian) ?></h5>
                                 </div>
                                 <div class="card-body">
                                     <div id="kpiPieChart"></div>
@@ -639,7 +645,7 @@ if ($leveel == 5 || $leveel == 6) {
                         </div>
                     </div>
 
-                    <?php if ($leveel == 5 || $leveel == 6 && count($deptStats) > 1 && $filterBagian == ''): ?>
+                    <?php if ($isAllDeptViewer && count($deptStats) > 1 && $filterBagian == ''): ?>
                     <!-- Chart Perbandingan Antar Departemen (hanya Direktur, semua dept) -->
                     <div class="row mb-4">
                         <div class="col-12">
@@ -705,7 +711,7 @@ if ($leveel == 5 || $leveel == 6) {
             };
             new ApexCharts(document.querySelector("#kpiPieChart"), pieOptions).render();
 
-            <?php if ($leveel == 5 || $leveel == 6 && count($deptStats) > 1 && $filterBagian == ''): ?>
+            <?php if ($isAllDeptViewer && count($deptStats) > 1 && $filterBagian == ''): ?>
             // ===== BAR CHART PERBANDINGAN DEPARTEMEN (Direktur) =====
             var deptLabels  = <?= json_encode(array_keys($deptStats)) ?>;
             var deptPoor    = <?= json_encode(array_column($deptStats, 'poor')) ?>;

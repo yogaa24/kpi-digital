@@ -7,6 +7,11 @@
                 </a>
             </li>
 
+            <?php if (isset($backUrl) && $backUrl !== 'home-kpi-simulasi'): ?>
+            <li class="nav-item d-none d-md-block">
+                <a href="<?= $backUrl ?>" class="nav-link"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+            </li>
+            <?php endif; ?>
             <li class="nav-item d-none d-md-block">
                 <a href="dashboard-utama" class="nav-link">Dashboard</a>
             </li>
