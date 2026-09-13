@@ -218,6 +218,62 @@ function getkpi($nilair)
         return "Excellent";
     }
 }
+
+function getKPISimulasi($conn, $id)
+{
+    $id = intval($id);
+    $sql = "SELECT * FROM tbsim_kpi WHERE id_user='$id'";
+    $result = mysqli_query($conn, $sql);
+    $exists = $result && mysqli_num_rows($result) > 0;
+
+    $totalws = 0;
+    if ($result) {
+        while ($hasils = mysqli_fetch_assoc($result)) {
+            $sql3s = "SELECT SUM(total) as total FROM tbsim_whats WHERE id_user=$id AND id_kpi=" . $hasils['id'];
+            $result3s = mysqli_query($conn, $sql3s);
+            $row3sd = mysqli_fetch_assoc($result3s);
+            $totalnilaisd = $row3sd['total'] ?? 0;
+            $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
+            $totalws += $nilaiws;
+        }
+    }
+
+    $bobotwhat = 0;
+    $sql5a = "SELECT bobotwhat as bw FROM tbsim_bobotkpi WHERE id_user=$id";
+    $result5a = mysqli_query($conn, $sql5a);
+    while ($row5a = mysqli_fetch_assoc($result5a)) {
+        $bobotwhat = $row5a['bw'];
+    }
+    $nilaiwhat = ($totalws * $bobotwhat) / 100;
+
+    $totalhfg = 0;
+    $resultfg = mysqli_query($conn, $sql);
+    if ($resultfg) {
+        while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
+            $sql7fg = "SELECT SUM(total) as totalh FROM tbsim_hows WHERE id_user=$id AND id_kpi=" . $hasilfg['id'];
+            $result7fg = mysqli_query($conn, $sql7fg);
+            $row7fg = mysqli_fetch_assoc($result7fg);
+            $totalnilaihfg = $row7fg['totalh'] ?? 0;
+            $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
+            $totalhfg += $nilaihfg;
+        }
+    }
+
+    $bobothow = 0;
+    $sql8a = "SELECT bobothow as bh FROM tbsim_bobotkpi WHERE id_user=$id";
+    $result8a = mysqli_query($conn, $sql8a);
+    while ($row8a = mysqli_fetch_assoc($result8a)) {
+        $bobothow = $row8a['bh'];
+    }
+    $nilaihow = ($totalhfg * $bobothow) / 100;
+
+    return [
+        'nilai_what' => number_format($nilaiwhat, 2),
+        'nilai_how' => number_format($nilaihow, 2),
+        'total_kpi' => number_format($nilaiwhat + $nilaihow, 2),
+        'exists' => $exists
+    ];
+}
 ?>
 
 <html lang="en">
@@ -293,6 +349,10 @@ function getkpi($nilair)
             font-size: 0.75rem;
             margin-top: 2px;
         }
+
+        .card-header.d-flex::after {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -304,6 +364,7 @@ function getkpi($nilair)
         <main class="app-main">
             <div class="app-content">
                 <div class="container-fluid">
+                    <?php $mode = isset($_GET['mode']) && $_GET['mode'] === 'simulasi' ? 'simulasi' : 'real'; ?>
                     
                     <!-- Header Page -->
                     <div class="header-page mt-4">
@@ -315,11 +376,14 @@ function getkpi($nilair)
                                 <p class="mb-0 opacity-75">Monitoring dan evaluasi KPI seluruh karyawan</p>
                             </div>
                             <div class="text-end">
-                                <a href="export_kpi_all_adminhrd.php" class="btn btn-success me-2">
+                                <a href="export_kpi_summary?mode=<?= $mode ?>" id="btnExportSummary" class="btn btn-success me-2 shadow-sm">
+                                    <i class="bi bi-file-earmark-spreadsheet me-2"></i>Export Summary KPI
+                                </a>
+                                <a href="export_kpi_all_adminhrd.php" class="btn btn-outline-light me-2 shadow-sm">
                                     <i class="bi bi-file-earmark-excel me-2"></i>Export Semua KPI
                                 </a>
                                 <?php $back_url_kpi = (isset($_SESSION['level']) && $_SESSION['level'] == 7) ? 'dashboard-adminhrd' : 'data-karyawan'; ?>
-                                <a href="<?= $back_url_kpi ?>" class="btn btn-light">
+                                <a href="<?= $back_url_kpi ?>" class="btn btn-light shadow-sm">
                                     <i class="bi bi-arrow-left me-2"></i>Kembali
                                 </a>
                             </div>
@@ -402,12 +466,38 @@ function getkpi($nilair)
                     
                     <!-- Table KPI -->
                     <div class="card shadow-sm">
-                        <div class="card-header bg-dark text-white">
+                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <h5 class="card-title mb-0">
                                 <i class="bi bi-table me-2"></i>Tabel Data KPI Karyawan
+                                <?php if ($mode === 'simulasi') { ?>
+                                    <span class="badge bg-warning text-dark ms-2"><i class="bi bi-rocket-takeoff me-1"></i>Mode KPI Simulasi</span>
+                                <?php } else { ?>
+                                    <span class="badge bg-primary ms-2"><i class="bi bi-calendar-check me-1"></i>Mode KPI Real</span>
+                                <?php } ?>
                             </h5>
+                            <div class="card-tools ms-auto">
+                                <div class="btn-group" role="group" aria-label="Mode KPI">
+                                    <a href="datakpi-adminhrd?mode=real" class="btn btn-sm fw-bold <?= $mode !== 'simulasi' ? 'btn-primary active' : 'btn-outline-light' ?>">
+                                        <i class="bi bi-calendar-check me-1"></i>KPI Real
+                                    </a>
+                                    <a href="datakpi-adminhrd?mode=simulasi" class="btn btn-sm fw-bold <?= $mode === 'simulasi' ? 'btn-warning text-dark active' : 'btn-outline-light' ?>">
+                                        <i class="bi bi-rocket-takeoff me-1"></i>KPI Simulasi
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body">
+                            <?php if ($mode === 'simulasi') { ?>
+                                <div class="alert alert-warning border-0 shadow-sm d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                                        <strong>Mode KPI Simulasi Aktif:</strong> Menampilkan data perencanaan dan proyeksi simulasi KPI karyawan.
+                                    </div>
+                                    <a href="datakpi-adminhrd?mode=real" class="btn btn-outline-dark btn-sm fw-bold">
+                                        <i class="bi bi-arrow-left me-1"></i>Kembali ke KPI Real
+                                    </a>
+                                </div>
+                            <?php } ?>
                             <div class="table-responsive">
                                 <table id="datatablenya" class="table align-middle table-hover table-bordered">
                                     <thead class="table-dark">
@@ -417,11 +507,11 @@ function getkpi($nilair)
                                             <th width="12%"><center>Jabatan</center></th>
                                             <th width="12%"><center>Departemen</center></th>
                                             <th width="12%"><center>Bagian</center></th>
-                                            <th width="8%"><center>What</center></th>
-                                            <th width="8%"><center>How</center></th>
-                                            <th width="8%"><center>Nilai</center></th>
-                                            <th width="10%"><center>KPI</center></th>
-                                            <th width="10%"><center>Aksi</center></th>
+                                            <th width="8%"><center><?= $mode === 'simulasi' ? 'What (Sim)' : 'What' ?></center></th>
+                                            <th width="8%"><center><?= $mode === 'simulasi' ? 'How (Sim)' : 'How' ?></center></th>
+                                            <th width="8%"><center><?= $mode === 'simulasi' ? 'Nilai Sim' : 'Nilai' ?></center></th>
+                                            <th width="10%"><center><?= $mode === 'simulasi' ? 'KPI Sim' : 'KPI' ?></center></th>
+                                            <th width="12%"><center>Aksi</center></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -498,9 +588,13 @@ function getkpi($nilair)
                                             </td>
                                             <td data-search="<?= htmlspecialchars($hasilsfa['departement']) ?>"><center><?= $hasilsfa['departement']; ?></center></td>
                                             <td><center><?= $hasilsfa['bagian']; ?></center></td>
-                                            <td><center><strong><?= getWhatt($conn, $hasilsfa['id']); ?></strong></center></td>
-                                            <td><center><strong><?= getHoww($conn, $hasilsfa['id']); ?></strong></center></td>
                                             <?php
+                                            $dataSimulasi = getKPISimulasi($conn, $hasilsfa['id']);
+                                            $nilaiSimulasi = $dataSimulasi['total_kpi'];
+                                            $whatSimulasi = $dataSimulasi['nilai_what'];
+                                            $howSimulasi = $dataSimulasi['nilai_how'];
+                                            $adaDataSimulasi = $dataSimulasi['exists'];
+
                                             $kpi_result = getnilaiWithSP($conn, $hasilsfa['id']);
                                             $nilai_asli = $kpi_result['nilai_asli'];
                                             $nilai_akhir = $kpi_result['nilai_akhir'];
@@ -520,41 +614,105 @@ function getkpi($nilair)
                                                 $wrabs = "blue";
                                                 $badge_kpi = "primary";
                                             }
+
+                                            if ($adaDataSimulasi) {
+                                                $valSim = (float)$nilaiSimulasi;
+                                                if ($valSim < 90) {
+                                                    $wrabs_sim = "red";
+                                                    $badge_kpi_sim = "danger";
+                                                } elseif ($valSim <= 100) {
+                                                    $wrabs_sim = "orange";
+                                                    $badge_kpi_sim = "warning";
+                                                } elseif ($valSim <= 110) {
+                                                    $wrabs_sim = "green";
+                                                    $badge_kpi_sim = "success";
+                                                } else {
+                                                    $wrabs_sim = "blue";
+                                                    $badge_kpi_sim = "primary";
+                                                }
+                                            } else {
+                                                $wrabs_sim = "#6c757d";
+                                                $badge_kpi_sim = "secondary";
+                                            }
                                             ?>
-                                            <td style="color:<?= $wrabs ?>">
-                                                <center>
-                                                    <strong><?= number_format($nilai_akhir, 2); ?></strong>
-                                                    <?php if ($sp_data) { ?>
-                                                        <div class="nilai-sp-info">
-                                                            <small class="text-muted">
-                                                                <del><?=number_format($nilai_asli, 2)?></del>
-                                                            </small>
-                                                            <small class="badge bg-<?=getSPBadgeClass($sp_data['jenis_sp'])?> d-block mt-1">
-                                                                <?=$sp_data['jenis_sp']?> (-<?=$pengurangan?>)
-                                                            </small>
-                                                        </div>
-                                                    <?php } ?>
-                                                </center>
-                                            </td>
-                                            <td>
-                                                <center>
-                                                    <span class="badge bg-<?= $badge_kpi ?>">
-                                                        <?= getkpi($nilai_akhir); ?>
-                                                    </span>
-                                                </center>
-                                            </td>
+
+                                            <?php if ($mode === 'simulasi') { ?>
+                                                <td><center><strong><?= $adaDataSimulasi ? $whatSimulasi : '-' ?></strong></center></td>
+                                                <td><center><strong><?= $adaDataSimulasi ? $howSimulasi : '-' ?></strong></center></td>
+                                                <td style="color:<?= $wrabs_sim ?>">
+                                                    <center>
+                                                        <?php if ($adaDataSimulasi) { ?>
+                                                            <strong><?= number_format((float)$nilaiSimulasi, 2); ?></strong>
+                                                            <small class="badge bg-warning text-dark d-block mt-1">Simulasi</small>
+                                                        <?php } else { ?>
+                                                            <span class="text-muted fst-italic">Belum ada</span>
+                                                        <?php } ?>
+                                                    </center>
+                                                </td>
+                                                <td>
+                                                    <center>
+                                                        <?php if ($adaDataSimulasi) { ?>
+                                                            <span class="badge bg-<?= $badge_kpi_sim ?>">
+                                                                <?= getkpi((float)$nilaiSimulasi); ?>
+                                                            </span>
+                                                        <?php } else { ?>
+                                                            <span class="badge bg-secondary">-</span>
+                                                        <?php } ?>
+                                                    </center>
+                                                </td>
+                                            <?php } else { ?>
+                                                <td><center><strong><?= getWhatt($conn, $hasilsfa['id']); ?></strong></center></td>
+                                                <td><center><strong><?= getHoww($conn, $hasilsfa['id']); ?></strong></center></td>
+                                                <td style="color:<?= $wrabs ?>">
+                                                    <center>
+                                                        <strong><?= number_format($nilai_akhir, 2); ?></strong>
+                                                        <?php if ($sp_data) { ?>
+                                                            <div class="nilai-sp-info">
+                                                                <small class="text-muted">
+                                                                    <del><?=number_format($nilai_asli, 2)?></del>
+                                                                </small>
+                                                                <small class="badge bg-<?=getSPBadgeClass($sp_data['jenis_sp'])?> d-block mt-1">
+                                                                    <?=$sp_data['jenis_sp']?> (-<?=$pengurangan?>)
+                                                                </small>
+                                                            </div>
+                                                        <?php } ?>
+                                                        <?php if ($adaDataSimulasi) { ?>
+                                                            <div class="mt-1">
+                                                                <small class="badge bg-warning text-dark" title="Nilai KPI Simulasi">
+                                                                    <i class="bi bi-rocket-takeoff me-1"></i>Sim: <?= $nilaiSimulasi ?>
+                                                                </small>
+                                                            </div>
+                                                        <?php } ?>
+                                                    </center>
+                                                </td>
+                                                <td>
+                                                    <center>
+                                                        <span class="badge bg-<?= $badge_kpi ?>">
+                                                            <?= getkpi($nilai_akhir); ?>
+                                                        </span>
+                                                    </center>
+                                                </td>
+                                            <?php } ?>
+
                                             <td>
                                                 <center>
                                                     <div class="btn-group-compact">
-                                                        <!-- Tombol Lihat KPI -->
+                                                        <!-- Tombol Lihat KPI Real -->
                                                         <a href="kpianggota?id=<?= $hasilsfa['id']; ?>&from=datakpi-adminhrd" 
                                                         class="btn btn-primary btn-sm" 
-                                                        title="Lihat KPI">
+                                                        title="Lihat KPI Real">
                                                             <i class="bi bi-eye"></i>
                                                         </a>
 
-                                                        <a type="button" href="export_kpi_detail.php?id=<?= $hasilsfa['id']; ?>"
-                                                            class="btn btn-success btn-sm" title="Export Excel Detail">
+                                                        <!-- Tombol Lihat KPI Simulasi -->
+                                                        <a href="home-kpi-simulasi?id=<?= $hasilsfa['id']; ?>&from=datakpi-adminhrd" 
+                                                        class="btn btn-warning btn-sm" 
+                                                        title="Lihat KPI Simulasi">
+                                                            <i class="bi bi-clipboard-data"></i>
+                                                        </a>
+
+                                                        <a type="button" href="<?= $mode === 'simulasi' ? 'export_kpisim_detail.php' : 'export_kpi_detail.php' ?>?id=<?= $hasilsfa['id']; ?>"
+                                                            class="btn btn-success btn-sm" title="Export Excel Detail <?= $mode === 'simulasi' ? 'Simulasi' : '' ?>">
                                                             <i class="bi bi-file-earmark-excel fs-8"></i>
                                                         </a>
                                                         
@@ -691,6 +849,25 @@ function getkpi($nilair)
                 }
             });
             
+            // Dynamic Export URL sesuai filter aktif & mode
+            function updateExportUrl() {
+                var params = new URLSearchParams();
+                var currentMode = '<?= $mode ?>';
+                if (currentMode) params.set('mode', currentMode);
+                var dept = $('#filterDepartemen').val();
+                var jab = $('#filterJabatan').val();
+                var kpi = $('#filterKPI').val();
+                var sp = $('#filterSP').val();
+                if (dept) params.set('departemen', dept);
+                if (jab) params.set('jabatan', jab);
+                if (kpi) params.set('status_kpi', kpi);
+                if (sp) params.set('status_sp', sp);
+                var qs = params.toString();
+                $('#btnExportSummary').attr('href', 'export_kpi_summary' + (qs ? '?' + qs : ''));
+            }
+
+            $('#filterDepartemen, #filterJabatan, #filterKPI, #filterSP').on('change', updateExportUrl);
+
             // Reset Filter
             $('#resetFilter').on('click', function() {
                 $('#filterDepartemen').val('');
@@ -698,6 +875,7 @@ function getkpi($nilair)
                 $('#filterKPI').val('');
                 $('#filterSP').val('');
                 table.search('').columns().search('').draw();
+                updateExportUrl();
             });
         });
     </script>

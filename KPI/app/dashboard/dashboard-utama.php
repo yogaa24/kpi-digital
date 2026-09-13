@@ -47,7 +47,7 @@ $bulan_verifikasi_kpi = date('m/Y');
 $notif_kpi_unverified_count = 0;
 $notif_kpi_unverified_rows = [];
 
-if ($user_level >= 2 && $user_level <= 4) {
+if (($user_level >= 2 && $user_level != 7) || $id_user == 1) {
     // Cari anggota tim (atasan = user login)
     $nama_atasan_safe = mysqli_real_escape_string($conn, $nama_lngkp);
     

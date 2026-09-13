@@ -51,6 +51,7 @@ $routes = [
     'evidenkabag' => 'app/eviden/evidenkabag.php',
 
     'export_kpi_all_adminhrd' => 'app/exports/export_kpi_all_adminhrd.php',
+    'export_kpi_summary' => 'app/exports/export_kpi_summary.php',
     'export_kpi_detail' => 'app/exports/export_kpi_detail.php',
     'export_kpisim_detail' => 'app/exports/export_kpisim_detail.php',
 
