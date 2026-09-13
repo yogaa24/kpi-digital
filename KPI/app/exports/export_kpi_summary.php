@@ -28,6 +28,7 @@ $filter_departemen = isset($_GET['departemen']) ? trim($_GET['departemen']) : ''
 $filter_jabatan    = isset($_GET['jabatan']) ? trim($_GET['jabatan']) : '';
 $filter_kpi        = isset($_GET['status_kpi']) ? trim($_GET['status_kpi']) : '';
 $filter_sp         = isset($_GET['status_sp']) ? trim($_GET['status_sp']) : '';
+$filter_status_karyawan = isset($_GET['status_karyawan']) ? trim($_GET['status_karyawan']) : '';
 
 function getkpi_export($nilair)
 {
@@ -160,6 +161,13 @@ if (!empty($filter_departemen)) {
 if (!empty($filter_jabatan)) {
     $jab_safe = mysqli_real_escape_string($conn, $filter_jabatan);
     $where .= " AND u.jabatan = '$jab_safe'";
+}
+if (!empty($filter_status_karyawan)) {
+    $stat_safe = mysqli_real_escape_string($conn, $filter_status_karyawan);
+    $where .= " AND u.status_karyawan = '$stat_safe'";
+} else {
+    // Default hanya karyawan aktif yang diexport
+    $where .= " AND (u.status_karyawan = 'AKTIF' OR (u.status_karyawan IS NULL AND u.status = 1))";
 }
 
 $sql_users = "SELECT u.*

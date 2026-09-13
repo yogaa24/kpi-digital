@@ -53,7 +53,7 @@ if (($user_level >= 2 && $user_level != 7) || $id_user == 1) {
     
     // Sesuaikan query berdasarkan level (2,3 = Kadep/Kabag/Koordinator -> atasan, 4 = Manager/Kadep -> atasan)
     // Query default untuk bawahan langsung
-    $sql_bawahan = "SELECT id, nama_lngkp, bagian, departement FROM tb_users WHERE atasan = '$nama_atasan_safe' AND id != $id_user";
+    $sql_bawahan = "SELECT id, nama_lngkp, bagian, departement FROM tb_users WHERE atasan = '$nama_atasan_safe' AND id != $id_user AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))";
     $res_bawahan = mysqli_query($conn, $sql_bawahan);
     
     if ($res_bawahan) {
@@ -75,6 +75,7 @@ $filter_departemen = isset($_GET['filter_departemen']) ? $_GET['filter_departeme
 if ($user_level >= 2) {
     $sql_users = "SELECT id, nama_lngkp, departement, jabatan FROM tb_users WHERE 1=1";
     $sql_users .= " AND username NOT IN ('itboy', 'adminhrd')";
+    $sql_users .= " AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))";
     
     if ($user_level == 2) {
         $sql_users .= " AND atasan = (SELECT nama_lngkp FROM tb_users WHERE id='$id_user')";
@@ -92,7 +93,7 @@ if ($user_level >= 2) {
     $result_users = mysqli_query($conn, $sql_users);
 }
 
-$sql_departments = "SELECT DISTINCT departement FROM tb_users WHERE departement IS NOT NULL AND departement != '' ORDER BY departement";
+$sql_departments = "SELECT DISTINCT departement FROM tb_users WHERE departement IS NOT NULL AND departement != '' AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1)) ORDER BY departement";
 $result_departments = mysqli_query($conn, $sql_departments);
 
 // ==================== KPI CALCULATION FUNCTION ====================
@@ -301,6 +302,7 @@ if ($user_level >= 2) {
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE atasan='$kabag_name_safe' 
                           AND username NOT IN ('itboy', 'adminhrd')
+                          AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                           ORDER BY nama_lngkp";
         $comparison_title = "My Team Members Performance";
     
@@ -310,6 +312,7 @@ if ($user_level >= 2) {
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE atasan='$kabag_name_safe' 
                           AND username NOT IN ('itboy', 'adminhrd')
+                          AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                           ORDER BY nama_lngkp";
         $comparison_title = "My Team Members Performance";
 
@@ -319,6 +322,7 @@ if ($user_level >= 2) {
         $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                           WHERE departement='$target_dept_safe' 
                           AND username NOT IN ('itboy', 'adminhrd')
+                          AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                           ORDER BY nama_lngkp";
         $comparison_title = "Department Team - " . $target_dept;
 
@@ -329,6 +333,7 @@ if ($user_level >= 2) {
             $sql_dept_users = "SELECT id, nama_lngkp FROM tb_users 
                               WHERE departement='$target_dept_safe' 
                               AND username NOT IN ('itboy', 'adminhrd')
+                              AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                               ORDER BY nama_lngkp";
             $comparison_title = "Department Team - " . $target_dept;
         } else {
@@ -336,6 +341,7 @@ if ($user_level >= 2) {
                               WHERE username NOT IN ('itboy', 'adminhrd')
                               AND departement IS NOT NULL 
                               AND departement != ''
+                              AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                               ORDER BY departement, nama_lngkp";
             $comparison_title = "All Employees - All Departments";
         }
@@ -378,6 +384,7 @@ if ($user_level >= 5) {
     $sql_all_depts = "SELECT DISTINCT departement FROM tb_users 
                       WHERE departement IS NOT NULL AND departement != '' 
                       AND username NOT IN ('itboy', 'adminhrd')
+                      AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                       ORDER BY departement";
     $result_all_depts = mysqli_query($conn, $sql_all_depts);
     
@@ -393,7 +400,8 @@ if ($user_level >= 5) {
         
         $sql_dept_members = "SELECT id FROM tb_users 
                             WHERE departement='$dept_name_safe' 
-                            AND username NOT IN ('itboy', 'adminhrd')";
+                            AND username NOT IN ('itboy', 'adminhrd')
+                            AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))";
         $result_dept_members = mysqli_query($conn, $sql_dept_members);
         
         while ($result_dept_members && ($member = mysqli_fetch_assoc($result_dept_members))) {

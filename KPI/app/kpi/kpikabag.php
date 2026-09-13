@@ -299,18 +299,19 @@ function getkpi($nilair)
                                     <?php 
                                     $no = 1;
                                     
-                                    $sqlhd = "SELECT *
-                                        FROM tb_users
-                                        WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
-                                        ORDER BY 
-                                            CASE 
-                                                WHEN jabatan = 'Kadep' THEN 1
-                                                WHEN jabatan = 'Manager' THEN 2
-                                                WHEN jabatan = 'koordinator' THEN 3
-                                                WHEN jabatan = 'Karyawan' THEN 4
-                                                ELSE 5
-                                            END,
-                                            nama_lngkp";
+                                     $sqlhd = "SELECT *
+                                         FROM tb_users
+                                         WHERE (atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp')
+                                         AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
+                                         ORDER BY 
+                                             CASE 
+                                                 WHEN jabatan = 'Kadep' THEN 1
+                                                 WHEN jabatan = 'Manager' THEN 2
+                                                 WHEN jabatan = 'koordinator' THEN 3
+                                                 WHEN jabatan = 'Karyawan' THEN 4
+                                                 ELSE 5
+                                             END,
+                                             nama_lngkp";
                                     $sgdah = mysqli_query($conn, $sqlhd);
                                     while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { 
                                         // Nilai bulan ini (dari fungsi existing / data live)
@@ -479,7 +480,8 @@ function getkpi($nilair)
 
                         $sqlhd_stats = "SELECT *
                         FROM tb_users
-                        WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
+                        WHERE (atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp')
+                        AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                         ORDER BY 
                             CASE 
                                 WHEN jabatan = 'Kadep' THEN 1

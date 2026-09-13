@@ -139,7 +139,13 @@ $user_dept     = !empty($departement) ? $departement : (!empty($bagian) ? $bagia
         </nav>
 
         <!-- Sidebar Navigation -->
-        <?php include("pages/part/p_aside.php"); ?>
+        <?php 
+        if ((isset($_SESSION['level']) && $_SESSION['level'] == 7) || (isset($_SESSION['jabatan']) && $_SESSION['jabatan'] == 'Admin HRD')) {
+            include("pages/part/p_aside_adminhrd.php");
+        } else {
+            include("pages/part/p_aside.php");
+        }
+        ?>
 
         <!-- Main Content Wrapper -->
         <main class="app-main">
@@ -153,9 +159,18 @@ $user_dept     = !empty($departement) ? $departement : (!empty($bagian) ? $bagia
                             <p class="text-muted mb-0 small">Manajemen dokumen SOP, unggah file PDF baru, dan pratinjau dokumen.</p>
                         </div>
                         <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
-                            <button type="button" class="btn btn-primary px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalUploadSOP">
+                            <button type="button" class="btn btn-primary px-3 shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#modalUploadSOP">
                                 <i class="bi bi-cloud-arrow-up-fill me-1"></i> Upload SOP Baru
                             </button>
+                            <?php if ((isset($_SESSION['level']) && $_SESSION['level'] == 7) || (isset($_SESSION['jabatan']) && $_SESSION['jabatan'] == 'Admin HRD')) { ?>
+                                <a href="dashboard-adminhrd" class="btn btn-secondary px-3 shadow-sm">
+                                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Dashboard
+                                </a>
+                            <?php } else { ?>
+                                <a href="sop" class="btn btn-outline-secondary px-3 shadow-sm">
+                                    <i class="bi bi-arrow-left me-1"></i> Kembali ke SOP
+                                </a>
+                            <?php } ?>
                         </div>
                     </div>
                 </div>
