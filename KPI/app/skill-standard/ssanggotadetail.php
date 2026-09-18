@@ -10,6 +10,7 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/getUser.php';
     require 'helper/verified_functions.php';
     require 'helper/ss_functions.php';
+    require_once 'helper/ss_archive_functions.php';
 
     $autoload_path = __DIR__ . '/../../vendor/autoload.php';
     $ss_import_ready = is_file($autoload_path);
@@ -30,8 +31,11 @@ if (!isset($_SESSION['id_user'])) {
     if (isset($_POST['verifySS'])) {
         $keterangan = $_POST['keterangan'] ?? '';
         if (verifySS($conn, $id_sf, $id_user, $keterangan, $bulan_sekarang_ss)) {
+            // Auto Archive SS periode bulan lalu (sama seperti KPI Real)
+            autoArchiveSS($conn, $id_sf, $id_user, $keterangan);
+
             echo "<script>
-                alert('Skill Standard anggota berhasil diverifikasi!');
+                alert('Skill Standard anggota berhasil diverifikasi dan diarsipkan!');
                 window.location.href = 'ssanggotadetail?id=" . $id_sf . "';
             </script>";
         } else {
@@ -41,6 +45,9 @@ if (!isset($_SESSION['id_user'])) {
 
     if (isset($_POST['unverifySS'])) {
         if (unverifySS($conn, $id_sf, $bulan_sekarang_ss)) {
+            // Update status arsip SS menjadi unverified (status = 0)
+            unverifyArchiveSS($conn, $id_sf);
+
             echo "<script>
                 alert('Verifikasi Skill Standard berhasil dibatalkan!');
                 window.location.href = 'ssanggotadetail?id=" . $id_sf . "';
@@ -1243,7 +1250,7 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                     </div>
                     <form method="POST" action="">
                         <div class="modal-body">
-                            <p>Apakah Anda yakin ingin memverifikasi penilaian Skill Standard untuk <strong><?= htmlspecialchars($rsd['nama_lngkp']); ?></strong> periode bulan ini (<?= date('m/Y'); ?>)?</p>
+                            <p>Apakah Anda yakin ingin memverifikasi penilaian Skill Standard untuk <strong><?= htmlspecialchars($rsd['nama_lngkp']); ?></strong> periode (<?= getSSArchiveTargetMonth(); ?>)?</p>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Catatan Verifikasi (Opsional):</label>
                                 <textarea class="form-control" name="keterangan" rows="3" placeholder="Masukkan catatan atau instruksi jika ada..."></textarea>
@@ -1264,11 +1271,11 @@ $active_tab_ss = in_array($_GET['tab'] ?? '', ['umum', 'teknis']) ? $_GET['tab']
                 <div class="modal-content">
                     <div class="modal-header bg-warning text-dark">
                         <h5 class="modal-title fw-bold" id="UnverifySSModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Batalkan Verifikasi Skill Standard</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <form method="POST" action="">
                         <div class="modal-body">
-                            <p>Apakah Anda yakin ingin membatalkan verifikasi Skill Standard untuk <strong><?= htmlspecialchars($rsd['nama_lngkp']); ?></strong> periode bulan ini?</p>
+                            <p>Apakah Anda yakin ingin membatalkan verifikasi Skill Standard untuk <strong><?= htmlspecialchars($rsd['nama_lngkp']); ?></strong> periode (<?= getSSArchiveTargetMonth(); ?>)?</p>
                             <div class="alert alert-warning">
                                 <small>Membatalkan verifikasi akan mengembalikan status dokumen menjadi Belum Diverifikasi.</small>
                             </div>

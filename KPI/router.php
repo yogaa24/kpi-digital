@@ -45,6 +45,7 @@ $routes = [
     'archivedetail' => 'app/archive/archivedetail.php',
     'archivekabag' => 'app/archive/archivekabag.php',
     'archivepoin' => 'app/archive/archivepoin.php',
+    'archivesspoin' => 'app/archive/archivesspoin.php',
 
     'eviden' => 'app/eviden/eviden.php',
     'evidenanggota' => 'app/eviden/evidenanggota.php',

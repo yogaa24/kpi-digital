@@ -52,21 +52,34 @@
         exit();
     }
 
+    require_once 'helper/ss_archive_functions.php';
+    ensureSSArchiveTables($conn);
+
     // Buat array untuk menyimpan data user dengan archive count
     $users_with_archive = array();
 
     while ($user = mysqli_fetch_assoc($result_users)) {
-        // Cek berapa banyak archive yang dimiliki user ini
+        // Cek berapa banyak archive KPI yang dimiliki user ini
         $sql_count = "SELECT COUNT(DISTINCT bulan) as total_archive 
                     FROM tbar_archive 
                     WHERE id_user = " . $user['id'];
         
         $result_count = mysqli_query($conn, $sql_count);
         $count_data = mysqli_fetch_assoc($result_count);
-        
-        // Hanya tambahkan user yang memiliki archive
-        if ($count_data['total_archive'] > 0) {
-            $user['total_archive'] = $count_data['total_archive'];
+        $total_kpi = intval($count_data['total_archive'] ?? 0);
+
+        // Cek berapa banyak archive SS yang dimiliki user ini
+        $sql_count_ss = "SELECT COUNT(DISTINCT bulan) as total_archive_ss 
+                        FROM tbar_ss_archive 
+                        WHERE id_user = " . $user['id'];
+        $result_count_ss = mysqli_query($conn, $sql_count_ss);
+        $count_data_ss = ($result_count_ss) ? mysqli_fetch_assoc($result_count_ss) : null;
+        $total_ss = intval($count_data_ss['total_archive_ss'] ?? 0);
+
+        // Tambahkan jika user memiliki archive KPI atau SS
+        if ($total_kpi > 0 || $total_ss > 0) {
+            $user['total_archive'] = $total_kpi;
+            $user['total_archive_ss'] = $total_ss;
             $users_with_archive[] = $user;
         }
     }
@@ -270,9 +283,12 @@
                                                         <td><center><?= htmlspecialchars($user['bagian']) ?></center></td>
                                                         <td>
                                                             <center>
-                                                                <span class="badge bg-warning text-dark">
-                                                                    <i class="bi bi-calendar3 me-1"></i>
-                                                                    <?= $user['total_archive'] ?> Bulan
+                                                                <span class="badge bg-primary text-white mb-1" title="Arsip KPI">
+                                                                    <i class="bi bi-bar-chart-fill me-1"></i> KPI: <?= $user['total_archive'] ?>
+                                                                </span>
+                                                                <br>
+                                                                <span class="badge bg-warning text-dark" title="Arsip Skill Standard">
+                                                                    <i class="bi bi-award-fill me-1"></i> SS: <?= $user['total_archive_ss'] ?>
                                                                 </span>
                                                             </center>
                                                         </td>

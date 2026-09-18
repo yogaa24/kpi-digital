@@ -120,9 +120,22 @@ function getsfo($nilair) {
     }
 }
 
-// Ambil archive user tersebut
+// Ambil archive KPI user tersebut
 $archivec = "SELECT bulan FROM tbar_archive WHERE id_user = $id_user_archive GROUP BY bulan ORDER BY bulan DESC";
 $getArch = mysqli_query($conn, $archivec);
+
+require_once 'helper/ss_archive_functions.php';
+ensureSSArchiveTables($conn);
+
+$active_tab = isset($_GET['tab']) && in_array($_GET['tab'], ['kpi', 'ss']) ? $_GET['tab'] : 'kpi';
+
+// Ambil archive SS user tersebut
+$query_ss_arch = "SELECT a.*, u.nama_lngkp as verifikator_name 
+                  FROM tbar_ss_archive a 
+                  LEFT JOIN tb_users u ON u.id = a.verified_by 
+                  WHERE a.id_user = $id_user_archive 
+                  ORDER BY a.bulan DESC";
+$getSSArch = mysqli_query($conn, $query_ss_arch);
 ?>
 
 <!DOCTYPE html>
@@ -146,20 +159,20 @@ $getArch = mysqli_query($conn, $archivec);
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <h4 class="fw-bold mb-2">
-                                                <i class="bi bi-archive-fill text-warning me-2"></i>Archive KPI - <?= $user_info['nama_lngkp'] ?>
+                                                <i class="bi bi-archive-fill text-warning me-2"></i>Archive Karyawan - <?= htmlspecialchars($user_info['nama_lngkp']) ?>
                                             </h4>
                                             <div class="text-muted small">
                                                 <span class="me-3">
-                                                    <i class="bi bi-person-badge me-1"></i>NIK: <?= $user_info['nik'] ?>
+                                                    <i class="bi bi-person-badge me-1"></i>NIK: <?= htmlspecialchars($user_info['nik']) ?>
                                                 </span>
                                                 <span class="me-3">
-                                                    <i class="bi bi-building me-1"></i><?= $user_info['departement'] ?>
+                                                    <i class="bi bi-building me-1"></i><?= htmlspecialchars($user_info['departement']) ?>
                                                 </span>
                                                 <span class="me-3">
-                                                    <i class="bi bi-briefcase me-1"></i><?= $user_info['bagian'] ?>
+                                                    <i class="bi bi-briefcase me-1"></i><?= htmlspecialchars($user_info['bagian']) ?>
                                                 </span>
                                                 <span class="badge bg-primary">
-                                                    <?= $user_info['jabatan'] ?>
+                                                    <?= htmlspecialchars($user_info['jabatan']) ?>
                                                 </span>
                                             </div>
                                         </div>
@@ -174,14 +187,30 @@ $getArch = mysqli_query($conn, $archivec);
                         </div>
                     </div>
                     
-                    <!-- Table Archive -->
+                    <!-- Table Archive with Tabs -->
                     <div class="row">
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
                                 <div class="card-body">
+                                    <!-- Tabs Navigation -->
+                                    <ul class="nav nav-pills mb-3">
+                                        <li class="nav-item">
+                                            <a class="nav-link <?= ($active_tab == 'kpi') ? 'active fw-bold' : '' ?>" href="archive-adminhrd-detail?id=<?= $id_user_archive ?>&tab=kpi">
+                                                <i class="bi bi-bar-chart-fill me-1"></i> Archive KPI
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link <?= ($active_tab == 'ss') ? 'active fw-bold' : '' ?>" href="archive-adminhrd-detail?id=<?= $id_user_archive ?>&tab=ss">
+                                                <i class="bi bi-award-fill me-1"></i> Archive Skill Standard
+                                            </a>
+                                        </li>
+                                    </ul>
+
+                                    <?php if ($active_tab == 'kpi') { ?>
+                                    <!-- TAB 1: ARCHIVE KPI -->
                                     <?php if (mysqli_num_rows($getArch) > 0) { ?>
                                     <div class="table-responsive">
-                                        <table id="datatablenya" class="table table-hover table-bordered">
+                                        <table id="datatablenya" class="table table-hover table-bordered align-middle">
                                             <thead class="table-dark">
                                                 <tr>
                                                     <th width="5%"><center>No</center></th>
@@ -241,8 +270,86 @@ $getArch = mysqli_query($conn, $archivec);
                                     <?php } else { ?>
                                     <div class="alert alert-info text-center">
                                         <i class="bi bi-info-circle me-2"></i>
-                                        Belum ada archive untuk karyawan ini
+                                        Belum ada archive KPI untuk karyawan ini
                                     </div>
+                                    <?php } ?>
+
+                                    <?php } else { ?>
+                                    <!-- TAB 2: ARCHIVE SKILL STANDARD -->
+                                    <?php if ($getSSArch && mysqli_num_rows($getSSArch) > 0) { ?>
+                                    <div class="table-responsive">
+                                        <table id="datatablenya" class="table table-hover table-bordered align-middle">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th width="5%"><center>No</center></th>
+                                                    <th><center>Periode</center></th>
+                                                    <th width="15%"><center>Rata-rata Umum</center></th>
+                                                    <th width="15%"><center>Rata-rata Teknis</center></th>
+                                                    <th width="15%"><center>Nilai Total</center></th>
+                                                    <th width="18%"><center>Status Verifikasi</center></th>
+                                                    <th width="10%"><center>Aksi</center></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php 
+                                                $no_ss = 1;
+                                                while ($row_ss = mysqli_fetch_assoc($getSSArch)) { 
+                                                ?>
+                                                <tr>
+                                                    <td><center><?= $no_ss++ ?></center></td>
+                                                    <td style="padding-left: 15px;">
+                                                        <strong>
+                                                            <i class="bi bi-calendar-event me-2 text-warning"></i>
+                                                            <?= convertBulan($row_ss['bulan']) ?>
+                                                        </strong>
+                                                    </td>
+                                                    <td><center><?= number_format($row_ss['rata_rata_umum'], 2) ?></center></td>
+                                                    <td><center><?= number_format($row_ss['rata_rata_teknis'], 2) ?></center></td>
+                                                    <td>
+                                                        <center>
+                                                            <h5 class="mb-0">
+                                                                <span class="badge bg-primary">
+                                                                    <?= number_format($row_ss['rata_rata_total'], 2) ?>
+                                                                </span>
+                                                            </h5>
+                                                        </center>
+                                                    </td>
+                                                    <td>
+                                                        <center>
+                                                            <?php if ($row_ss['status'] == 1) { ?>
+                                                                <span class="badge bg-success text-white">
+                                                                    <i class="bi bi-check-circle me-1"></i> Terverifikasi
+                                                                </span>
+                                                                <?php if (!empty($row_ss['verifikator_name'])) { ?>
+                                                                    <br><small class="text-muted" style="font-size: 11px;">Oleh: <?= htmlspecialchars($row_ss['verifikator_name']) ?></small>
+                                                                <?php } ?>
+                                                            <?php } else { ?>
+                                                                <span class="badge bg-warning text-dark">
+                                                                    <i class="bi bi-clock-history me-1"></i> Belum Terverifikasi
+                                                                </span>
+                                                            <?php } ?>
+                                                        </center>
+                                                    </td>
+                                                    <td>
+                                                        <center>
+                                                            <a href="archivesspoin?id=<?= $id_user_archive ?>&idarc=<?= urlencode($row_ss['bulan']) ?>&ref=hrd" 
+                                                               class="btn btn-sm btn-success"
+                                                               title="Lihat Detail">
+                                                                <i class="bi bi-eye"></i> Detail
+                                                            </a>
+                                                        </center>
+                                                    </td>
+                                                </tr>
+                                                <?php } ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <?php } else { ?>
+                                    <div class="alert alert-info text-center">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Belum ada archive Skill Standard untuk karyawan ini
+                                    </div>
+                                    <?php } ?>
                                     <?php } ?>
                                 </div>
                             </div>

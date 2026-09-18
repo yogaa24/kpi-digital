@@ -150,6 +150,17 @@ $archivec = "SELECT DISTINCT ta.id_archive, ta.bulan, ta.status, ta.reviewed_by,
             ORDER BY ta.bulan DESC";
 $getArch = mysqli_query($conn, $archivec);
 
+require_once 'helper/ss_archive_functions.php';
+ensureSSArchiveTables($conn);
+
+$active_tab = isset($_GET['tab']) && in_array($_GET['tab'], ['kpi', 'ss']) ? $_GET['tab'] : 'kpi';
+
+$query_ss_arch = "SELECT a.*, u.nama_lngkp as verifikator_name 
+                  FROM tbar_ss_archive a 
+                  LEFT JOIN tb_users u ON u.id = a.verified_by 
+                  WHERE a.id_user = $id_userdd 
+                  ORDER BY a.bulan DESC";
+$getSSArch = mysqli_query($conn, $query_ss_arch);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -213,6 +224,21 @@ echo '
                         <?php } ?>
                         <div class="row"> <!-- Start col -->
                             <div class="mt-3">
+                                <!-- Navigation Tabs Archive KPI & Archive SS -->
+                                <ul class="nav nav-pills mb-3">
+                                    <li class="nav-item">
+                                        <a class="nav-link <?= ($active_tab == 'kpi') ? 'active fw-bold' : '' ?>" href="archiveanggota?id=<?= $id_userdd ?>&tab=kpi">
+                                            <i class="bi bi-bar-chart-fill me-1"></i> Archive KPI
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link <?= ($active_tab == 'ss') ? 'active fw-bold' : '' ?>" href="archiveanggota?id=<?= $id_userdd ?>&tab=ss">
+                                            <i class="bi bi-award-fill me-1"></i> Archive Skill Standard
+                                        </a>
+                                    </li>
+                                </ul>
+
+                                <?php if ($active_tab == 'kpi') { ?>
                                 <div class="table-responsive">
                                     <table id="datatablenya" class="table align-midle table-hover table-bordered">
                                         <thead class="table-dark">
@@ -327,7 +353,7 @@ echo '
                                                         <form method="POST" action="">
                                                             <div class="modal-body">
                                                                 <p>Apakah Anda yakin ingin <strong>MENYETUJUI</strong> archive bulan <strong><?= tmaadfl($row['bulan']) ?></strong>?</p>
-                                                                <p class="text-muted small">Setelah disetujui, status tidak dapat diubah kembali.</p>
+                                                                <p class="text-muted small">Setelah disetujui, status archive akan menjadi selesai (Completed).</p>
                                                                 <input type="hidden" name="id_archive" value="<?= $id_archive ?>">
                                                                 <input type="hidden" name="bulan" value="<?= $row['bulan'] ?>">
                                                             </div>
@@ -346,6 +372,69 @@ echo '
                                         </tbody>
                                     </table>
                                 </div>
+                                <?php } else { ?>
+                                <!-- TAB KONTEN 2: ARCHIVE SKILL STANDARD ANGGOTA -->
+                                <div class="table-responsive">
+                                    <table id="datatablenya" class="table align-middle table-hover table-bordered">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th width="3%"><center>No</center></th>
+                                                <th><center>Bulan</center></th>
+                                                <th width="15%"><center>Rata-rata Umum</center></th>
+                                                <th width="15%"><center>Rata-rata Teknis</center></th>
+                                                <th width="15%"><center>Nilai Total</center></th>
+                                                <th width="18%"><center>Status Verifikasi</center></th>
+                                                <th width="10%"><center>Action</center></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php 
+                                            $no_ss = 1; 
+                                            if ($getSSArch && mysqli_num_rows($getSSArch) > 0) { 
+                                                while ($row_ss = mysqli_fetch_assoc($getSSArch)) { 
+                                            ?>
+                                            <tr>
+                                                <td><center><?= $no_ss; ?></center></td>
+                                                <td><center><strong><?= tmaadfl($row_ss['bulan']) ?></strong></center></td>
+                                                <td><center><?= number_format($row_ss['rata_rata_umum'], 2) ?></center></td>
+                                                <td><center><?= number_format($row_ss['rata_rata_teknis'], 2) ?></center></td>
+                                                <td><center><strong class="fs-6"><?= number_format($row_ss['rata_rata_total'], 2) ?></strong></center></td>
+                                                <td>
+                                                    <center>
+                                                        <?php if ($row_ss['status'] == 1) { ?>
+                                                            <span class="badge bg-success text-white">
+                                                                <i class="bi bi-check-circle me-1"></i> Terverifikasi
+                                                            </span>
+                                                        <?php } else { ?>
+                                                            <span class="badge bg-warning text-dark">
+                                                                <i class="bi bi-clock-history me-1"></i> Belum Terverifikasi
+                                                            </span>
+                                                        <?php } ?>
+                                                    </center>
+                                                </td>
+                                                <td>
+                                                    <center>
+                                                        <a href="archivesspoin?id=<?= $id_userdd ?>&idarc=<?= urlencode($row_ss['bulan']); ?>&ref=kabag" class="btn btn-success btn-sm" title="Lihat Detail">
+                                                            <i class="bi bi-eye"></i> Detail
+                                                        </a>
+                                                    </center>
+                                                </td>
+                                            </tr>
+                                            <?php 
+                                                    $no_ss++; 
+                                                } 
+                                            } else { ?>
+                                                <tr>
+                                                    <td colspan="8" class="text-center py-4 text-muted">
+                                                        <i class="bi bi-info-circle fs-4 d-block mb-2"></i>
+                                                        Belum ada arsip Skill Standard untuk anggota ini.
+                                                    </td>
+                                                </tr>
+                                            <?php } ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <?php } ?>
                             </div>
                         </div>
                     </div> <!--end::App Content-->
