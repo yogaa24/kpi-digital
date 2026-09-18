@@ -302,8 +302,8 @@ function getKPISimulasi($conn, $id)
                                 $sqlhd = "
                                     SELECT *
                                     FROM tb_users
-                                    WHERE atasan = '$nama_kadep'
-                                    OR nama_lngkp = '$nama_kadep'
+                                    WHERE (atasan = '$nama_kadep' OR nama_lngkp = '$nama_kadep')
+                                    AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                                     ORDER BY 
                                         CASE 
                                             WHEN nama_lngkp = '$nama_kadep' THEN 0
@@ -488,7 +488,8 @@ function getKPISimulasi($conn, $id)
 
                         $sqlhd_stats = "SELECT *
                         FROM tb_users
-                        WHERE atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp'
+                        WHERE (atasan = '$nama_lngkp' OR nama_lngkp = '$nama_lngkp')
+                        AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                         ORDER BY 
                             CASE 
                                 WHEN jabatan = 'Kadep' THEN 1

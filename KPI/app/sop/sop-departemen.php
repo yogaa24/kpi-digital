@@ -53,7 +53,13 @@
                 </ul>
             </div>
         </nav>
-        <?php include("pages/part/p_aside.php"); ?>
+        <?php 
+        if ((isset($_SESSION['level']) && $_SESSION['level'] == 7) || (isset($_SESSION['jabatan']) && $_SESSION['jabatan'] == 'Admin HRD')) {
+            include("pages/part/p_aside_adminhrd.php");
+        } else {
+            include("pages/part/p_aside.php");
+        }
+        ?>
 
         <main class="app-main">
             <div class="app-content-header py-3">
@@ -64,9 +70,18 @@
                             <p class="text-muted small mb-0">Daftar Standard Operating Procedure per Departemen</p>
                         </div>
                         <div class="col-sm-6 text-sm-end mt-2 mt-sm-0">
-                            <a href="updatesop" class="btn btn-outline-primary btn-sm px-3">
+                            <a href="updatesop" class="btn btn-outline-primary btn-sm px-3 me-2">
                                 <i class="bi bi-gear-fill me-1"></i> Kelola / Upload SOP
                             </a>
+                            <?php if ((isset($_SESSION['level']) && $_SESSION['level'] == 7) || (isset($_SESSION['jabatan']) && $_SESSION['jabatan'] == 'Admin HRD')) { ?>
+                                <a href="dashboard-adminhrd" class="btn btn-secondary btn-sm px-3 shadow-sm">
+                                    <i class="bi bi-arrow-left me-1"></i> Kembali ke Dashboard
+                                </a>
+                            <?php } else { ?>
+                                <a href="dashboard-utama" class="btn btn-secondary btn-sm px-3 shadow-sm">
+                                    <i class="bi bi-arrow-left me-1"></i> Kembali
+                                </a>
+                            <?php } ?>
                         </div>
                     </div>
                 </div>

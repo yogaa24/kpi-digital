@@ -85,6 +85,16 @@
                             </select>
                         </div>
                     </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status Karyawan <span class="text-danger">*</span></label>
+                            <select class="form-select" name="status_karyawan" required>
+                                <option value="AKTIF" selected>AKTIF</option>
+                                <option value="NONAKTIF">NON AKTIF</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">

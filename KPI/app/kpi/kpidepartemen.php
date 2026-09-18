@@ -224,8 +224,8 @@ $namaBulanSebelumnya = getNamaBulan($bulanSebelumnya);
 // Ambil daftar departemen/bagian unik untuk filter
 $isAllDeptViewer = ($leveel == 5 || $leveel == 6 || $leveel == 7 || ($id_user ?? 0) == 1);
 if ($isAllDeptViewer) {
-    // Ambil daftar departemen unik
-    $sqlDept = "SELECT DISTINCT departement FROM tb_users WHERE departement IS NOT NULL AND departement != '' ORDER BY departement ASC";
+    // Ambil daftar departemen unik dari karyawan aktif
+    $sqlDept = "SELECT DISTINCT departement FROM tb_users WHERE departement IS NOT NULL AND departement != '' AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1)) ORDER BY departement ASC";
     $resultDept = mysqli_query($conn, $sqlDept);
     $daftarDept = [];
     while ($rowDept = mysqli_fetch_assoc($resultDept)) {
@@ -237,10 +237,12 @@ if ($isAllDeptViewer) {
     if ($filterBagian != '') {
         $sqlUsers = "SELECT * FROM tb_users WHERE departement = '$filterBagian' 
                     AND level NOT IN (6,7)
+                    AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                     ORDER BY CASE WHEN id = '$id_user' THEN 0 ELSE 1 END, nama_lngkp ASC";
     } else {
         $sqlUsers = "SELECT * FROM tb_users 
                     WHERE level NOT IN (6,7)
+                    AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                     ORDER BY CASE WHEN id = '$id_user' THEN 0 ELSE 1 END, departement ASC, nama_lngkp ASC";
     }
     $pageTitle = "KPI Seluruh Departemen";
@@ -262,6 +264,7 @@ if ($isAllDeptViewer) {
         $deptIn   = implode(',', $deptList);
         $sqlUsers = "SELECT * FROM tb_users WHERE departement IN ($deptIn) 
                     AND level NOT IN (5,6,7)
+                    AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                     ORDER BY CASE WHEN id = '$id_user' THEN 0 ELSE 1 END, departement ASC, nama_lngkp ASC";
         $deptLabel = implode(', ', array_map(function($d) { return trim($d, "'"); }, $deptList));
     } else {
@@ -269,6 +272,7 @@ if ($isAllDeptViewer) {
         $bagianKadep = mysqli_real_escape_string($conn, $bagian);
         $sqlUsers = "SELECT * FROM tb_users WHERE bagian = '$bagianKadep' 
                     AND level NOT IN (6,7)
+                    AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                     ORDER BY CASE WHEN id = '$id_user' THEN 0 ELSE 1 END, nama_lngkp ASC";
         $deptLabel   = $bagian;
     }

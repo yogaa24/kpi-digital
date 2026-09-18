@@ -54,6 +54,8 @@ if (isset($_POST['edit_user'])) {
     $jabatan = mysqli_real_escape_string($conn, $_POST['jabatan']);
     $atasan = mysqli_real_escape_string($conn, $_POST['atasan']);
     $penilai = mysqli_real_escape_string($conn, $_POST['penilai']);
+    $status_karyawan = (isset($_POST['status_karyawan']) && $_POST['status_karyawan'] === 'NONAKTIF') ? 'NONAKTIF' : 'AKTIF';
+    $status_num = ($status_karyawan === 'AKTIF') ? 1 : 0;
     
     $level = getLevelByJabatan($jabatan);
     
@@ -67,7 +69,9 @@ if (isset($_POST['edit_user'])) {
                    jabatan = '$jabatan',
                    atasan = '$atasan',
                    penilai = '$penilai',
-                   level = '$level'
+                   level = '$level',
+                   status_karyawan = '$status_karyawan',
+                   status = '$status_num'
                    WHERE id = '$id_edit'";
 
     if (mysqli_query($conn, $sql_update)) {
@@ -110,6 +114,9 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
     $password = mysqli_real_escape_string($conn, $_POST['password']);
     $cpassword = mysqli_real_escape_string($conn, $_POST['cpassword']);
     
+    $status_karyawan = (isset($_POST['status_karyawan']) && $_POST['status_karyawan'] === 'NONAKTIF') ? 'NONAKTIF' : 'AKTIF';
+    $status_num = ($status_karyawan === 'AKTIF') ? 1 : 0;
+    
     if ($password == $cpassword) {
         // Cek apakah username sudah ada
         $check_username = mysqli_query($conn, "SELECT * FROM tb_users WHERE username='$username'");
@@ -119,8 +126,8 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
             $hashedPassword = mysqli_real_escape_string($conn, hashUserPassword($password));
 
             // Insert ke tb_users
-            $sql_insert = "INSERT INTO tb_users (`username`, `password`, `level`, `nama_lngkp`, `nik`, `bagian`, `departement`, `jabatan`, `atasan`, `penilai`)
-                          VALUES ('$username','$hashedPassword','$level','$namalengkap','$nik','$bagian','$departemen','$jabatan','$atasan','$penilai')";
+            $sql_insert = "INSERT INTO tb_users (`username`, `password`, `level`, `nama_lngkp`, `nik`, `bagian`, `departement`, `jabatan`, `atasan`, `penilai`, `status_karyawan`, `status`)
+                          VALUES ('$username','$hashedPassword','$level','$namalengkap','$nik','$bagian','$departemen','$jabatan','$atasan','$penilai','$status_karyawan','$status_num')";
             
             if (mysqli_query($conn, $sql_insert)) {
                 // Ambil ID user yang baru dibuat
@@ -229,6 +236,13 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                                 <option value="Driver">Driver</option>
                             </select>
                             
+                            <!-- Filter Status Karyawan -->
+                            <select id="filterStatus" class="form-select form-select-sm" style="width: auto;">
+                                <option value="">Semua Status</option>
+                                <option value="AKTIF">AKTIF</option>
+                                <option value="NONAKTIF">NON AKTIF</option>
+                            </select>
+                            
                             <!-- Tombol Reset Filter -->
                             <button id="resetFilter" class="btn btn-secondary btn-sm">
                                 <i class="bi bi-arrow-clockwise"></i> Reset
@@ -257,6 +271,7 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                                                     <th><center>Departement</center></th>
                                                     <th><center>Jabatan</center></th>
                                                     <th><center>Level</center></th>
+                                                    <th width="8%"><center>Status</center></th>
                                                     <th width="10%"><center>Aksi</center></th>
                                                 </tr>
                                             </thead>
@@ -275,6 +290,7 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                                                         case 6: $level_name = 'Admin HRD'; break;
                                                         default: $level_name = 'Unknown';
                                                     }
+                                                    $user_status = ($user['status_karyawan'] ?? 'AKTIF') === 'NONAKTIF' ? 'NONAKTIF' : 'AKTIF';
                                                 ?>
                                                 <tr>
                                                     <td><center><?= $no++ ?></center></td>
@@ -285,6 +301,15 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                                                     <td data-search="<?= htmlspecialchars($user['departement']) ?>"><?= $user['departement'] ?></td>
                                                     <td><?= $user['jabatan'] ?></td>
                                                     <td><center><span class="badge bg-primary"><?= $level_name ?></span></center></td>
+                                                    <td data-search="<?= $user_status ?>">
+                                                        <center>
+                                                            <?php if ($user_status === 'AKTIF') { ?>
+                                                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>AKTIF</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>NON AKTIF</span>
+                                                            <?php } ?>
+                                                        </center>
+                                                    </td>
                                                     <td>
                                                         <center>
                                                             <button class="btn btn-sm btn-warning" 
@@ -387,6 +412,13 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                                                                             <label class="form-label">Penilai</label>
                                                                             <input type="text" class="form-control" name="penilai" 
                                                                                 value="<?= $user['penilai'] ?>" required>
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-3">
+                                                                            <label class="form-label">Status Karyawan <span class="text-danger">*</span></label>
+                                                                            <select class="form-select" name="status_karyawan" required>
+                                                                                <option value="AKTIF" <?= (($user['status_karyawan'] ?? 'AKTIF') === 'AKTIF') ? 'selected' : '' ?>>AKTIF</option>
+                                                                                <option value="NONAKTIF" <?= (($user['status_karyawan'] ?? '') === 'NONAKTIF') ? 'selected' : '' ?>>NON AKTIF</option>
+                                                                            </select>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -493,7 +525,7 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                 "pageLength": 10,
                 "order": [[2, 'asc']], // Order by nama lengkap
                 "columnDefs": [
-                    { "orderable": false, "targets": 8 } // Kolom aksi tidak bisa diurutkan
+                    { "orderable": false, "targets": 9 } // Kolom aksi tidak bisa diurutkan
                 ]
             });
             
@@ -512,11 +544,18 @@ $penilai = is_array($_POST['penilai']) ? mysqli_real_escape_string($conn, $_POST
                 var jabatan = $(this).val();
                 table.column(6).search(jabatan ? '^' + $.fn.dataTable.util.escapeRegex(jabatan) + '$' : '', true, false).draw();
             });
+
+            // Filter Status
+            $('#filterStatus').on('change', function() {
+                var status = $(this).val();
+                table.column(8).search(status ? '^' + $.fn.dataTable.util.escapeRegex(status) + '$' : '', true, false).draw();
+            });
             
             // Reset Filter
             $('#resetFilter').on('click', function() {
                 $('#filterDepartemen').val('');
                 $('#filterJabatan').val('');
+                $('#filterStatus').val('');
                 table.search('').columns().search('').draw();
             });
         });
