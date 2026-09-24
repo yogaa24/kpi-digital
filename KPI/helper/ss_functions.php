@@ -341,4 +341,95 @@ if (!function_exists('ssFindOrCreateCategory')) {
         return false;
     }
 }
+
+if (!function_exists('getAllUserSSSummary')) {
+    function getAllUserSSSummary($conn, $user_ids = null)
+    {
+        $where_user = "";
+        if (!empty($user_ids)) {
+            if (is_array($user_ids)) {
+                $ids_str = implode(',', array_map('intval', $user_ids));
+                $where_user = "WHERE s.id_user IN ($ids_str)";
+            } else {
+                $uid = intval($user_ids);
+                $where_user = "WHERE s.id_user = $uid";
+            }
+        }
+
+        $sql = "SELECT 
+                    s.id_user,
+                    s.id_poinss,
+                    s.tipe_ss,
+                    SUM(CASE WHEN sp.nilaiss > 0 THEN sp.nilaiss ELSE 0 END) as sum_nilai,
+                    COUNT(CASE WHEN sp.nilaiss > 0 THEN 1 ELSE NULL END) as count_dinilai,
+                    COUNT(sp.id_sspoin) as total_poin
+                FROM tb_ss s
+                LEFT JOIN tb_sspoin sp ON sp.id_user = s.id_user AND sp.id_ss = s.id_poinss
+                $where_user
+                GROUP BY s.id_user, s.id_poinss, s.tipe_ss";
+        $res = mysqli_query($conn, $sql);
+
+        $data = [];
+        if ($res) {
+            while ($row = mysqli_fetch_assoc($res)) {
+                $uid = intval($row['id_user']);
+                if (!isset($data[$uid])) {
+                    $data[$uid] = [
+                        'umum_avgs' => [],
+                        'teknis_avgs' => [],
+                        'all_avgs' => [],
+                        'poin_umum' => 0,
+                        'poin_teknis' => 0,
+                        'poin_dinilai_umum' => 0,
+                        'poin_dinilai_teknis' => 0,
+                        'total_kat_umum' => 0,
+                        'total_kat_teknis' => 0,
+                        'total_kat' => 0,
+                        'total_poin' => 0,
+                        'avg_umum' => null,
+                        'avg_teknis' => null,
+                        'avg_total' => null,
+                    ];
+                }
+
+                $tipe = ($row['tipe_ss'] === 'teknis') ? 'teknis' : 'umum';
+                $poin_total = intval($row['total_poin']);
+                $poin_dinilai = intval($row['count_dinilai']);
+                $sum_nilai = floatval($row['sum_nilai']);
+
+                $data[$uid]['total_kat']++;
+                $data[$uid]['total_poin'] += $poin_total;
+
+                $cat_avg = ($poin_dinilai > 0) ? ($sum_nilai / $poin_dinilai) : null;
+
+                if ($tipe === 'teknis') {
+                    $data[$uid]['total_kat_teknis']++;
+                    $data[$uid]['poin_teknis'] += $poin_total;
+                    $data[$uid]['poin_dinilai_teknis'] += $poin_dinilai;
+                    if ($cat_avg !== null) {
+                        $data[$uid]['teknis_avgs'][] = $cat_avg;
+                        $data[$uid]['all_avgs'][] = $cat_avg;
+                    }
+                } else {
+                    $data[$uid]['total_kat_umum']++;
+                    $data[$uid]['poin_umum'] += $poin_total;
+                    $data[$uid]['poin_dinilai_umum'] += $poin_dinilai;
+                    if ($cat_avg !== null) {
+                        $data[$uid]['umum_avgs'][] = $cat_avg;
+                        $data[$uid]['all_avgs'][] = $cat_avg;
+                    }
+                }
+            }
+
+            foreach ($data as $uid => &$u_data) {
+                $u_data['avg_umum'] = !empty($u_data['umum_avgs']) ? round(array_sum($u_data['umum_avgs']) / count($u_data['umum_avgs']), 2) : null;
+                $u_data['avg_teknis'] = !empty($u_data['teknis_avgs']) ? round(array_sum($u_data['teknis_avgs']) / count($u_data['teknis_avgs']), 2) : null;
+                $u_data['avg_total'] = !empty($u_data['all_avgs']) ? round(array_sum($u_data['all_avgs']) / count($u_data['all_avgs']), 2) : null;
+            }
+            unset($u_data);
+        }
+
+        return $data;
+    }
+}
 ?>
