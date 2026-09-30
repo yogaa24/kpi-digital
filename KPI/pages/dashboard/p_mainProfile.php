@@ -195,12 +195,12 @@
                                 SP ini akan berakhir pada <strong><?=formatTanggalIndo($sp_data['masa_berlaku_selesai'])?></strong>
                             </small>
                         </div>
-                        <?php if ($sp_data['file_sp']) { ?>
+                        <?php if ($sp_data) { ?>
                         <button type="button" 
                                 class="btn btn-sm btn-danger" 
                                 data-bs-toggle="modal" 
                                 data-bs-target="#modalLihatSP">
-                            <i class="bi bi-file-earmark-text"></i> Lihat
+                            <i class="bi bi-file-earmark-text"></i> Lihat Surat SP
                         </button>
                         <?php } ?>
                     </div>
@@ -240,7 +240,7 @@
                                     </div>
                                 </div>
 
-                                <?php if ($sp_data['keterangan']) { ?>
+                                <?php if (!empty($sp_data['keterangan'])) { ?>
                                 <div class="mb-3">
                                     <strong><i class="bi bi-chat-dots"></i> Keterangan:</strong>
                                     <div class="alert alert-light mt-2">
@@ -249,32 +249,47 @@
                                 </div>
                                 <?php } ?>
 
-                                <!-- Preview File -->
+                                <!-- Preview Dokumen SP Resmi / Berkas -->
                                 <div class="text-center">
                                     <?php 
-                                    $file_path = 'uploads/surat_peringatan/' . $sp_data['file_sp'];
-                                    $file_ext = strtolower(pathinfo($sp_data['file_sp'], PATHINFO_EXTENSION));
-                                    
-                                    if ($file_ext == 'pdf') { ?>
-                                        <iframe src="<?=$file_path?>" 
+                                    if (!empty($sp_data['file_sp'])) {
+                                        $file_path = 'uploads/surat_peringatan/' . $sp_data['file_sp'];
+                                        $file_ext = strtolower(pathinfo($sp_data['file_sp'], PATHINFO_EXTENSION));
+                                        
+                                        if ($file_ext == 'pdf') { ?>
+                                            <iframe src="<?=$file_path?>" 
+                                                    width="100%" 
+                                                    height="600px" 
+                                                    style="border: 1px solid #ddd; border-radius: 5px;">
+                                            </iframe>
+                                        <?php } else { ?>
+                                            <img src="<?=$file_path?>" 
+                                                class="img-fluid" 
+                                                style="max-height: 600px; border: 1px solid #ddd; border-radius: 5px;"
+                                                alt="Surat Peringatan">
+                                        <?php } 
+                                    } else { ?>
+                                        <iframe src="cetak-sp?id_sp=<?=$sp_data['id_sp']?>" 
                                                 width="100%" 
-                                                height="600px" 
+                                                height="650px" 
                                                 style="border: 1px solid #ddd; border-radius: 5px;">
                                         </iframe>
-                                    <?php } else { ?>
-                                        <img src="<?=$file_path?>" 
-                                            class="img-fluid" 
-                                            style="max-height: 600px; border: 1px solid #ddd; border-radius: 5px;"
-                                            alt="Surat Peringatan">
                                     <?php } ?>
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <a href="<?=$file_path?>" 
-                                class="btn btn-primary" 
-                                download="<?=$sp_data['nomor_sp']?>.<?=$file_ext?>">
-                                    <i class="bi bi-download"></i> Download Surat SP
+                                <a href="cetak-sp?id_sp=<?=$sp_data['id_sp']?>" 
+                                   target="_blank" 
+                                   class="btn btn-primary">
+                                    <i class="bi bi-printer-fill me-1"></i> Cetak / Unduh Dokumen Resmi
                                 </a>
+                                <?php if (!empty($sp_data['file_sp'])) { ?>
+                                <a href="<?=$file_path?>" 
+                                   class="btn btn-success" 
+                                   download="<?=$sp_data['nomor_sp']?>.<?=$file_ext?>">
+                                    <i class="bi bi-download"></i> Download Berkas Lampiran
+                                </a>
+                                <?php } ?>
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                     <i class="bi bi-x-circle"></i> Tutup
                                 </button>

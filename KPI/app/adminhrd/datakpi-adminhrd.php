@@ -99,9 +99,13 @@ if (isset($_GET['ajax_sp_list'])) {
                         </td>
                         <td>
                             <div class="d-flex gap-1">
+                                <!-- Cetak / Lihat Surat Resmi SP -->
+                                <a href="cetak-sp?id_sp=<?=$sp['id_sp']?>" target="_blank" class="btn btn-sm btn-primary" title="Cetak / Lihat Dokumen Resmi SP">
+                                    <i class="bi bi-printer-fill me-1"></i> Cetak
+                                </a>
                                 <?php if (!empty($sp['file_sp'])) { ?>
-                                    <a href="uploads/surat_peringatan/<?=$sp['file_sp']?>" target="_blank" class="btn btn-sm btn-outline-primary" title="Lihat/Unduh File SP">
-                                        <i class="bi bi-file-earmark-arrow-down"></i>
+                                    <a href="uploads/surat_peringatan/<?=$sp['file_sp']?>" target="_blank" class="btn btn-sm btn-outline-secondary" title="Lihat Lampiran Berkas Upload">
+                                        <i class="bi bi-paperclip"></i>
                                     </a>
                                 <?php } ?>
                                 <?php if ($sp['status'] == 'aktif') { ?>
@@ -137,23 +141,28 @@ if (isset($_GET['ajax_sp_list'])) {
     exit();
 }
 
-// Handler untuk tambah SP dengan upload file
+// Handler untuk tambah SP (Dibuat langsung dari aplikasi atau dengan upload)
 if (isset($_POST['tambah_sp'])) {
     $id_user_sp = intval($_POST['id_user']);
-    $jenis_sp = mysqli_real_escape_string($conn, $_POST['jenis_sp']);
-    $nomor_sp = mysqli_real_escape_string($conn, $_POST['nomor_sp']);
-    $tanggal_sp = mysqli_real_escape_string($conn, $_POST['tanggal_sp']);
-    $alasan = mysqli_real_escape_string($conn, $_POST['alasan']);
-    $keterangan = mysqli_real_escape_string($conn, $_POST['keterangan']);
+    $jenis_sp = trim($_POST['jenis_sp']);
+    $nomor_sp = trim($_POST['nomor_sp']);
+    $tanggal_sp = trim($_POST['tanggal_sp']);
+    $alasan = trim($_POST['alasan']);
+    $aturan_dilanggar = trim($_POST['aturan_dilanggar'] ?? '');
+    $tanggal_kejadian = !empty($_POST['tanggal_kejadian']) ? trim($_POST['tanggal_kejadian']) : $tanggal_sp;
+    $penandatangan = trim($_POST['penandatangan'] ?? 'Riza Dwi Fitrianingtyas');
+    $jabatan_penandatangan = trim($_POST['jabatan_penandatangan'] ?? 'Kepala Departemen HRD');
+    $tembusan = trim($_POST['tembusan'] ?? '1. Direktur sebagai laporan; 2. Kepala Departemen HRD; 3. Arsip;');
+    $keterangan = trim($_POST['keterangan'] ?? '');
     $created_by = $_SESSION['id_user'];
     
     // Hitung otomatis masa berlaku 6 bulan dari tanggal SP
     $masa_berlaku_mulai = $tanggal_sp;
     $masa_berlaku_selesai = date('Y-m-d', strtotime($tanggal_sp . ' +6 months'));
     
-    // Handle upload file
+    // Handle upload file (opsional)
     $file_sp = null;
-    if (isset($_FILES['file_sp']) && $_FILES['file_sp']['error'] == 0) {
+    if (isset($_FILES['file_sp']) && $_FILES['file_sp']['error'] == 0 && !empty($_FILES['file_sp']['name'])) {
         $allowed_ext = ['pdf', 'jpg', 'jpeg', 'png'];
         $file_name = $_FILES['file_sp']['name'];
         $file_size = $_FILES['file_sp']['size'];
@@ -185,21 +194,33 @@ if (isset($_POST['tambah_sp'])) {
         if (move_uploaded_file($file_tmp, $upload_path . $new_file_name)) {
             $file_sp = $new_file_name;
         } else {
-            echo "<script>alert('Gagal upload file!'); window.history.back();</script>";
+            echo "<script>alert('Gagal upload file lampiran!'); window.history.back();</script>";
             exit();
         }
     }
     
     $sql = "INSERT INTO tb_surat_peringatan 
-            (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, keterangan, file_sp, status, created_by) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
+            (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, aturan_dilanggar, tanggal_kejadian, keterangan, penandatangan, jabatan_penandatangan, tembusan, file_sp, status, created_by) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
     
     $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "issssssssi", $id_user_sp, $jenis_sp, $nomor_sp, $tanggal_sp, 
-                        $masa_berlaku_mulai, $masa_berlaku_selesai, $alasan, $keterangan, $file_sp, $created_by);
+    mysqli_stmt_bind_param($stmt, "isssssssssssssi", 
+        $id_user_sp, $jenis_sp, $nomor_sp, $tanggal_sp, 
+        $masa_berlaku_mulai, $masa_berlaku_selesai, 
+        $alasan, $aturan_dilanggar, $tanggal_kejadian, 
+        $keterangan, $penandatangan, $jabatan_penandatangan, $tembusan, 
+        $file_sp, $created_by
+    );
     
     if (mysqli_stmt_execute($stmt)) {
-        echo "<script>alert('✅ Surat Peringatan berhasil ditambahkan!'); window.location.href='datakpi-adminhrd';</script>";
+        $new_sp_id = mysqli_insert_id($conn);
+        echo "<script>
+            alert('✅ Surat Peringatan berhasil dibuat langsung dari aplikasi!'); 
+            if (confirm('Apakah Anda ingin langsung melihat / mencetak Surat Peringatan ini?')) {
+                window.open('cetak-sp?id_sp=" . $new_sp_id . "', '_blank');
+            }
+            window.location.href='datakpi-adminhrd';
+        </script>";
     } else {
         // Hapus file jika insert gagal
         if ($file_sp && file_exists($upload_path . $file_sp)) {
@@ -887,6 +908,8 @@ if ($res_sk_bulk) {
                                                             data-id="<?=$hasilsfa['id']?>"
                                                             data-nama="<?=htmlspecialchars($hasilsfa['nama_lngkp'])?>"
                                                             data-nik="<?=htmlspecialchars($hasilsfa['nik'])?>"
+                                                            data-departemen="<?=htmlspecialchars($hasilsfa['departement'] ?? '')?>"
+                                                            data-jabatan="<?=htmlspecialchars($hasilsfa['jabatan'] ?? '')?>"
                                                             title="Tambah Surat Peringatan">
                                                         <i class="bi bi-exclamation-triangle-fill"></i>
                                                     </button>
@@ -953,18 +976,41 @@ if ($res_sk_bulk) {
             var id = $(this).data('id');
             var nama = $(this).data('nama');
             var nik = $(this).data('nik');
+            var departemen = $(this).data('departemen') || '-';
+            var jabatan = $(this).data('jabatan') || '-';
             
             $('#tambahSP_id_user').val(id);
             $('#tambahSP_nama').text(nama);
             $('#tambahSP_nik').text(nik);
+            $('#tambahSP_departemen').text(departemen);
+            $('#tambahSP_jabatan').text(jabatan);
+            
+            // Set ke Preview juga
+            $('#prev_nama').text(nama);
+            $('#prev_departemen').text(departemen);
+            $('#prev_jabatan').text(jabatan);
+            $('#prev_karyawan_ttd').text(nama);
             
             // Reset form fields
             $('#formTambahSP')[0].reset();
             $('#tambahSP_id_user').val(id);
             $('#tambahSP_tanggal').val('<?=date("Y-m-d")?>');
+            $('#tambahSP_tgl_kejadian').val('<?=date("Y-m-d")?>');
+            $('#tambahSP_penandatangan').val('Riza Dwi Fitrianingtyas');
+            $('#tambahSP_jabatan_penandatangan').val('Kepala Departemen HRD');
+            $('#tambahSP_tembusan').val('1. Direktur sebagai laporan; 2. Kepala Departemen HRD; 3. Arsip;');
+            setDefaultPasal();
             $('#tambahSP_penaltyInfo').html('');
             $('#tambahSP_filePreview').html('');
             handleSPMasaBerlakuChange();
+            
+            // Generate saran nomor otomatis
+            autoGenerateSPNomor();
+            
+            // Aktifkan tab pertama
+            var firstTab = new bootstrap.Tab(document.querySelector('#form-tab'));
+            firstTab.show();
+            $('#modalTambahSP .modal-body').scrollTop(0);
             
             var modal = new bootstrap.Modal(document.getElementById('modalTambahSP'));
             modal.show();
@@ -1017,8 +1063,8 @@ if ($res_sk_bulk) {
             if (jenisSP && penalties[jenisSP]) {
                 const p = penalties[jenisSP];
                 infoDiv.innerHTML = `
-                    <div class="alert alert-${p.class} mb-0">
-                        <i class="bi bi-${p.icon}-fill"></i> 
+                    <div class="alert alert-${p.class} py-2 mb-0">
+                        <i class="bi bi-${p.icon}-fill me-1"></i> 
                         <strong>Dampak:</strong> Nilai KPI akan dikurangi <strong>${p.poin} poin</strong> selama 6 bulan masa berlaku SP
                     </div>
                 `;
@@ -1045,8 +1091,9 @@ if ($res_sk_bulk) {
         function handleSPFilePreview() {
             const fileInput = document.getElementById('tambahSP_file');
             const previewDiv = document.getElementById('tambahSP_filePreview');
+            if (!fileInput || !previewDiv) return;
             
-            if (fileInput.files.length > 0) {
+            if (fileInput.files && fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 const fileSize = (file.size / 1024 / 1024).toFixed(2);
                 const fileExt = file.name.split('.').pop().toLowerCase();
@@ -1056,14 +1103,97 @@ if ($res_sk_bulk) {
                 else if (['jpg', 'jpeg', 'png'].includes(fileExt)) icon = 'file-earmark-image';
                 
                 previewDiv.innerHTML = `
-                    <div class="alert alert-success mb-0">
-                        <i class="bi bi-${icon}-fill"></i> 
-                        <strong>${file.name}</strong> (${fileSize} MB)
+                    <div class="alert alert-success py-2 mb-0 small">
+                        <i class="bi bi-${icon}-fill me-1"></i> 
+                        <strong>${file.name}</strong> (${fileSize} MB) siap diunggah sebagai arsip lampiran.
                     </div>
                 `;
             } else {
                 previewDiv.innerHTML = '';
             }
+        }
+
+        function getRomanMonthJS(monthIdx) {
+            const romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+            return romans[monthIdx] || 'I';
+        }
+
+        function autoGenerateSPNomor() {
+            const tgl = document.getElementById('tambahSP_tanggal').value || '<?=date("Y-m-d")?>';
+            const d = new Date(tgl);
+            const romanM = getRomanMonthJS(d.getMonth());
+            const year = d.getFullYear();
+            
+            const curVal = $('#tambahSP_nomor').val();
+            let prefix = '294';
+            if (curVal && curVal.includes('/')) {
+                prefix = curVal.split('/')[0].trim();
+            }
+            $('#tambahSP_nomor').val(`${prefix}/KIU-HRD/${romanM}/${year}`);
+            updateLiveSPPreview();
+        }
+
+        function setDefaultPasal() {
+            $('#tambahSP_aturan').val('Peraturan Perusahaan Pasal 22 ayat (2) point 23 :\nTidak berhati-hati dan / atau lalai dalam melaksanakan tugas sehingga dapat mengakibatkan kerugiaan bagi perusahaan');
+            updateLiveSPPreview();
+        }
+
+        function updateLiveSPPreview() {
+            const nomor = $('#tambahSP_nomor').val() || '[Nomor SP Belum Diisi]';
+            const jenis = $('#tambahSP_jenis').val() || 'SP1';
+            const tglSP = $('#tambahSP_tanggal').val();
+            const tglKejadian = $('#tambahSP_tgl_kejadian').val();
+            const aturan = $('#tambahSP_aturan').val() || '-';
+            const alasan = $('#tambahSP_alasan').val() || '';
+            const penandatangan = $('#tambahSP_penandatangan').val() || 'Riza Dwi Fitrianingtyas';
+            const jabatanPenandatangan = $('#tambahSP_jabatan_penandatangan').val() || 'Kepala Departemen HRD';
+            const tembusan = $('#tambahSP_tembusan').val() || '1. Direktur sebagai laporan; 2. Kepala Departemen HRD; 3. Arsip;';
+
+            $('#prev_nomor').text(nomor);
+            $('#prev_penandatangan').text(penandatangan);
+            $('#prev_jabatan_penandatangan').text(jabatanPenandatangan);
+            $('#prev_tembusan').text(tembusan);
+
+            if (tglSP) {
+                const d = new Date(tglSP);
+                $('#prev_tgl_sp').text(d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }));
+            }
+            if (tglKejadian) {
+                const dk = new Date(tglKejadian);
+                $('#prev_tgl_kejadian').text(dk.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }));
+            }
+
+            // Bersihkan escape literal \r\n jika ada
+            const cleanAturan = aturan.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n');
+            const lines = cleanAturan.split('\n');
+            if (lines.length > 1) {
+                $('#prev_aturan').text(lines[0].trim());
+                $('#prev_aturan_detail').text(lines.slice(1).join(' ').trim());
+            } else {
+                $('#prev_aturan').text(cleanAturan.trim());
+                $('#prev_aturan_detail').text('');
+            }
+
+            const cleanAlasan = alasan.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n');
+            if (cleanAlasan.trim().length > 0) {
+                $('#prev_alasan').html(cleanAlasan.trim().replace(/\n/g, '<br>')).removeClass('text-danger fst-italic');
+            } else {
+                $('#prev_alasan').text('[Uraian pelanggaran belum diisi]').addClass('text-danger fst-italic');
+            }
+
+            let title = 'Surat Peringatan Pertama (SP-1)';
+            let ketentuan = 'Surat Peringatan Pertama (SP-1) berlaku untuk 6 (enam) bulan kedepan sejak diterbitkan. Apabila saudara kembali melakukan tindakan pelanggaran dalam kurun waktu 6 (enam) bulan kedepan sejak Surat Peringatan Pertama (SP-1) ini diterbitkan, maka perusahaan akan memberikan sanksi yang lebih tegas kepada saudara.';
+            
+            if (jenis === 'SP2') {
+                title = 'Surat Peringatan Kedua (SP-2)';
+                ketentuan = 'Surat Peringatan Kedua (SP-2) berlaku untuk 6 (enam) bulan kedepan sejak diterbitkan. Apabila saudara kembali melakukan tindakan pelanggaran dalam kurun waktu 6 (enam) bulan kedepan sejak Surat Peringatan Kedua (SP-2) ini diterbitkan, maka perusahaan akan memberikan sanksi Surat Peringatan Ketiga (SP-3) atau sanksi yang lebih tegas kepada saudara.';
+            } else if (jenis === 'SP3') {
+                title = 'Surat Peringatan Ketiga (SP-3)';
+                ketentuan = 'Surat Peringatan Ketiga (SP-3) berlaku untuk 6 (enam) bulan kedepan sejak diterbitkan. Apabila saudara kembali melakukan tindakan pelanggaran dalam kurun waktu 6 (enam) bulan kedepan sejak Surat Peringatan Ketiga (SP-3) ini diterbitkan, maka perusahaan akan memberikan sanksi pemutusan hubungan kerja (PHK) sesuai ketentuan peraturan perundang-undangan dan peraturan perusahaan yang berlaku.';
+            }
+
+            $('#prev_sp_title').text(title);
+            $('#prev_ketentuan').text(ketentuan);
         }
 
         $(document).ready(function() {

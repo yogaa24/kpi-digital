@@ -14,6 +14,7 @@ $routes = [
     'kpi-lock-settings-adminhrd' => 'app/adminhrd/kpi-lock-settings-adminhrd.php',
     'skill-standard-adminhrd' => 'app/adminhrd/skill-standard-adminhrd.php',
     'penilaian-karakter-adminhrd' => 'app/adminhrd/penilaian-karakter-adminhrd.php',
+    'cetak-sp' => 'app/adminhrd/cetak_sp.php',
 
     'home-adminedp' => 'app/adminedp/home-adminedp.php',
 
