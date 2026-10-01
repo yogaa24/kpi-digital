@@ -19,6 +19,13 @@ requireAdminHRDOrDirektur();
 // Update SP yang sudah expired
 updateExpiredSP($conn);
 
+// Ambil nomor SP terakhir untuk auto-generate
+$q_last_sp = mysqli_query($conn, "SELECT nomor_sp FROM tb_surat_peringatan ORDER BY id_sp DESC LIMIT 1");
+$last_sp_row = mysqli_fetch_assoc($q_last_sp);
+$last_sp_nomor = $last_sp_row['nomor_sp'] ?? '0/KIU-HRD/' . date('Y');
+$last_sp_prefix = intval(explode('/', $last_sp_nomor)[0]);
+$next_sp_prefix = $last_sp_prefix + 1;
+
 // AJAX Handler untuk memuat data Surat Peringatan karyawan (Modal Kelola SP)
 if (isset($_GET['ajax_sp_list'])) {
     $id_user_sp = intval($_GET['id_user']);
@@ -90,7 +97,12 @@ if (isset($_GET['ajax_sp_list'])) {
                             <span class="badge bg-danger">-<?=$penalty?> poin</span>
                         </td>
                         <td>
-                            <small><?=htmlspecialchars($sp['alasan'])?></small>
+                            <small>
+                                <strong>1.</strong> <?=htmlspecialchars($sp['alasan'])?><br>
+                                <?php if (!empty($sp['alasan_2'])) { ?>
+                                    <strong>2.</strong> <?=htmlspecialchars($sp['alasan_2'])?>
+                                <?php } ?>
+                            </small>
                         </td>
                         <td>
                             <span class="badge bg-<?=$status_badge?>">
@@ -148,6 +160,7 @@ if (isset($_POST['tambah_sp'])) {
     $nomor_sp = trim($_POST['nomor_sp']);
     $tanggal_sp = trim($_POST['tanggal_sp']);
     $alasan = trim($_POST['alasan']);
+    $alasan_2 = trim($_POST['alasan_2'] ?? '');
     $aturan_dilanggar = trim($_POST['aturan_dilanggar'] ?? '');
     $tanggal_kejadian = !empty($_POST['tanggal_kejadian']) ? trim($_POST['tanggal_kejadian']) : $tanggal_sp;
     $penandatangan = trim($_POST['penandatangan'] ?? 'Riza Dwi Fitrianingtyas');
@@ -200,14 +213,19 @@ if (isset($_POST['tambah_sp'])) {
     }
     
     $sql = "INSERT INTO tb_surat_peringatan 
-            (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, aturan_dilanggar, tanggal_kejadian, keterangan, penandatangan, jabatan_penandatangan, tembusan, file_sp, status, created_by) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
+            (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, alasan_2, aturan_dilanggar, tanggal_kejadian, keterangan, penandatangan, jabatan_penandatangan, tembusan, file_sp, status, created_by) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
     
     $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "isssssssssssssi", 
+    if (!$stmt) {
+        echo "<script>alert('❌ Gagal prepare statement: " . mysqli_error($conn) . "'); window.history.back();</script>";
+        exit();
+    }
+    
+    mysqli_stmt_bind_param($stmt, "issssssssssssssi", 
         $id_user_sp, $jenis_sp, $nomor_sp, $tanggal_sp, 
         $masa_berlaku_mulai, $masa_berlaku_selesai, 
-        $alasan, $aturan_dilanggar, $tanggal_kejadian, 
+        $alasan, $alasan_2, $aturan_dilanggar, $tanggal_kejadian, 
         $keterangan, $penandatangan, $jabatan_penandatangan, $tembusan, 
         $file_sp, $created_by
     );
@@ -1118,18 +1136,16 @@ if ($res_sk_bulk) {
             return romans[monthIdx] || 'I';
         }
 
+        // Nomor SP selanjutnya dari DB
+        const nextSpPrefix = <?= $next_sp_prefix ?>;
+
         function autoGenerateSPNomor() {
             const tgl = document.getElementById('tambahSP_tanggal').value || '<?=date("Y-m-d")?>';
             const d = new Date(tgl);
             const romanM = getRomanMonthJS(d.getMonth());
             const year = d.getFullYear();
             
-            const curVal = $('#tambahSP_nomor').val();
-            let prefix = '294';
-            if (curVal && curVal.includes('/')) {
-                prefix = curVal.split('/')[0].trim();
-            }
-            $('#tambahSP_nomor').val(`${prefix}/KIU-HRD/${romanM}/${year}`);
+            $('#tambahSP_nomor').val(`${nextSpPrefix}/KIU-HRD/${romanM}/${year}`);
             updateLiveSPPreview();
         }
 
@@ -1145,6 +1161,7 @@ if ($res_sk_bulk) {
             const tglKejadian = $('#tambahSP_tgl_kejadian').val();
             const aturan = $('#tambahSP_aturan').val() || '-';
             const alasan = $('#tambahSP_alasan').val() || '';
+            const alasan2 = $('#tambahSP_alasan_2').val() || '';
             const penandatangan = $('#tambahSP_penandatangan').val() || 'Riza Dwi Fitrianingtyas';
             const jabatanPenandatangan = $('#tambahSP_jabatan_penandatangan').val() || 'Kepala Departemen HRD';
             const tembusan = $('#tambahSP_tembusan').val() || '1. Direktur sebagai laporan; 2. Kepala Departemen HRD; 3. Arsip;';
@@ -1178,7 +1195,15 @@ if ($res_sk_bulk) {
             if (cleanAlasan.trim().length > 0) {
                 $('#prev_alasan').html(cleanAlasan.trim().replace(/\n/g, '<br>')).removeClass('text-danger fst-italic');
             } else {
-                $('#prev_alasan').text('[Uraian pelanggaran belum diisi]').addClass('text-danger fst-italic');
+                $('#prev_alasan').text('[Uraian pelanggaran 1 belum diisi]').addClass('text-danger fst-italic');
+            }
+
+            const cleanAlasan2 = alasan2.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\r/g, '\n');
+            if (cleanAlasan2.trim().length > 0) {
+                $('#prev_alasan_2').html(cleanAlasan2.trim().replace(/\n/g, '<br>')).removeClass('text-danger fst-italic');
+                $('#prev_alasan_2_container').show();
+            } else {
+                $('#prev_alasan_2_container').hide();
             }
 
             let title = 'Surat Peringatan Pertama (SP-1)';

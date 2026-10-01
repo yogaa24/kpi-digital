@@ -65,6 +65,9 @@ $aturan_detail = trim(implode("\n", array_slice($lines_aturan, 1)));
 $raw_alasan = !empty($sp['alasan']) ? $sp['alasan'] : 'Melakukan kelalaian dalam pelaksanaan tugas.';
 $raw_alasan = str_replace(["\r\n", "\\r\\n", "\\n", "\\r"], "\n", $raw_alasan);
 
+$raw_alasan_2 = !empty($sp['alasan_2']) ? $sp['alasan_2'] : '';
+$raw_alasan_2 = str_replace(["\r\n", "\\r\\n", "\\n", "\\r"], "\n", $raw_alasan_2);
+
 $penandatangan = !empty($sp['penandatangan']) ? $sp['penandatangan'] : 'Riza Dwi Fitrianingtyas';
 $jabatan_penandatangan = !empty($sp['jabatan_penandatangan']) ? $sp['jabatan_penandatangan'] : 'Kepala Departemen HRD';
 $tembusan = !empty($sp['tembusan']) ? $sp['tembusan'] : '1. Direktur sebagai laporan; 2. Kepala Departemen HRD; 3. Arsip;';
@@ -451,9 +454,15 @@ $logo_exists = file_exists(__DIR__ . '/../../' . $logo_path);
                     <?php } ?>
                 </li>
                 <li>
-                    <strong>Uraian Pelanggaran :</strong><br>
+                    <strong>Uraian Pelanggaran 1 :</strong><br>
                     <span><?= nl2br(htmlspecialchars($raw_alasan)) ?></span>
                 </li>
+                <?php if (!empty($raw_alasan_2)) { ?>
+                <li>
+                    <strong>Uraian Pelanggaran 2 :</strong><br>
+                    <span><?= nl2br(htmlspecialchars($raw_alasan_2)) ?></span>
+                </li>
+                <?php } ?>
                 <li>
                     <strong>Tanggal kejadian :</strong><br>
                     <?= $tanggal_kejadian_indo ?>

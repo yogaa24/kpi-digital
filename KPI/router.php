@@ -57,6 +57,7 @@ $routes = [
     'export_kpi_detail' => 'app/exports/export_kpi_detail.php',
     'export_kpisim_detail' => 'app/exports/export_kpisim_detail.php',
     'export_ss_summary' => 'app/exports/export_ss_summary.php',
+    'export_ss_detail' => 'app/exports/export_ss_detail.php',
 
     'sop' => 'app/sop/sop.php',
     'sop-departemen' => 'app/sop/sop-departemen.php',

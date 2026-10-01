@@ -148,13 +148,23 @@
 Tidak berhati-hati dan / atau lalai dalam melaksanakan tugas sehingga dapat mengakibatkan kerugiaan bagi perusahaan</textarea>
                                     </div>
 
-                                    <!-- Uraian Kejadian Pelanggaran -->
-                                    <div class="mb-0">
+                                    <!-- Uraian Kejadian Pelanggaran 1 -->
+                                    <div class="mb-3">
                                         <label class="form-label fw-bold small">
-                                            2. Uraian Kejadian Pelanggaran <span class="text-danger">*</span>
+                                            2. Uraian Kejadian Pelanggaran 1 <span class="text-danger">*</span>
                                         </label>
                                         <textarea class="form-control" name="alasan" id="tambahSP_alasan" rows="3" required 
-                                            placeholder="Jelaskan secara rinci tindakan/kelalaian yang dilakukan karyawan..."
+                                            placeholder="jelaskan sop yang dilanggar"
+                                            oninput="updateLiveSPPreview()"></textarea>
+                                    </div>
+
+                                    <!-- Uraian Kejadian Pelanggaran 2 -->
+                                    <div class="mb-0">
+                                        <label class="form-label fw-bold small">
+                                            3. Uraian Kejadian Pelanggaran 2 (Opsional)
+                                        </label>
+                                        <textarea class="form-control" name="alasan_2" id="tambahSP_alasan_2" rows="3" 
+                                            placeholder="Jelaskan uraian pelanggaran kedua jika ada..."
                                             oninput="updateLiveSPPreview()"></textarea>
                                     </div>
                                 </div>
@@ -260,8 +270,12 @@ Tidak berhati-hati dan / atau lalai dalam melaksanakan tugas sehingga dapat meng
                                         <span id="prev_aturan_detail">Tidak berhati-hati dan / atau lalai dalam melaksanakan tugas sehingga dapat mengakibatkan kerugiaan bagi perusahaan</span>
                                     </li>
                                     <li class="mb-2">
-                                        <strong>Uraian Pelanggaran :</strong><br>
+                                        <strong>Uraian Pelanggaran 1 :</strong><br>
                                         <span id="prev_alasan" class="text-danger fst-italic">[Isi uraian pelanggaran pada form]</span>
+                                    </li>
+                                    <li class="mb-2" id="prev_alasan_2_container" style="display:none;">
+                                        <strong>Uraian Pelanggaran 2 :</strong><br>
+                                        <span id="prev_alasan_2" class="text-danger fst-italic"></span>
                                     </li>
                                     <li class="mb-2">
                                         <strong>Tanggal kejadian :</strong><br>

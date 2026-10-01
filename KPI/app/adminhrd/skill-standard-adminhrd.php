@@ -107,6 +107,10 @@ $result_bagian = mysqli_query($conn, $sql_bagian);
                                                 <i class="bi bi-file-earmark-spreadsheet me-1"></i>
                                                 Export Summary SS
                                             </a>
+                                            <a href="export_ss_detail" id="btnExportSSDetail" class="btn btn-info btn-sm shadow-sm text-white">
+                                                <i class="bi bi-file-earmark-ruled me-1"></i>
+                                                Export Detail SS
+                                            </a>
                                             <?php $back_url_ss = (isset($_SESSION['level']) && $_SESSION['level'] == 7) ? 'dashboard-adminhrd' : 'data-karyawan'; ?>
                                             <a href="<?= $back_url_ss ?>"
                                             class="btn btn-light btn-sm shadow-sm">
@@ -402,6 +406,7 @@ $result_bagian = mysqli_query($conn, $sql_bagian);
             }
             var qs = params.toString();
             $('#btnExportSS').attr('href', 'export_ss_summary' + (qs ? '?' + qs : ''));
+            $('#btnExportSSDetail').attr('href', 'export_ss_detail' + (qs ? '?' + qs : ''));
         }
         
         // Filter Jabatan - otomatis
