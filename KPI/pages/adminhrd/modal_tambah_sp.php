@@ -1,7 +1,7 @@
 <!-- Modal Tambah SP (Dibuat Langsung dari Aplikasi Tanpa Wajib Upload File) -->
 <div class="modal fade" id="modalTambahSP" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <form method="POST" action="datakpi-adminhrd" enctype="multipart/form-data" id="formTambahSP" class="modal-content">
+        <form method="POST" action="datakpi-adminhrd<?= !empty($_GET['mode']) ? '?mode=' . htmlspecialchars($_GET['mode']) : '' ?>" enctype="multipart/form-data" id="formTambahSP" class="modal-content">
             <input type="hidden" name="id_user" id="tambahSP_id_user" value="">
 
             <div class="modal-header bg-danger text-white">

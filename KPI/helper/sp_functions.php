@@ -70,19 +70,57 @@ function calculateKPIWithSP($conn, $id_user, $nilai_asli) {
 }
 
 /**
+ * Memastikan kolom-kolom baru SP sudah ada di tb_surat_peringatan
+ * Berguna saat migrasi database di server live secara otomatis
+ */
+function ensureSPColumnsExist($conn) {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+
+    try {
+        $required_columns = [
+            'alasan_2' => "ALTER TABLE tb_surat_peringatan ADD COLUMN alasan_2 TEXT NULL AFTER alasan",
+            'aturan_dilanggar' => "ALTER TABLE tb_surat_peringatan ADD COLUMN aturan_dilanggar TEXT NULL AFTER alasan_2",
+            'tanggal_kejadian' => "ALTER TABLE tb_surat_peringatan ADD COLUMN tanggal_kejadian DATE NULL AFTER aturan_dilanggar",
+            'penandatangan' => "ALTER TABLE tb_surat_peringatan ADD COLUMN penandatangan VARCHAR(255) NULL AFTER keterangan",
+            'jabatan_penandatangan' => "ALTER TABLE tb_surat_peringatan ADD COLUMN jabatan_penandatangan VARCHAR(255) NULL AFTER penandatangan",
+            'tembusan' => "ALTER TABLE tb_surat_peringatan ADD COLUMN tembusan TEXT NULL AFTER jabatan_penandatangan",
+            'file_sp' => "ALTER TABLE tb_surat_peringatan ADD COLUMN file_sp VARCHAR(255) NULL AFTER tembusan"
+        ];
+
+        foreach ($required_columns as $col => $alter_sql) {
+            $check = mysqli_query($conn, "SHOW COLUMNS FROM tb_surat_peringatan LIKE '$col'");
+            if ($check && mysqli_num_rows($check) == 0) {
+                mysqli_query($conn, $alter_sql);
+            }
+        }
+    } catch (Throwable $e) {
+        error_log("Gagal auto-migrate kolom tb_surat_peringatan: " . $e->getMessage());
+    }
+}
+
+/**
  * Update status SP yang sudah melewati masa berlaku
  * @param mysqli $conn
  */
 function updateExpiredSP($conn) {
+    ensureSPColumnsExist($conn);
     $today = date('Y-m-d');
     $sql = "UPDATE tb_surat_peringatan 
             SET status = 'selesai' 
             WHERE status = 'aktif' 
             AND masa_berlaku_selesai < ?";
     
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "s", $today);
-    mysqli_stmt_execute($stmt);
+    try {
+        $stmt = mysqli_prepare($conn, $sql);
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "s", $today);
+            mysqli_stmt_execute($stmt);
+        }
+    } catch (Throwable $e) {
+        error_log("Error in updateExpiredSP: " . $e->getMessage());
+    }
 }
 
 /**

@@ -212,55 +212,77 @@ if (isset($_POST['tambah_sp'])) {
         }
     }
     
-    $sql = "INSERT INTO tb_surat_peringatan 
-            (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, alasan_2, aturan_dilanggar, tanggal_kejadian, keterangan, penandatangan, jabatan_penandatangan, tembusan, file_sp, status, created_by) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
-    
-    $stmt = mysqli_prepare($conn, $sql);
-    if (!$stmt) {
-        echo "<script>alert('❌ Gagal prepare statement: " . mysqli_error($conn) . "'); window.history.back();</script>";
-        exit();
-    }
-    
-    mysqli_stmt_bind_param($stmt, "issssssssssssssi", 
-        $id_user_sp, $jenis_sp, $nomor_sp, $tanggal_sp, 
-        $masa_berlaku_mulai, $masa_berlaku_selesai, 
-        $alasan, $alasan_2, $aturan_dilanggar, $tanggal_kejadian, 
-        $keterangan, $penandatangan, $jabatan_penandatangan, $tembusan, 
-        $file_sp, $created_by
-    );
-    
-    if (mysqli_stmt_execute($stmt)) {
-        $new_sp_id = mysqli_insert_id($conn);
-        echo "<script>
-            alert('✅ Surat Peringatan berhasil dibuat langsung dari aplikasi!'); 
-            if (confirm('Apakah Anda ingin langsung melihat / mencetak Surat Peringatan ini?')) {
-                window.open('cetak-sp?id_sp=" . $new_sp_id . "', '_blank');
+    $return_mode = !empty($_GET['mode']) ? '?mode=' . urlencode($_GET['mode']) : '';
+    $return_url = 'datakpi-adminhrd' . $return_mode;
+
+    ensureSPColumnsExist($conn);
+
+    try {
+        $sql = "INSERT INTO tb_surat_peringatan 
+                (id_user, jenis_sp, nomor_sp, tanggal_sp, masa_berlaku_mulai, masa_berlaku_selesai, alasan, alasan_2, aturan_dilanggar, tanggal_kejadian, keterangan, penandatangan, jabatan_penandatangan, tembusan, file_sp, status, created_by) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aktif', ?)";
+        
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            throw new Exception(mysqli_error($conn));
+        }
+        
+        mysqli_stmt_bind_param($stmt, "issssssssssssssi", 
+            $id_user_sp, $jenis_sp, $nomor_sp, $tanggal_sp, 
+            $masa_berlaku_mulai, $masa_berlaku_selesai, 
+            $alasan, $alasan_2, $aturan_dilanggar, $tanggal_kejadian, 
+            $keterangan, $penandatangan, $jabatan_penandatangan, $tembusan, 
+            $file_sp, $created_by
+        );
+        
+        if (mysqli_stmt_execute($stmt)) {
+            $new_sp_id = mysqli_insert_id($conn);
+            echo "<script>
+                alert('✅ Surat Peringatan berhasil dibuat langsung dari aplikasi!'); 
+                if (confirm('Apakah Anda ingin langsung melihat / mencetak Surat Peringatan ini?')) {
+                    window.open('cetak-sp?id_sp=" . $new_sp_id . "', '_blank');
+                }
+                window.location.href='" . $return_url . "';
+            </script>";
+            exit();
+        } else {
+            // Hapus file jika insert gagal
+            if ($file_sp && file_exists($upload_path . $file_sp)) {
+                unlink($upload_path . $file_sp);
             }
-            window.location.href='datakpi-adminhrd';
-        </script>";
-    } else {
-        // Hapus file jika insert gagal
+            echo "<script>alert('❌ Gagal menambahkan Surat Peringatan: " . addslashes(mysqli_stmt_error($stmt)) . "'); window.history.back();</script>";
+            exit();
+        }
+    } catch (Throwable $e) {
         if ($file_sp && file_exists($upload_path . $file_sp)) {
             unlink($upload_path . $file_sp);
         }
-        echo "<script>alert('❌ Gagal menambahkan Surat Peringatan: " . mysqli_error($conn) . "');</script>";
+        echo "<script>alert('❌ Terjadi kesalahan database: " . addslashes($e->getMessage()) . "\\n\\nPastikan tabel tb_surat_peringatan sudah dimigrasi ke versi terbaru.'); window.history.back();</script>";
+        exit();
     }
 }
 
 // Handler untuk hapus SP
 if (isset($_POST['hapus_sp'])) {
     $id_sp = intval($_POST['id_sp']);
+    $return_mode = !empty($_GET['mode']) ? '?mode=' . urlencode($_GET['mode']) : '';
+    $return_url = 'datakpi-adminhrd' . $return_mode;
     
-    $sql = "UPDATE tb_surat_peringatan SET status = 'dihapus' WHERE id_sp = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $id_sp);
-    
-    if (mysqli_stmt_execute($stmt)) {
-        echo "<script>alert('Surat Peringatan berhasil dihapus!'); window.location.href='datakpi-adminhrd';</script>";
-    } else {
-        echo "<script>alert('Gagal menghapus Surat Peringatan!');</script>";
+    try {
+        $sql = "UPDATE tb_surat_peringatan SET status = 'dihapus' WHERE id_sp = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "i", $id_sp);
+            if (mysqli_stmt_execute($stmt)) {
+                echo "<script>alert('Surat Peringatan berhasil dihapus!'); window.location.href='" . $return_url . "';</script>";
+                exit();
+            }
+        }
+        echo "<script>alert('Gagal menghapus Surat Peringatan!'); window.location.href='" . $return_url . "';</script>";
+    } catch (Throwable $e) {
+        echo "<script>alert('Gagal menghapus Surat Peringatan: " . addslashes($e->getMessage()) . "'); window.location.href='" . $return_url . "';</script>";
     }
+    exit();
 }
 
 // ========== FUNGSI DAN PRE-FETCHING OPTIMASI LOAD TIME ==========
