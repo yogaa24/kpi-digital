@@ -25,6 +25,8 @@ $notif_all_rows = [];
 $notif_pending_rows = [];
 $notif_pending_count = 0;
 
+karakterSyncPenilaiTetap($conn, $bulan_penilaian_notif);
+
 $notif_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lngkp AS nama_dinilai, dinilai.bagian, dinilai.departement, r.submitted_at
     FROM tb_penilaian_karakter_assignment a
     INNER JOIN tb_users dinilai ON dinilai.id = a.id_user_dinilai
@@ -42,10 +44,10 @@ if ($notif_result) {
     }
 }
 
-// ==================== NOTIFIKASI VERIFIKASI KPI ====================
-$bulan_verifikasi_kpi = date('m/Y');
-$notif_kpi_unverified_count = 0;
-$notif_kpi_unverified_rows = [];
+// ==================== NOTIFIKASI VERIFIKASI KPI & SS ====================
+$bulan_verifikasi = date('m/Y');
+$notif_verifikasi_count = 0;
+$notif_verifikasi_rows = [];
 
 if (($user_level >= 2 && $user_level != 7) || $id_user == 1) {
     // Cari anggota tim (atasan = user login)
@@ -59,9 +61,17 @@ if (($user_level >= 2 && $user_level != 7) || $id_user == 1) {
     if ($res_bawahan) {
         while ($row_bawahan = mysqli_fetch_assoc($res_bawahan)) {
             // Cek apakah sudah diverifikasi
-            if (!checkKPIVerified($conn, $row_bawahan['id'], $bulan_verifikasi_kpi)) {
-                $notif_kpi_unverified_count++;
-                $notif_kpi_unverified_rows[] = $row_bawahan;
+            $kpi_verified = checkKPIVerified($conn, $row_bawahan['id'], $bulan_verifikasi);
+            $ss_verified = checkSSVerified($conn, $row_bawahan['id'], $bulan_verifikasi);
+            
+            if (!$kpi_verified || !$ss_verified) {
+                $status_unverified = [];
+                if (!$kpi_verified) $status_unverified[] = "KPI";
+                if (!$ss_verified) $status_unverified[] = "SS";
+                $row_bawahan['status_unverified'] = implode(" & ", $status_unverified);
+                
+                $notif_verifikasi_count++;
+                $notif_verifikasi_rows[] = $row_bawahan;
             }
         }
     }
@@ -536,17 +546,17 @@ if ($user_level >= 5) {
                                             </button>
                                             <?php } ?>
                                             
-                                            <?php if (isset($notif_kpi_unverified_count) && $notif_kpi_unverified_count > 0) { ?>
+                                            <?php if (isset($notif_verifikasi_count) && $notif_verifikasi_count > 0) { ?>
                                             <button type="button"
                                                     class="btn btn-info btn-sm position-relative ms-2"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#modalNotifVerifikasi"
-                                                    title="Ada KPI anggota yang belum diverifikasi"
+                                                    title="Ada KPI/SS anggota yang belum diverifikasi"
                                                     style="border-radius:50px; padding:8px 16px; font-size:14px; box-shadow:0 2px 8px rgba(0,0,0,0.25); animation: bellRing 1.2s infinite;">
                                                 <i class="bi bi-shield-exclamation me-1"></i>
-                                                Verifikasi KPI
+                                                Verifikasi KPI & SS
                                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                                    <?= $notif_kpi_unverified_count ?>
+                                                    <?= $notif_verifikasi_count ?>
                                                     <span class="visually-hidden">pending verifikasi</span>
                                                 </span>
                                             </button>
@@ -600,29 +610,29 @@ if ($user_level >= 5) {
                     </div>
                     <?php } ?>
 
-                    <!-- Modal Notifikasi Verifikasi KPI -->
-                    <?php if (isset($notif_kpi_unverified_count) && $notif_kpi_unverified_count > 0) { ?>
+                    <!-- Modal Notifikasi Verifikasi KPI & SS -->
+                    <?php if (isset($notif_verifikasi_count) && $notif_verifikasi_count > 0) { ?>
                     <div class="modal fade" id="modalNotifVerifikasi" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header bg-info text-white">
                                     <h5 class="modal-title fw-bold">
-                                        <i class="bi bi-shield-exclamation me-2"></i>Verifikasi KPI Anggota
+                                        <i class="bi bi-shield-exclamation me-2"></i>Verifikasi KPI & SS Anggota
                                     </h5>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <p class="text-muted mb-3">
-                                        Ada <strong><?= $notif_kpi_unverified_count ?> anggota tim</strong> yang KPI-nya belum Anda verifikasi untuk bulan <?= $bulan_verifikasi_kpi ?>:
+                                        Ada <strong><?= $notif_verifikasi_count ?> anggota tim</strong> yang KPI atau SS-nya belum Anda verifikasi untuk bulan <?= $bulan_verifikasi ?>:
                                     </p>
                                     <ul class="list-group">
-                                        <?php foreach ($notif_kpi_unverified_rows as $ur) { ?>
+                                        <?php foreach ($notif_verifikasi_rows as $ur) { ?>
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
                                                 <strong><?= htmlspecialchars($ur['nama_lngkp'], ENT_QUOTES, 'UTF-8') ?></strong>
                                                 <small class="text-muted d-block"><?= htmlspecialchars($ur['bagian'] . ' / ' . $ur['departement'], ENT_QUOTES, 'UTF-8') ?></small>
                                             </div>
-                                            <span class="badge bg-warning text-dark">Belum Diverifikasi</span>
+                                            <span class="badge bg-warning text-dark">Belum Diverifikasi <?= $ur['status_unverified'] ?></span>
                                         </li>
                                         <?php } ?>
                                     </ul>

@@ -263,10 +263,11 @@ function karakterTrendBadge($current, $previous)
 function karakterFetchAssignmentRows($conn, $nama_atasan, $bulan)
 {
     $bulan = mysqli_real_escape_string($conn, $bulan);
+    karakterSyncPenilaiTetap($conn, $bulan);
     $rows = [];
     $by_user = [];
 
-    $result = mysqli_query($conn, "SELECT a.id_assignment, a.id_user_dinilai, a.id_penilai, a.status, dinilai.nama_lngkp AS nama_dinilai, dinilai.bagian AS bagian_dinilai,
+    $result = mysqli_query($conn, "SELECT a.id_assignment, a.id_user_dinilai, a.id_penilai, a.status, a.tipe_penilai, dinilai.nama_lngkp AS nama_dinilai, dinilai.bagian AS bagian_dinilai,
             dinilai.departement AS departement_dinilai, penilai.nama_lngkp AS nama_penilai, penilai.bagian AS bagian_penilai,
             penilai.departement AS departement_penilai,
             r.submitted_at,
@@ -296,6 +297,7 @@ function h($value)
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+if (!function_exists('karakterEnsureTables')) {
 function karakterEnsureTables($conn)
 {
     $assignment = mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_penilaian_karakter_assignment` (
@@ -362,6 +364,7 @@ function karakterEnsureTables($conn)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
     return $assignment && $response;
+}
 }
 
 function karakterCanManageUser($conn, $id_user_dinilai, $nama_atasan)
@@ -526,10 +529,14 @@ $bulan_penilaian = date('Y-m', strtotime(date('Y-m-01') . ' -1 month'));
 $bulan_lalu = date('Y-m', strtotime(date('Y-m-01') . ' -2 month'));
 $can_manage = in_array($jabatan, ['Manager', 'Kadep', 'Koordinator', 'Direktur', 'Wadir Utama', 'Kabag']);
 
+// Sinkronkan penilai tetap otomatis untuk bulan penilaian ini
+karakterSyncPenilaiTetap($conn, $bulan_penilaian);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['tambah_penilai'])) {
         $id_user_dinilai = intval($_POST['id_user_dinilai'] ?? 0);
         $id_penilai_values = $_POST['id_penilai'] ?? [];
+        $tipe_penilai_inputs = $_POST['tipe_penilai'] ?? [];
         if (!is_array($id_penilai_values)) {
             $id_penilai_values = [$id_penilai_values];
         }
@@ -563,9 +570,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $saved_count = 0;
         foreach ($id_penilai_list as $id_penilai) {
-            $sql = "INSERT INTO tb_penilaian_karakter_assignment (id_user_dinilai, id_penilai, id_atasan, bulan, status)
-                    VALUES ($id_user_dinilai, $id_penilai, $id_user_login, '$bulan_penilaian', 'aktif')
-                    ON DUPLICATE KEY UPDATE status = 'aktif', id_atasan = VALUES(id_atasan)";
+            $tipe = ($tipe_penilai_inputs[$id_penilai] ?? 'sementara') === 'tetap' ? 'tetap' : 'sementara';
+
+            if ($tipe === 'tetap') {
+                // Simpan/aktifkan ke master tb_penilaian_karakter_tetap
+                mysqli_query($conn, "INSERT INTO tb_penilaian_karakter_tetap (id_user_dinilai, id_penilai, id_atasan, status)
+                    VALUES ($id_user_dinilai, $id_penilai, $id_user_login, 'aktif')
+                    ON DUPLICATE KEY UPDATE status = 'aktif', id_atasan = VALUES(id_atasan)");
+
+                // Simpan ke tb_penilaian_karakter_assignment untuk bulan ini dengan tipe_penilai 'tetap'
+                $sql = "INSERT INTO tb_penilaian_karakter_assignment (id_user_dinilai, id_penilai, id_atasan, bulan, tipe_penilai, status)
+                        VALUES ($id_user_dinilai, $id_penilai, $id_user_login, '$bulan_penilaian', 'tetap', 'aktif')
+                        ON DUPLICATE KEY UPDATE status = 'aktif', tipe_penilai = 'tetap', id_atasan = VALUES(id_atasan)";
+            } else {
+                // Jika dipilih sementara, nonaktifkan dari master penilai tetap (jika sebelumnya ada)
+                mysqli_query($conn, "UPDATE tb_penilaian_karakter_tetap 
+                    SET status = 'nonaktif', id_atasan = $id_user_login 
+                    WHERE id_user_dinilai = $id_user_dinilai AND id_penilai = $id_penilai");
+
+                // Simpan ke tb_penilaian_karakter_assignment untuk bulan ini dengan tipe_penilai 'sementara'
+                $sql = "INSERT INTO tb_penilaian_karakter_assignment (id_user_dinilai, id_penilai, id_atasan, bulan, tipe_penilai, status)
+                        VALUES ($id_user_dinilai, $id_penilai, $id_user_login, '$bulan_penilaian', 'sementara', 'aktif')
+                        ON DUPLICATE KEY UPDATE status = 'aktif', tipe_penilai = 'sementara', id_atasan = VALUES(id_atasan)";
+            }
+
             if (mysqli_query($conn, $sql)) {
                 $saved_count++;
             }
@@ -575,10 +603,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_query($conn, "UPDATE tb_penilaian_karakter_assignment
                 SET status = 'nonaktif', id_atasan = $id_user_login
                 WHERE id_user_dinilai = $id_user_dinilai AND bulan = '$bulan_penilaian' AND id_penilai NOT IN ($id_penilai_sql)");
+            mysqli_query($conn, "UPDATE tb_penilaian_karakter_tetap
+                SET status = 'nonaktif', id_atasan = $id_user_login
+                WHERE id_user_dinilai = $id_user_dinilai AND id_penilai NOT IN ($id_penilai_sql)");
         } else {
             mysqli_query($conn, "UPDATE tb_penilaian_karakter_assignment
                 SET status = 'nonaktif', id_atasan = $id_user_login
                 WHERE id_user_dinilai = $id_user_dinilai AND bulan = '$bulan_penilaian'");
+            mysqli_query($conn, "UPDATE tb_penilaian_karakter_tetap
+                SET status = 'nonaktif', id_atasan = $id_user_login
+                WHERE id_user_dinilai = $id_user_dinilai");
         }
 
         karakterFlash($saved_count > 0 || empty($id_penilai_list) ? 'success' : 'danger', empty($id_penilai_list) ? 'Semua penilai anggota ini dinonaktifkan.' : "$saved_count penilai berhasil disimpan.");
@@ -592,12 +626,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             karakterRedirect();
         }
 
-        $sql = "UPDATE tb_penilaian_karakter_assignment a
-                INNER JOIN tb_users u ON u.id = a.id_user_dinilai
-                SET a.status = 'nonaktif'
-                WHERE a.id_assignment = $id_assignment AND u.atasan = '$nama_lngkp'";
-        $deleted = mysqli_query($conn, $sql);
-        karakterFlash($deleted ? 'success' : 'danger', $deleted ? 'Penilai dinonaktifkan.' : 'Gagal menonaktifkan penilai.');
+        $get_assign = mysqli_query($conn, "SELECT a.id_assignment, a.id_user_dinilai, a.id_penilai, a.tipe_penilai, u.atasan 
+            FROM tb_penilaian_karakter_assignment a
+            INNER JOIN tb_users u ON u.id = a.id_user_dinilai
+            WHERE a.id_assignment = $id_assignment AND u.atasan = '$nama_lngkp' LIMIT 1");
+
+        if ($get_assign && $row_assign = mysqli_fetch_assoc($get_assign)) {
+            $id_user_dinilai_del = intval($row_assign['id_user_dinilai']);
+            $id_penilai_del = intval($row_assign['id_penilai']);
+            $is_tetap = ($row_assign['tipe_penilai'] === 'tetap');
+
+            mysqli_query($conn, "UPDATE tb_penilaian_karakter_assignment SET status = 'nonaktif' WHERE id_assignment = $id_assignment");
+            mysqli_query($conn, "UPDATE tb_penilaian_karakter_tetap SET status = 'nonaktif' WHERE id_user_dinilai = $id_user_dinilai_del AND id_penilai = $id_penilai_del");
+
+            karakterFlash('success', $is_tetap ? 'Penilai tetap berhasil dinonaktifkan (tidak akan menilai lagi pada bulan-bulan berikutnya).' : 'Penilai sementara berhasil dinonaktifkan.');
+        } else {
+            karakterFlash('danger', 'Gagal menonaktifkan penilai atau tidak memiliki akses.');
+        }
         karakterRedirect();
     }
 
@@ -674,6 +719,14 @@ $assignment_data_lalu = karakterFetchAssignmentRows($conn, $nama_lngkp, $bulan_l
 $assignment_rows_lalu = $assignment_data_lalu['rows'];
 $assignments_by_user_lalu = $assignment_data_lalu['by_user'];
 
+$penilai_tetap_by_user = [];
+$res_tetap = mysqli_query($conn, "SELECT id_user_dinilai, id_penilai FROM tb_penilaian_karakter_tetap WHERE status = 'aktif'");
+if ($res_tetap) {
+    while ($rt = mysqli_fetch_assoc($res_tetap)) {
+        $penilai_tetap_by_user[intval($rt['id_user_dinilai'])][intval($rt['id_penilai'])] = true;
+    }
+}
+
 $karakter_summary_by_user = [];
 foreach ($anggota_rows as $anggota) {
     $id_anggota = $anggota['id'];
@@ -725,7 +778,7 @@ if (isset($_GET['export_karakter'])) {
     karakterExportAllResults($anggota_rows, $assignment_rows, $assignments_by_user, $questions, $bulan_penilaian, $nama_lngkp);
 }
 
-$requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lngkp AS nama_dinilai, dinilai.bagian, dinilai.departement, dinilai.jabatan,
+$requests_result = mysqli_query($conn, "SELECT a.id_assignment, a.tipe_penilai, dinilai.nama_lngkp AS nama_dinilai, dinilai.bagian, dinilai.departement, dinilai.jabatan,
         r.submitted_at,
         r.q1_jawaban, r.q1_fakta, r.q2_jawaban, r.q2_fakta, r.q3_jawaban, r.q3_fakta,
         r.q4_jawaban, r.q4_fakta, r.q5_jawaban, r.q5_fakta, r.q6_jawaban, r.q6_fakta,
@@ -836,7 +889,14 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                     <?php if ($requests_result && mysqli_num_rows($requests_result) > 0) { ?>
                                                         <?php while ($request = mysqli_fetch_assoc($requests_result)) { ?>
                                                             <tr>
-                                                                <td><?= h($request['nama_dinilai']); ?></td>
+                                                                <td>
+                                                                    <strong><?= h($request['nama_dinilai']); ?></strong>
+                                                                    <?php if (($request['tipe_penilai'] ?? '') === 'tetap') { ?>
+                                                                        <span class="badge bg-primary-subtle text-primary border border-primary ms-1" style="font-size:10px;"><i class="bi bi-arrow-repeat me-1"></i>Penilai Tetap</span>
+                                                                    <?php } else { ?>
+                                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning ms-1" style="font-size:10px;"><i class="bi bi-clock me-1"></i>Penilai Sementara</span>
+                                                                    <?php } ?>
+                                                                </td>
                                                                 <td><?= h($request['bagian']); ?></td>
                                                                 <td><?= h($request['departement']); ?></td>
                                                                 <td>
@@ -1103,6 +1163,7 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                         <thead class="table-light">
                                             <tr>
                                                 <th>Penilai</th>
+                                                <th><center>Tipe</center></th>
                                                 <th><center>Skor</center></th>
                                                 <?php foreach ($categories as $category) { ?>
                                                     <th><center><?= h($category); ?></center></th>
@@ -1114,9 +1175,17 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                             <?php if (!empty($member_assignments)) { ?>
                                                 <?php foreach ($member_assignments as $member_assignment) {
                                                     $score = karakterScoreResponse($member_assignment, $questions);
+                                                    $is_ma_tetap = (($member_assignment['tipe_penilai'] ?? '') === 'tetap') || isset($penilai_tetap_by_user[$anggota['id']][$member_assignment['id_penilai']]);
                                                 ?>
                                                     <tr>
                                                         <td><?= h($member_assignment['nama_penilai']); ?></td>
+                                                        <td style="vertical-align:middle; text-align:center;">
+                                                            <?php if ($is_ma_tetap) { ?>
+                                                                <span class="badge bg-primary" title="Penilai Tetap (Tiap Bulan)"><i class="bi bi-arrow-repeat me-1"></i>Tetap</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge bg-warning text-dark" title="Penilai Sementara (Bulan Ini)"><i class="bi bi-clock me-1"></i>Sementara</span>
+                                                            <?php } ?>
+                                                        </td>
                                                         <td><center><?= $score['submitted'] ? karakterFormatScore($score['total']) : '-'; ?></center></td>
                                                         <?php foreach ($categories as $category) { ?>
                                                             <td><center><?= $score['submitted'] ? karakterFormatScore($score['categories'][$category]['score']) : '-'; ?></center></td>
@@ -1132,7 +1201,7 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                     </tr>
                                                 <?php } ?>
                                             <?php } else { ?>
-                                                <tr><td colspan="<?= 3 + count($categories); ?>" class="text-center text-muted py-3">Belum ada penilai aktif.</td></tr>
+                                                <tr><td colspan="<?= 4 + count($categories); ?>" class="text-center text-muted py-3">Belum ada penilai aktif.</td></tr>
                                             <?php } ?>
                                         </tbody>
                                     </table>
@@ -1209,8 +1278,11 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
             <?php foreach ($anggota_rows as $anggota) {
                 $member_assignments = $assignments_by_user[$anggota['id']] ?? [];
                 $selected_penilai_ids = [];
+                $penilai_assignment_type_by_user = [];
                 foreach ($member_assignments as $member_assignment) {
-                    $selected_penilai_ids[] = intval($member_assignment['id_penilai']);
+                    $p_id = intval($member_assignment['id_penilai']);
+                    $selected_penilai_ids[] = $p_id;
+                    $penilai_assignment_type_by_user[$p_id] = $member_assignment['tipe_penilai'] ?? 'sementara';
                 }
             ?>
                 <div class="modal fade" id="aturPenilai<?= intval($anggota['id']); ?>" tabindex="-1" aria-hidden="true">
@@ -1228,7 +1300,13 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
 
                                 <form method="POST" action="">
                                     <input type="hidden" name="id_user_dinilai" value="<?= intval($anggota['id']); ?>">
-                                    <label class="form-label fw-bold">Pilih Penilai</label>
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                        <label class="form-label fw-bold mb-0">Pilih Penilai</label>
+                                        <div class="text-muted small">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary me-1"><i class="bi bi-arrow-repeat me-1"></i>Tetap:</span> Otomatis tiap bulan &nbsp;|&nbsp; 
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning ms-1"><i class="bi bi-clock me-1"></i>Sementara:</span> Hanya bulan ini
+                                        </div>
+                                    </div>
                                     <div class="row g-2 mb-3">
                                         <div class="col-md-7">
                                             <div class="input-group">
@@ -1250,17 +1328,41 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                             if (intval($user_row['id']) === intval($anggota['id'])) {
                                                 continue;
                                             }
-                                            $checked = in_array(intval($user_row['id']), $selected_penilai_ids, true);
+                                            $u_id = intval($user_row['id']);
+                                            $checked = in_array($u_id, $selected_penilai_ids, true);
                                             $search_text = strtolower($user_row['nama_lngkp'] . ' ' . $user_row['bagian'] . ' ' . $user_row['departement'] . ' ' . $user_row['jabatan']);
+
+                                            $is_tetap = isset($penilai_tetap_by_user[$anggota['id']][$u_id]) || (($penilai_assignment_type_by_user[$u_id] ?? '') === 'tetap');
+                                            $current_type = $is_tetap ? 'tetap' : ($penilai_assignment_type_by_user[$u_id] ?? 'tetap');
                                         ?>
                                             <div class="col-md-6 penilai-option" data-member-id="<?= intval($anggota['id']); ?>" data-search="<?= h($search_text); ?>" data-departement="<?= h(strtolower($user_row['departement'])); ?>">
-                                                <label for="penilai<?= intval($anggota['id']); ?>_<?= intval($user_row['id']); ?>" class="d-flex align-items-start gap-2 border rounded p-2 h-100 cursor-pointer w-100" style="cursor:pointer;">
-                                                    <input class="form-check-input flex-shrink-0 mt-1" type="checkbox" name="id_penilai[]" value="<?= intval($user_row['id']); ?>" id="penilai<?= intval($anggota['id']); ?>_<?= intval($user_row['id']); ?>" <?= $checked ? 'checked' : ''; ?>>
-                                                    <span>
-                                                        <strong><?= h($user_row['nama_lngkp']); ?></strong>
-                                                        <small class="text-muted d-block"><?= h($user_row['bagian'] . ' / ' . $user_row['departement']); ?></small>
-                                                    </span>
-                                                </label>
+                                                <div class="border rounded p-2 h-100 penilai-card <?= $checked ? 'border-primary bg-primary-subtle bg-opacity-10' : 'bg-white'; ?>" id="card_<?= intval($anggota['id']); ?>_<?= $u_id; ?>" style="transition: all 0.2s ease;">
+                                                    <label for="penilai<?= intval($anggota['id']); ?>_<?= $u_id; ?>" class="d-flex align-items-start gap-2 mb-0 cursor-pointer w-100" style="cursor:pointer;">
+                                                        <input class="form-check-input flex-shrink-0 mt-1 penilai-checkbox" type="checkbox" name="id_penilai[]" value="<?= $u_id; ?>" id="penilai<?= intval($anggota['id']); ?>_<?= $u_id; ?>" <?= $checked ? 'checked' : ''; ?> data-member-id="<?= intval($anggota['id']); ?>" data-user-id="<?= $u_id; ?>">
+                                                        <div class="flex-grow-1">
+                                                            <strong class="d-block text-dark"><?= h($user_row['nama_lngkp']); ?></strong>
+                                                            <small class="text-muted d-block"><?= h($user_row['bagian'] . ' / ' . $user_row['departement']); ?></small>
+                                                        </div>
+                                                    </label>
+
+                                                    <!-- Pilihan Tipe Penilai: Tetap / Sementara -->
+                                                    <div class="mt-2 pt-2 border-top penilai-type-wrapper <?= $checked ? '' : 'd-none'; ?>" id="tipe_wrap_<?= intval($anggota['id']); ?>_<?= $u_id; ?>">
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                            <span class="text-muted small fw-bold" style="font-size:11px;"><i class="bi bi-person-gear me-1"></i>Pilihan:</span>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <input type="radio" class="btn-check penilai-radio-type" name="tipe_penilai[<?= $u_id; ?>]" id="tipe_tetap_<?= intval($anggota['id']); ?>_<?= $u_id; ?>" value="tetap" autocomplete="off" <?= ($current_type === 'tetap') ? 'checked' : ''; ?>>
+                                                                <label class="btn btn-outline-primary btn-sm py-0 px-2" for="tipe_tetap_<?= intval($anggota['id']); ?>_<?= $u_id; ?>" title="Otomatis menjadi penilai setiap bulan sampai dihapus">
+                                                                    <i class="bi bi-arrow-repeat me-1"></i>Penilai Tetap
+                                                                </label>
+
+                                                                <input type="radio" class="btn-check penilai-radio-type" name="tipe_penilai[<?= $u_id; ?>]" id="tipe_sementara_<?= intval($anggota['id']); ?>_<?= $u_id; ?>" value="sementara" autocomplete="off" <?= ($current_type === 'sementara') ? 'checked' : ''; ?>>
+                                                                <label class="btn btn-outline-warning btn-sm py-0 px-2 text-dark" for="tipe_sementara_<?= intval($anggota['id']); ?>_<?= $u_id; ?>" title="Hanya menilai untuk bulan ini saja, bulan depan minta lagi">
+                                                                    <i class="bi bi-clock me-1"></i>Penilai Sementara
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         <?php } ?>
                                     </div>
@@ -1277,16 +1379,28 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                             <tr>
                                                 <th>Penilai</th>
                                                 <th>Departemen</th>
+                                                <th><center>Tipe</center></th>
                                                 <th>Status</th>
-                                                <th width="12%"><center>#</center></th>
+                                                <th width="12%"><center>Aksi</center></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php if (!empty($member_assignments)) { ?>
-                                                <?php foreach ($member_assignments as $member_assignment) { ?>
+                                                <?php foreach ($member_assignments as $member_assignment) {
+                                                    $is_assign_tetap = (($member_assignment['tipe_penilai'] ?? '') === 'tetap') || isset($penilai_tetap_by_user[$anggota['id']][$member_assignment['id_penilai']]);
+                                                ?>
                                                     <tr>
                                                         <td><?= h($member_assignment['nama_penilai']); ?></td>
                                                         <td><?= h($member_assignment['departement_penilai']); ?></td>
+                                                        <td style="vertical-align:middle; text-align:center;">
+                                                            <?php if ($is_assign_tetap) { ?>
+                                                                <span class="badge bg-primary" title="Otomatis setiap bulan sampai dihapus"><i class="bi bi-arrow-repeat me-1"></i>Tetap</span>
+                                                                <small class="text-muted d-block" style="font-size:10px;">Tiap Bulan</small>
+                                                            <?php } else { ?>
+                                                                <span class="badge bg-warning text-dark" title="Hanya untuk bulan ini"><i class="bi bi-clock me-1"></i>Sementara</span>
+                                                                <small class="text-muted d-block" style="font-size:10px;">Bulan Ini Saja</small>
+                                                            <?php } ?>
+                                                        </td>
                                                         <td>
                                                             <?php if (!empty($member_assignment['submitted_at'])) { ?>
                                                                 <span class="badge bg-success">Sudah</span>
@@ -1298,18 +1412,18 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                                                         <td>
                                                             <div class="d-flex gap-1 justify-content-center">
                                                                 <?php if (!empty($member_assignment['submitted_at'])) { ?>
-                                                                    <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailKarakter<?= intval($member_assignment['id_assignment']); ?>"><i class="bi bi-eye"></i></button>
+                                                                    <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#detailKarakter<?= intval($member_assignment['id_assignment']); ?>" title="Lihat Nilai"><i class="bi bi-eye"></i></button>
                                                                 <?php } ?>
-                                                                <form method="POST" action="" onsubmit="return confirm('Nonaktifkan penilai ini?')">
+                                                                <form method="POST" action="" onsubmit="return confirm('<?= $is_assign_tetap ? 'Hapus penilai tetap ini? User ini tidak akan lagi otomatis menjadi penilai pada bulan-bulan berikutnya.' : 'Nonaktifkan penilai sementara ini?'; ?>')">
                                                                     <input type="hidden" name="id_assignment" value="<?= intval($member_assignment['id_assignment']); ?>">
-                                                                    <button type="submit" name="hapus_penilai" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                                                    <button type="submit" name="hapus_penilai" class="btn btn-danger btn-sm" title="Hapus"><i class="bi bi-trash"></i></button>
                                                                 </form>
                                                             </div>
                                                         </td>
                                                     </tr>
                                                 <?php } ?>
                                             <?php } else { ?>
-                                                <tr><td colspan="4" class="text-center text-muted py-3">Belum ada penilai aktif.</td></tr>
+                                                <tr><td colspan="5" class="text-center text-muted py-3">Belum ada penilai aktif.</td></tr>
                                             <?php } ?>
                                         </tbody>
                                     </table>
@@ -1538,6 +1652,29 @@ $requests_result = mysqli_query($conn, "SELECT a.id_assignment, dinilai.nama_lng
                     if (chevron) chevron.style.transform = 'translateY(-50%) rotate(0deg)';
                 });
             }
+
+            // Toggle opsi tipe penilai (Tetap vs Sementara) saat checkbox penilai dicentang
+            document.querySelectorAll('.penilai-checkbox').forEach(function (cb) {
+                cb.addEventListener('change', function () {
+                    var memberId = this.getAttribute('data-member-id');
+                    var userId = this.getAttribute('data-user-id');
+                    var wrapper = document.getElementById('tipe_wrap_' + memberId + '_' + userId);
+                    var card = document.getElementById('card_' + memberId + '_' + userId);
+                    if (this.checked) {
+                        if (wrapper) wrapper.classList.remove('d-none');
+                        if (card) {
+                            card.classList.add('border-primary', 'bg-primary-subtle', 'bg-opacity-10');
+                            card.classList.remove('bg-white');
+                        }
+                    } else {
+                        if (wrapper) wrapper.classList.add('d-none');
+                        if (card) {
+                            card.classList.remove('border-primary', 'bg-primary-subtle', 'bg-opacity-10');
+                            card.classList.add('bg-white');
+                        }
+                    }
+                });
+            });
         });
     </script>
 </body>

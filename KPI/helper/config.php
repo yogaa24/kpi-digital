@@ -15,5 +15,6 @@ if (!$conn) {
 }
 
 require_once __DIR__ . '/period_helper.php';
+require_once __DIR__ . '/karakter_helper.php';
 
 ?>

@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <?php
 session_start();
 if (!isset($_SESSION['id_user'])) {
@@ -21,7 +22,7 @@ $total_dept = ($total_dept_res) ? (mysqli_fetch_assoc($total_dept_res)['total'] 
 
 $periode_aktif = date('F Y');
 ?>
-<!DOCTYPE html>
+
 <html lang="id">
 <?php include("pages/part/p_header.php"); ?>
 
