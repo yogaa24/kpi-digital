@@ -265,6 +265,11 @@ function getkpi($nilair)
                                     Bulan Lalu: <strong><?= $namaBulanSebelumnya ?></strong>
                                 </small>
                             </div>
+                            <div>
+                                <button class="btn btn-outline-primary btn-sm" onclick="copyTableToClipboard('datatablenya')">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="table-responsive">
@@ -601,6 +606,101 @@ document.addEventListener('DOMContentLoaded', function() {
     var chart = new ApexCharts(document.querySelector("#kpiPieChart"), options);
     chart.render();
 });
+
+function copyTableToClipboard(tableId) {
+    var table = document.getElementById(tableId);
+    if (!table) {
+        alert('Tabel tidak ditemukan');
+        return;
+    }
+    
+    // Clone tabel agar tidak merusak tampilan asli
+    var clone = table.cloneNode(true);
+    
+    // Hapus kolom "#" (Action) agar tidak ikut ter-copy
+    var thead = clone.querySelector('thead');
+    if (thead) {
+        var firstRow = thead.querySelectorAll('tr')[0];
+        if (firstRow) {
+            var ths = firstRow.querySelectorAll('th');
+            if (ths.length > 0) {
+                ths[ths.length - 1].remove(); // Hapus header "#"
+            }
+        }
+    }
+    
+    var tbody = clone.querySelector('tbody');
+    if (tbody) {
+        var rows = tbody.querySelectorAll('tr');
+        for (var i = 0; i < rows.length; i++) {
+            var tds = rows[i].querySelectorAll('td');
+            if (tds.length > 0) {
+                tds[tds.length - 1].remove(); // Hapus kolom tombol
+            }
+            
+            // Bersihkan kolom Total (Indeks 6, 9, 12) agar hanya menyisakan angka
+            var totalIndices = [6, 9, 12];
+            for (var k = 0; k < totalIndices.length; k++) {
+                var idx = totalIndices[k];
+                if (tds[idx]) {
+                    var strongTag = tds[idx].querySelector('strong');
+                    if (strongTag) {
+                        tds[idx].innerHTML = '<center>' + strongTag.innerText + '</center>';
+                    } else {
+                        var spanTag = tds[idx].querySelector('span');
+                        if (spanTag) {
+                            tds[idx].innerHTML = '<center>' + spanTag.innerText + '</center>';
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Hapus semua styling dan class agar di Excel tidak ada warna sama sekali
+    var allElements = clone.querySelectorAll('*');
+    for (var j = 0; j < allElements.length; j++) {
+        allElements[j].removeAttribute('style');
+        allElements[j].removeAttribute('class');
+        allElements[j].removeAttribute('bgcolor');
+        allElements[j].removeAttribute('color');
+    }
+    
+    // Beri border sederhana untuk memudahkan copy ke excel (opsional, excel bisa deteksi dari table)
+    clone.setAttribute('border', '1');
+    
+    // Buat elemen penampung yang disembunyikan
+    var div = document.createElement('div');
+    div.appendChild(clone);
+    div.style.position = 'fixed';
+    div.style.top = '-9999px';
+    div.style.left = '-9999px';
+    document.body.appendChild(div);
+    
+    // Select tabel html
+    var range = document.createRange();
+    range.selectNodeContents(div);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    // Lakukan copy HTML (Excel akan membaca ini dengan sangat rapi termasuk rowspan & colspan)
+    try {
+        var successful = document.execCommand('copy');
+        if (successful) {
+            alert('Data berhasil dicopy ke clipboard! Silakan langsung paste di Excel.');
+        } else {
+            alert('Gagal copy ke clipboard.');
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        alert('Gagal copy ke clipboard.');
+    }
+    
+    // Bersihkan
+    sel.removeAllRanges();
+    document.body.removeChild(div);
+}
 </script>
 </body>
 

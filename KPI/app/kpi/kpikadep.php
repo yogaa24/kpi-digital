@@ -266,6 +266,20 @@ function getKPISimulasi($conn, $id)
                 <!--begin::Container-->
                 <div class="container-fluid">
                     <div class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h4 class="mb-0"><i class="bi bi-bar-chart-line-fill text-primary me-2"></i> KPI Departemen</h4>
+                                <small class="text-muted">
+                                    Bulan Ini: <strong><?= $namaBulanIni ?></strong> &nbsp;|&nbsp;
+                                    Bulan Lalu: <strong><?= $namaBulanSebelumnya ?></strong>
+                                </small>
+                            </div>
+                            <div>
+                                <button class="btn btn-outline-primary btn-sm" onclick="copyTableToClipboard('datatablenya')">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table id="datatablenya" class="table align-midle table-hover table-bordered">
                                 <thead class="table-dark">
@@ -611,6 +625,98 @@ function getKPISimulasi($conn, $id)
             var chart = new ApexCharts(document.querySelector("#kpiPieChart"), options);
             chart.render();
         });
+        
+function copyTableToClipboard(tableId) {
+    var table = document.getElementById(tableId);
+    if (!table) {
+        alert('Tabel tidak ditemukan');
+        return;
+    }
+    
+    // Clone tabel agar tidak merusak tampilan asli
+    var clone = table.cloneNode(true);
+    
+    // Hapus kolom "#" (Action) agar tidak ikut ter-copy
+    var thead = clone.querySelector('thead');
+    if (thead) {
+        var firstRow = thead.querySelectorAll('tr')[0];
+        if (firstRow) {
+            var ths = firstRow.querySelectorAll('th');
+            if (ths.length > 0) {
+                ths[ths.length - 1].remove(); // Hapus header "#"
+            }
+        }
+    }
+    
+    var tbody = clone.querySelector('tbody');
+    if (tbody) {
+        var rows = tbody.querySelectorAll('tr');
+        for (var i = 0; i < rows.length; i++) {
+            var tds = rows[i].querySelectorAll('td');
+            if (tds.length > 0) {
+                tds[tds.length - 1].remove(); // Hapus kolom tombol
+            }
+            
+            // Bersihkan kolom Total agar hanya menyisakan angka
+            for (var idx = 0; idx < tds.length; idx++) {
+                var smallTag = tds[idx].querySelector('small.text-muted');
+                if (smallTag) {
+                    var strongTag = tds[idx].querySelector('strong');
+                    if (strongTag) {
+                        tds[idx].innerHTML = '<center>' + strongTag.innerText + '</center>';
+                    }
+                } else {
+                    var spanTag = tds[idx].querySelector('span.text-muted');
+                    if (spanTag && spanTag.innerText.trim() === '-') {
+                        tds[idx].innerHTML = '<center>-</center>';
+                    }
+                }
+            }
+        }
+    }
+    
+    // Hapus semua styling dan class agar di Excel tidak ada warna sama sekali
+    var allElements = clone.querySelectorAll('*');
+    for (var j = 0; j < allElements.length; j++) {
+        allElements[j].removeAttribute('style');
+        allElements[j].removeAttribute('class');
+        allElements[j].removeAttribute('bgcolor');
+        allElements[j].removeAttribute('color');
+    }
+    
+    // Beri border sederhana untuk memudahkan copy ke excel (opsional)
+    clone.setAttribute('border', '1');
+    
+    // Buat elemen penampung yang disembunyikan
+    var div = document.createElement('div');
+    div.appendChild(clone);
+    div.style.position = 'fixed';
+    div.style.top = '-9999px';
+    div.style.left = '-9999px';
+    document.body.appendChild(div);
+    
+    // Select tabel html
+    var range = document.createRange();
+    range.selectNodeContents(div);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    try {
+        var successful = document.execCommand('copy');
+        if (successful) {
+            alert('Data berhasil dicopy ke clipboard! Silakan langsung paste di Excel.');
+        } else {
+            alert('Gagal copy ke clipboard.');
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        alert('Gagal copy ke clipboard.');
+    }
+    
+    sel.removeAllRanges();
+    document.body.removeChild(div);
+}
         </script>
 </body>
 
