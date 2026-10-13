@@ -4,11 +4,18 @@ require 'helper/config.php';
 require 'helper/auth.php';
 
 if (isset($_SESSION['id_user'])) {
-    // Redirect berdasarkan level
+    // Redirect berdasarkan role
+    require 'helper/getUser.php';
     require 'helper/checkAdmin.php';
     
     if (isAdminHRD()) {
         header("Location: dashboard-adminhrd");
+        exit();
+    } elseif (isDirekturOperasional()) {
+        header("Location: dashboard-utama");
+        exit();
+    } elseif (isDirekturKeDataKaryawan()) {
+        header("Location: data-karyawan");
         exit();
     } else {
         header("Location: dashboard-utama");
@@ -19,7 +26,7 @@ if (isset($_SESSION['id_user'])) {
 if (isset($_POST['submit'])) {
     $username = mysqli_real_escape_string($conn, $_POST["username"]);
     $password = $_POST["password"];
-    $sql = "SELECT id, password, level, status, status_karyawan FROM tb_users WHERE username = '$username' LIMIT 1";
+    $sql = "SELECT id, username, nama_lngkp, jabatan, password, level, status, status_karyawan FROM tb_users WHERE username = '$username' LIMIT 1";
     $result = mysqli_query($conn, $sql);
  
     if ($result && $result->num_rows > 0) {
@@ -32,16 +39,29 @@ if (isset($_POST['submit'])) {
 
             $_SESSION['id_user'] = $row['id'];
             $_SESSION['level'] = $row['level'];
+            $_SESSION['username'] = $row['username'];
 
             if (!isUserPasswordHash($row['password'])) {
                 $hashedPassword = mysqli_real_escape_string($conn, hashUserPassword($password));
                 mysqli_query($conn, "UPDATE tb_users SET password = '$hashedPassword' WHERE id = '{$row['id']}'");
             }
             
-            // Redirect berdasarkan level
-            if ($row['level'] == 7) {
+            // Redirect berdasarkan level / role
+            require 'helper/checkAdmin.php';
+            $leveel = $row['level'];
+            $jabatan = $row['jabatan'] ?? '';
+            $nama_lngkp = $row['nama_lngkp'] ?? '';
+            $username = $row['username'];
+
+            if (isAdminHRD()) {
                 // Admin HRD
                 header("Location: dashboard-adminhrd");
+            } elseif (isDirekturOperasional()) {
+                // Direktur Operasional -> dashboard-utama
+                header("Location: dashboard-utama");
+            } elseif (isDirekturKeDataKaryawan()) {
+                // direktur1, direktur2, direktur3 -> data-karyawan
+                header("Location: data-karyawan");
             } else {
                 // User biasa
                 header("Location: dashboard-utama");

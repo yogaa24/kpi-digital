@@ -64,8 +64,72 @@ function isDirekturOrHigher() {
     $user_jabatan = strtolower($jabatan ?? '');
     $user_nama = strtolower($nama_lngkp ?? '');
 
+    // Level 7 adalah Admin HRD, bukan Direktur
+    if (isAdminHRD()) {
+        return false;
+    }
+
     // Level >= 5 (Direktur/Wadir), atau ID 1, atau jabatan Direktur/Wadir, atau nama Diana Wulandari
     if ($level >= 5 || $id == 1 || strpos($user_jabatan, 'direktur') !== false || strpos($user_jabatan, 'wadir') !== false || strpos($user_nama, 'diana wulandari') !== false) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Alias untuk isDirekturOrHigher
+ */
+function isDirektur() {
+    return isDirekturOrHigher();
+}
+
+/**
+ * Cek apakah user adalah Direktur Operasional
+ */
+function isDirekturOperasional() {
+    global $jabatan, $username, $nama_lngkp;
+    $user_jabatan = strtolower(trim($jabatan ?? ''));
+    $user_name = strtolower(trim($username ?? ($_SESSION['username'] ?? '')));
+    $user_nama = strtolower(trim($nama_lngkp ?? ''));
+
+    return (
+        strpos($user_jabatan, 'direktur operasional') !== false ||
+        strpos($user_jabatan, 'direkturop') !== false ||
+        $user_name === 'dirop' ||
+        strpos($user_nama, 'direktur operasional') !== false
+    );
+}
+
+/**
+ * Cek apakah user adalah direktur yang diarahkan ke data-karyawan (direktur1, direktur2, direktur3, dll)
+ * Direktur Operasional dikecualikan karena diarahkan ke dashboard-utama
+ */
+function isDirekturKeDataKaryawan() {
+    global $leveel, $jabatan, $username;
+    $level = intval($_SESSION['level'] ?? ($leveel ?? 0));
+    $user_jabatan = strtolower(trim($jabatan ?? ''));
+    $user_name = strtolower(trim($username ?? ($_SESSION['username'] ?? '')));
+
+    // Admin HRD atau Direktur Operasional bukan target data-karyawan
+    if (isAdminHRD() || isDirekturOperasional()) {
+        return false;
+    }
+
+    // Cek username direktur1, direktur2, direktur3, direktur, dirut
+    if (in_array($user_name, ['direktur', 'direktur1', 'direktur2', 'direktur3', 'dirut'])) {
+        return true;
+    }
+
+    // Cek jabatan direktur 1, direktur 2, direktur 3, direktur1, direktur2, direktur3, atau Direktur Utama
+    if (preg_match('/direktur\s*[123]/i', $user_jabatan) ||
+        strpos($user_jabatan, 'direktur utama') !== false ||
+        strpos($user_jabatan, 'direkturutama') !== false) {
+        return true;
+    }
+
+    // Level >= 5 (Direktur/Wadir) selain Direktur Operasional
+    if ($level >= 5 || isDirekturOrHigher()) {
         return true;
     }
 
