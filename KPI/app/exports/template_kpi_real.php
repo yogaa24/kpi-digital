@@ -39,6 +39,19 @@ if (!canImportKPIRealForMember(
     exit('Anda tidak memiliki akses untuk mengunduh template KPI Real anggota ini.');
 }
 
+// Get Bobot What & How from tb_bobotkpi
+$bobotWhat = 60;
+$bobotHow = 40;
+$qBobot = mysqli_query($conn, "SELECT bobotwhat, bobothow FROM tb_bobotkpi WHERE id_user=$targetUserId LIMIT 1");
+if ($qBobot && ($rb = mysqli_fetch_assoc($qBobot))) {
+    if ($rb['bobotwhat'] !== null && $rb['bobotwhat'] !== '') {
+        $bobotWhat = (float) $rb['bobotwhat'];
+    }
+    if ($rb['bobothow'] !== null && $rb['bobothow'] !== '') {
+        $bobotHow = (float) $rb['bobothow'];
+    }
+}
+
 $spreadsheet = new Spreadsheet();
 
 // =========================================================
@@ -47,24 +60,34 @@ $spreadsheet = new Spreadsheet();
 $dataSheet = $spreadsheet->getActiveSheet();
 $dataSheet->setTitle('DATA KPI REAL');
 
-$headers = ['JENIS', 'POIN KPI', 'INDIKATOR KPI', 'TIPE', 'BOBOT (%)', 'TARGET', 'NILAI (TIPE A)'];
+$headers = ['JENIS', 'BOBOT WHAT / HOW (%)', 'POIN KPI', 'BOBOT POIN KPI (%)', 'INDIKATOR KPI', 'TIPE', 'BOBOT (%)', 'TARGET'];
 $dataSheet->fromArray($headers, null, 'A1');
 
-$widths = ['A' => 12, 'B' => 34, 'C' => 58, 'D' => 10, 'E' => 13, 'F' => 18, 'G' => 20];
+$widths = [
+    'A' => 12,
+    'B' => 25,
+    'C' => 38,
+    'D' => 24,
+    'E' => 58,
+    'F' => 10,
+    'G' => 14,
+    'H' => 18,
+];
 foreach ($widths as $col => $w) {
     $dataSheet->getColumnDimension($col)->setWidth($w);
 }
 
-$headerStyle = $dataSheet->getStyle('A1:G1');
+$headerStyle = $dataSheet->getStyle('A1:H1');
 $headerStyle->getFont()->setName('Calibri')->setSize(11)->setBold(true)->getColor()->setARGB('FFFFFFFF');
 $headerStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF198754');
-$headerStyle->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+$headerStyle->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+$headerStyle->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 $dataSheet->freezePane('A2');
 
 $rowIndex = 2;
 
 // Fetch WHAT items
-$qWhats = mysqli_query($conn, "SELECT w.id_what, w.p_what, w.tipe_what, w.bobot, w.target_omset, k.poin 
+$qWhats = mysqli_query($conn, "SELECT w.id_what, w.p_what, w.tipe_what, w.bobot, w.target_omset, k.poin, k.bobot AS bobot_kpi 
     FROM tb_whats w 
     JOIN tb_kpi k ON k.id=w.id_kpi 
     WHERE w.id_user=$targetUserId 
@@ -73,22 +96,24 @@ if ($qWhats) {
     while ($w = mysqli_fetch_assoc($qWhats)) {
         $tipe = strtoupper(trim((string) $w['tipe_what']));
         $bobot = (float) $w['bobot'];
+        $bobotKpi = (float) $w['bobot_kpi'];
         $target = ($tipe === 'B' && (float) $w['target_omset'] > 0) ? (float) $w['target_omset'] : '';
 
         $dataSheet->setCellValue('A' . $rowIndex, 'WHAT');
-        $dataSheet->setCellValue('B' . $rowIndex, $w['poin']);
-        $dataSheet->setCellValue('C' . $rowIndex, $w['p_what']);
-        $dataSheet->setCellValue('D' . $rowIndex, $tipe);
-        $dataSheet->setCellValue('E' . $rowIndex, $bobot);
-        $dataSheet->setCellValue('F' . $rowIndex, $target);
-        $dataSheet->setCellValue('G' . $rowIndex, '');
+        $dataSheet->setCellValue('B' . $rowIndex, $bobotWhat);
+        $dataSheet->setCellValue('C' . $rowIndex, $w['poin']);
+        $dataSheet->setCellValue('D' . $rowIndex, $bobotKpi);
+        $dataSheet->setCellValue('E' . $rowIndex, $w['p_what']);
+        $dataSheet->setCellValue('F' . $rowIndex, $tipe);
+        $dataSheet->setCellValue('G' . $rowIndex, $bobot);
+        $dataSheet->setCellValue('H' . $rowIndex, $target);
 
         $rowIndex++;
     }
 }
 
 // Fetch HOW items
-$qHows = mysqli_query($conn, "SELECT h.id_how, h.p_how, h.tipe_how, h.bobot, h.target_omset, k.poin2 
+$qHows = mysqli_query($conn, "SELECT h.id_how, h.p_how, h.tipe_how, h.bobot, h.target_omset, k.poin2, k.bobot2 AS bobot_kpi 
     FROM tb_hows h 
     JOIN tb_kpi k ON k.id=h.id_kpi 
     WHERE h.id_user=$targetUserId 
@@ -97,15 +122,17 @@ if ($qHows) {
     while ($h = mysqli_fetch_assoc($qHows)) {
         $tipe = strtoupper(trim((string) $h['tipe_how']));
         $bobot = (float) $h['bobot'];
+        $bobotKpi = (float) $h['bobot_kpi'];
         $target = ($tipe === 'B' && (float) $h['target_omset'] > 0) ? (float) $h['target_omset'] : '';
 
         $dataSheet->setCellValue('A' . $rowIndex, 'HOW');
-        $dataSheet->setCellValue('B' . $rowIndex, $h['poin2']);
-        $dataSheet->setCellValue('C' . $rowIndex, $h['p_how']);
-        $dataSheet->setCellValue('D' . $rowIndex, $tipe);
-        $dataSheet->setCellValue('E' . $rowIndex, $bobot);
-        $dataSheet->setCellValue('F' . $rowIndex, $target);
-        $dataSheet->setCellValue('G' . $rowIndex, '');
+        $dataSheet->setCellValue('B' . $rowIndex, $bobotHow);
+        $dataSheet->setCellValue('C' . $rowIndex, $h['poin2']);
+        $dataSheet->setCellValue('D' . $rowIndex, $bobotKpi);
+        $dataSheet->setCellValue('E' . $rowIndex, $h['p_how']);
+        $dataSheet->setCellValue('F' . $rowIndex, $tipe);
+        $dataSheet->setCellValue('G' . $rowIndex, $bobot);
+        $dataSheet->setCellValue('H' . $rowIndex, $target);
 
         $rowIndex++;
     }
@@ -113,21 +140,27 @@ if ($qHows) {
 
 $lastRow = $rowIndex - 1;
 if ($lastRow >= 2) {
-    $dataSheet->getStyle("A2:G{$lastRow}")->getFont()->setName('Calibri')->setSize(11);
-    $dataSheet->getStyle("A2:G{$lastRow}")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
-    $dataSheet->getStyle("B2:C{$lastRow}")->getAlignment()->setWrapText(true);
-    $dataSheet->getStyle("E2:G{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+    $dataSheet->getStyle("A2:H{$lastRow}")->getFont()->setName('Calibri')->setSize(11);
+    $dataSheet->getStyle("A2:H{$lastRow}")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+    $dataSheet->getStyle("C2:C{$lastRow}")->getAlignment()->setWrapText(true);
+    $dataSheet->getStyle("E2:E{$lastRow}")->getAlignment()->setWrapText(true);
+    
+    $dataSheet->getStyle("A2:B{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $dataSheet->getStyle("D2:D{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    $dataSheet->getStyle("F2:G{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+    
+    $dataSheet->getStyle("B2:B{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+    $dataSheet->getStyle("D2:D{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+    $dataSheet->getStyle("G2:H{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
 
     for ($r = 2; $r <= $lastRow; $r++) {
-        $tipe = $dataSheet->getCell('D' . $r)->getValue();
-        $dataSheet->getStyle("A{$r}:E{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFF2F2F2');
+        $tipe = $dataSheet->getCell('F' . $r)->getValue();
+        $dataSheet->getStyle("A{$r}:G{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFF2F2F2');
 
         if ($tipe === 'B') {
-            $dataSheet->getStyle("F{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFF2CC');
-            $dataSheet->getStyle("G{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFF2F2F2');
+            $dataSheet->getStyle("H{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFF2CC');
         } else {
-            $dataSheet->getStyle("F{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFF2F2F2');
-            $dataSheet->getStyle("G{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFF2CC');
+            $dataSheet->getStyle("H{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFF2F2F2');
         }
     }
 }
@@ -138,33 +171,41 @@ if ($lastRow >= 2) {
 $guideSheet = $spreadsheet->createSheet();
 $guideSheet->setTitle('PANDUAN');
 
-$guideSheet->getColumnDimension('A')->setWidth(110);
-$guideSheet->getColumnDimension('B')->setWidth(35);
+$guideSheet->getColumnDimension('A')->setWidth(30);
+$guideSheet->getColumnDimension('B')->setWidth(50);
 
-$guideSheet->setCellValue('A1', 'TEMPLATE IMPORT KPI REAL');
-$guideSheet->mergeCells('A1:F1');
-$guideHeaderStyle = $guideSheet->getStyle('A1:F1');
-$guideHeaderStyle->getFont()->setName('Calibri')->setSize(16)->setBold(true)->getColor()->setARGB('FFFFFFFF');
+$guideSheet->setCellValue('A1', 'TEMPLATE KPI REAL ANGGOTA');
+$guideSheet->mergeCells('A1:B1');
+$guideHeaderStyle = $guideSheet->getStyle('A1:B1');
+$guideHeaderStyle->getFont()->setName('Calibri')->setSize(14)->setBold(true)->getColor()->setARGB('FFFFFFFF');
 $guideHeaderStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF198754');
 
 $guideSheet->setCellValue('A3', 'Nama Anggota');
 $guideSheet->setCellValue('B3', $targetUser['nama_lngkp']);
 $guideSheet->setCellValue('A4', 'NIK');
 $guideSheet->setCellValueExplicit('B4', (string) $targetUser['nik'], DataType::TYPE_STRING);
+$guideSheet->setCellValue('A5', 'Departemen');
+$guideSheet->setCellValue('B5', $targetUser['departement']);
+$guideSheet->setCellValue('A6', 'Bobot WHAT');
+$guideSheet->setCellValue('B6', $bobotWhat . ' %');
+$guideSheet->setCellValue('A7', 'Bobot HOW');
+$guideSheet->setCellValue('B7', $bobotHow . ' %');
 
-$guideSheet->setCellValue('A6', 'Cara mengisi');
+$guideSheet->setCellValue('A9', 'Keterangan Template');
 $instructions = [
-    '1. Jangan mengubah kolom JENIS, POIN KPI, INDIKATOR KPI, TIPE, dan BOBOT.',
-    '2. Isi hanya sel berwarna kuning.',
-    '3. Untuk tipe A: isi kolom NILAI (TIPE A) sesuai angka pada sheet PILIHAN NILAI.',
-    '4. Untuk tipe B: pastikan TARGET benar lalu isi HASIL REALISASI dengan angka.',
-    '5. Baris tanpa hasil/nilai akan dilewati, sehingga Anda boleh hanya mengisi item yang ingin diperbarui.',
-    '6. Simpan file sebagai .xlsx lalu unggah melalui tombol Import KPI Real pada halaman anggota.',
+    '1. Sheet DATA KPI REAL memuat struktur KPI anggota yang terdiri dari aspek WHAT dan HOW.',
+    '2. Kolom BOBOT WHAT / HOW (%) menunjukkan proporsi total aspek WHAT dan HOW.',
+    '3. Kolom BOBOT POIN KPI (%) menunjukkan bobot masing-masing Poin KPI.',
+    '4. Kolom BOBOT (%) menunjukkan bobot masing-masing Indikator KPI.',
+    '5. Untuk indikator bertipe B, kolom TARGET dapat diisi/disesuaikan dengan angka target.',
+    '6. Simpan file dalam format .xlsx jika ingin mengunggah kembali melalui fitur Import KPI Real.',
 ];
 foreach ($instructions as $idx => $instr) {
-    $guideSheet->setCellValue('A' . (7 + $idx), $instr);
+    $guideSheet->setCellValue('A' . (10 + $idx), $instr);
+    $guideSheet->mergeCells('A' . (10 + $idx) . ':B' . (10 + $idx));
 }
-$guideSheet->getStyle('A3:B12')->getFont()->setName('Calibri')->setSize(11);
+$guideSheet->getStyle('A3:B7')->getFont()->setName('Calibri')->setSize(11);
+$guideSheet->getStyle('A9:B16')->getFont()->setName('Calibri')->setSize(11);
 
 // =========================================================
 // Sheet 2: PILIHAN NILAI

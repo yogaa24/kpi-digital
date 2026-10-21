@@ -71,19 +71,6 @@ function kpiRealLegacyAssessmentType($value)
 
 function importKPIRealResultsForMember($conn, $targetUserId, $editorUserId, $sheet, $dryRun = false, $spreadsheet = null)
 {
-    $firstHeader = strtoupper(trim((string) $sheet->getCell('A1')->getValue()));
-    $secondHeader = strtoupper(trim((string) $sheet->getCell('B1')->getValue()));
-    if ($firstHeader !== 'JENIS' || $secondHeader !== 'POIN KPI') {
-        throw new RuntimeException('Header template tidak sesuai. Download kembali template KPI Real anggota.');
-    }
-
-    $targetUserId = (int) $targetUserId;
-    $editorUserId = (int) $editorUserId;
-    $updated = 0;
-    $created = 0;
-    $skipped = 0;
-    $errors = [];
-
     // Dynamically map columns by header name
     $headerMap = [];
     $highestCol = $sheet->getHighestColumn();
@@ -96,15 +83,73 @@ function importKPIRealResultsForMember($conn, $targetUserId, $editorUserId, $she
         }
     }
 
+    $firstHeader = strtoupper(trim((string) $sheet->getCell('A1')->getValue()));
+    if ($firstHeader !== 'JENIS' && !isset($headerMap['JENIS'])) {
+        throw new RuntimeException('Header template tidak sesuai. Kolom JENIS tidak ditemukan.');
+    }
+    if (!isset($headerMap['POIN KPI']) || !isset($headerMap['INDIKATOR KPI'])) {
+        throw new RuntimeException('Header template tidak sesuai. Kolom POIN KPI dan INDIKATOR KPI wajib ada.');
+    }
+
+    $targetUserId = (int) $targetUserId;
+    $editorUserId = (int) $editorUserId;
+    $updated = 0;
+    $created = 0;
+    $skipped = 0;
+    $errors = [];
+
     $colKind = $headerMap['JENIS'] ?? 'A';
+    $colJenisWeight = $headerMap['BOBOT WHAT / HOW (%)'] 
+        ?? ($headerMap['BOBOT WHAT/HOW (%)'] 
+        ?? ($headerMap['BOBOT JENIS (%)'] 
+        ?? ($headerMap['BOBOT WHAT'] 
+        ?? null)));
     $colKpiPoint = $headerMap['POIN KPI'] ?? 'B';
-    $colPointWeight = $headerMap['BOBOT POIN (%)'] ?? null;
-    $colIndicatorPoint = $headerMap['INDIKATOR KPI'] ?? ($headerMap['DETAIL KPI'] ?? ($colPointWeight ? 'D' : 'C'));
-    $colType = $headerMap['TIPE'] ?? ($colPointWeight ? 'E' : 'D');
-    $colWeight = $headerMap['BOBOT (%)'] ?? ($headerMap['BOBOT'] ?? ($colPointWeight ? 'F' : 'E'));
-    $colTarget = $headerMap['TARGET'] ?? ($headerMap['TARGET (HANYA TIPE B)'] ?? ($colPointWeight ? 'G' : 'F'));
-    $colResult = $headerMap['NILAI (TIPE A)'] ?? ($headerMap['HASIL REALISASI'] ?? ($headerMap['NILAI'] ?? ($colPointWeight ? 'H' : 'G')));
-    $colScore = $headerMap['NILAI (TIPE A)'] ?? ($colPointWeight ? 'H' : 'G');
+    $colPointWeight = $headerMap['BOBOT POIN KPI (%)'] 
+        ?? ($headerMap['BOBOT POIN (%)'] 
+        ?? ($headerMap['BOBOT KPI (%)'] 
+        ?? null));
+    $colIndicatorPoint = $headerMap['INDIKATOR KPI'] ?? ($headerMap['DETAIL KPI'] ?? 'C');
+    $colType = $headerMap['TIPE'] ?? 'D';
+    $colWeight = $headerMap['BOBOT (%)'] ?? ($headerMap['BOBOT INDIKATOR (%)'] ?? ($headerMap['BOBOT'] ?? 'E'));
+    $colTarget = $headerMap['TARGET'] ?? ($headerMap['TARGET (HANYA TIPE B)'] ?? 'F');
+    $colResult = $headerMap['NILAI (TIPE A)'] ?? ($headerMap['HASIL REALISASI'] ?? ($headerMap['NILAI'] ?? null));
+    $colScore = $headerMap['NILAI (TIPE A)'] ?? ($headerMap['NILAI'] ?? null);
+
+    // Update tb_bobotkpi if colJenisWeight exists in template
+    if ($colJenisWeight !== null) {
+        $foundBobotWhat = null;
+        $foundBobotHow = null;
+        for ($r = 2; $r <= $sheet->getHighestDataRow(); $r++) {
+            $k = strtoupper(trim((string) $sheet->getCell($colKind . $r)->getValue()));
+            $val = kpiRealImportNumber($sheet->getCell($colJenisWeight . $r)->getValue());
+            if ($k === 'WHAT' && $val !== null && $foundBobotWhat === null) {
+                $foundBobotWhat = $val;
+            }
+            if ($k === 'HOW' && $val !== null && $foundBobotHow === null) {
+                $foundBobotHow = $val;
+            }
+        }
+        if ($foundBobotWhat !== null || $foundBobotHow !== null) {
+            $checkB = mysqli_query($conn, "SELECT idbobotkpi FROM tb_bobotkpi WHERE id_user=$targetUserId LIMIT 1");
+            if ($checkB && mysqli_num_rows($checkB) > 0) {
+                $updatesB = [];
+                if ($foundBobotWhat !== null && $foundBobotWhat >= 0 && $foundBobotWhat <= 100) {
+                    $updatesB[] = "bobotwhat = " . (float) $foundBobotWhat;
+                }
+                if ($foundBobotHow !== null && $foundBobotHow >= 0 && $foundBobotHow <= 100) {
+                    $updatesB[] = "bobothow = " . (float) $foundBobotHow;
+                }
+                if (!empty($updatesB)) {
+                    mysqli_query($conn, "UPDATE tb_bobotkpi SET " . implode(', ', $updatesB) . " WHERE id_user=$targetUserId");
+                }
+            } else {
+                $bwSql = (float) ($foundBobotWhat ?? 60);
+                $bhSql = (float) ($foundBobotHow ?? 40);
+                mysqli_query($conn, "INSERT INTO tb_bobotkpi (id_user, bobotwhat, bobothow) VALUES ($targetUserId, $bwSql, $bhSql)");
+            }
+        }
+    }
 
     // Load PILIHAN NILAI if sheet exists
     $choicesByIndicator = [];
@@ -185,9 +230,9 @@ function importKPIRealResultsForMember($conn, $targetUserId, $editorUserId, $she
             $kind = strtoupper(trim((string) $sheet->getCell($colKind . $row)->getValue()));
             $kpiPoint = trim((string) $sheet->getCell($colKpiPoint . $row)->getValue());
             $indicatorPoint = trim((string) $sheet->getCell($colIndicatorPoint . $row)->getValue());
-            $targetInput = $sheet->getCell($colTarget . $row)->getValue();
-            $resultInput = $sheet->getCell($colResult . $row)->getValue();
-            $scoreInput = $sheet->getCell($colScore . $row)->getValue();
+            $targetInput = $colTarget ? $sheet->getCell($colTarget . $row)->getValue() : null;
+            $resultInput = $colResult ? $sheet->getCell($colResult . $row)->getValue() : null;
+            $scoreInput = $colScore ? $sheet->getCell($colScore . $row)->getValue() : null;
             $pointWeightInput = $colPointWeight ? $sheet->getCell($colPointWeight . $row)->getValue() : null;
 
             if ($kind === '' && $kpiPoint === '' && $indicatorPoint === '') {
@@ -292,6 +337,21 @@ function importKPIRealResultsForMember($conn, $targetUserId, $editorUserId, $she
             $score = kpiRealImportNumber($scoreInput);
             $resultText = trim((string) $resultInput);
             if ($score === null && $resultText === '') {
+                if (!$isNewItem) {
+                    $itemWeight = kpiRealImportNumber($sheet->getCell($colWeight . $row)->getValue());
+                    $targetInputVal = $colTarget ? kpiRealImportNumber($sheet->getCell($colTarget . $row)->getValue()) : null;
+                    $updatesItem = [];
+                    if ($itemWeight !== null && $itemWeight >= 0 && $itemWeight <= 100) {
+                        $updatesItem[] = "bobot = " . number_format($itemWeight, 2, '.', '');
+                    }
+                    if ($type === 'B' && $targetInputVal !== null && $targetInputVal > 0) {
+                        $updatesItem[] = "target_omset = " . number_format($targetInputVal, 2, '.', '');
+                    }
+                    if (!empty($updatesItem)) {
+                        mysqli_query($conn, "UPDATE `$table` SET " . implode(', ', $updatesItem) . " WHERE `$idColumn`=$itemId AND id_user=$targetUserId");
+                        $updated++;
+                    }
+                }
                 continue;
             }
 

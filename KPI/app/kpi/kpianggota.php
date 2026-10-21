@@ -1315,7 +1315,7 @@ function tmapil($bl, $th){
                                                     </div>
                                                 <?php } ?>
                                                 <div class="alert alert-info">
-                                                    <strong>Cara singkat:</strong> Download template anggota, isi nilai/realisasi pada kolom berwarna kuning di sheet <strong>DATA KPI REAL</strong> (pilihan nilai dapat dilihat pada sheet <strong>PILIHAN NILAI</strong>), lalu upload kembali file tersebut.
+                                                    <strong>Cara singkat:</strong> Download template anggota, periksa atau sesuaikan bobot dan target pada sheet <strong>DATA KPI REAL</strong>, lalu upload kembali file tersebut bila diperlukan.
                                                     Format KPI lama yang memiliki sheet <strong>poin what</strong>, <strong>goals what</strong>, dan <strong>indikator what</strong> juga tetap didukung.
                                                 </div>
                                                 <div class="d-flex flex-wrap gap-2 mb-3">
