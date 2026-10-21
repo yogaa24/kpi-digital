@@ -11,10 +11,17 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/getUser.php';
     require 'helper/sp_functions.php';
     require 'helper/verified_functions.php';
+    require 'helper/kpi_real_import_functions.php';
+
+    $autoload_path = __DIR__ . '/../../vendor/autoload.php';
+    $kpi_real_import_ready = is_file($autoload_path);
+    if ($kpi_real_import_ready) {
+        require_once $autoload_path;
+    }
 
     updateExpiredSP($conn);
 
-    $id_sf = $_GET['id'];
+    $id_sf = isset($_GET['id']) ? (int) $_GET['id'] : 0;
     $user_id = isset($id_sf) ? $id_sf : $id_user;
 
     // Cek status verified
@@ -39,6 +46,61 @@ if (!isset($_SESSION['id_user'])) {
         $jabatanan = $hasilsfa['jabatan'];
         $atasanan = $hasilsfa['atasan'];
         $penilaian = $hasilsfa['penilai'];
+    }
+
+    $can_import_kpi_real = canImportKPIRealForMember(
+        $id_user,
+        $id_sf,
+        $leveel,
+        $nama_lngkp,
+        $departement,
+        $atasanan,
+        $departementan
+    );
+    if (empty($_SESSION['kpi_real_import_token'])) {
+        $_SESSION['kpi_real_import_token'] = bin2hex(random_bytes(32));
+    }
+
+    if (isset($_POST['import_kpi_real'])) {
+        $token = isset($_POST['kpi_real_import_token']) ? (string) $_POST['kpi_real_import_token'] : '';
+        if (!$can_import_kpi_real) {
+            $_SESSION['kpi_real_import_message'] = ['type' => 'danger', 'text' => 'Anda tidak memiliki akses untuk mengimport KPI Real anggota ini.'];
+        } elseif (!hash_equals($_SESSION['kpi_real_import_token'], $token)) {
+            $_SESSION['kpi_real_import_message'] = ['type' => 'danger', 'text' => 'Sesi import tidak valid. Silakan muat ulang halaman.'];
+        } elseif ($verified_status) {
+            $_SESSION['kpi_real_import_message'] = ['type' => 'warning', 'text' => 'KPI sudah diverifikasi. Batalkan verifikasi sebelum melakukan import.'];
+        } elseif (!$kpi_real_import_ready || !class_exists('\\PhpOffice\\PhpSpreadsheet\\IOFactory')) {
+            $_SESSION['kpi_real_import_message'] = ['type' => 'danger', 'text' => 'Import Excel belum tersedia. Jalankan composer install pada folder KPI.'];
+        } elseif (!isset($_FILES['file_kpi_real']) || $_FILES['file_kpi_real']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['kpi_real_import_message'] = ['type' => 'danger', 'text' => 'File gagal diunggah. Pilih kembali file template KPI Real.'];
+        } elseif ($_FILES['file_kpi_real']['size'] > 5 * 1024 * 1024) {
+            $_SESSION['kpi_real_import_message'] = ['type' => 'danger', 'text' => 'Ukuran file maksimal 5 MB.'];
+        } else {
+            $extension = strtolower(pathinfo($_FILES['file_kpi_real']['name'], PATHINFO_EXTENSION));
+            if (!in_array($extension, ['xlsx', 'xls'], true)) {
+                $_SESSION['kpi_real_import_message'] = ['type' => 'danger', 'text' => 'Format file tidak didukung. Gunakan .xlsx atau .xls.'];
+            } else {
+                try {
+                    $summary = importKPIRealForMember($conn, $id_sf, $id_user, $_FILES['file_kpi_real']['tmp_name']);
+                    $detail = empty($summary['errors']) ? '' : ' Detail: ' . implode(' ', array_slice($summary['errors'], 0, 5));
+                    $summary_text = ($summary['mode'] ?? '') === 'results'
+                        ? "Import nilai KPI Real selesai. Berhasil diperbarui: {$summary['updated']}, dilewati/gagal: {$summary['skipped']}."
+                        : "Import KPI Real selesai. Poin KPI baru: {$summary['groups']}, Detail KPI baru: {$summary['details']}, Indikator baru: {$summary['indicators']}, dilewati/gagal: {$summary['skipped']}.";
+                    $_SESSION['kpi_real_import_message'] = [
+                        'type' => $summary['updated'] > 0 ? 'success' : 'warning',
+                        'text' => $summary_text . $detail,
+                    ];
+                } catch (Throwable $exception) {
+                    $import_error = $exception instanceof RuntimeException
+                        ? $exception->getMessage()
+                        : 'Pastikan file tidak rusak dan formatnya sesuai template.';
+                    $_SESSION['kpi_real_import_message'] = ['type' => 'danger', 'text' => 'File tidak dapat diproses: ' . $import_error];
+                }
+            }
+        }
+
+        header('Location: ' . $_SERVER['REQUEST_URI']);
+        exit();
     }
 
     // Hitung nilai dengan SP
@@ -530,6 +592,13 @@ function tmapil($bl, $th){
                             <span class="badge bg-warning text-dark"><i class="bi bi-rocket-takeoff me-1"></i>KPI Simulasi</span>
                         </a> 
                     </li>
+                    <?php if ($can_import_kpi_real) { ?>
+                    <li class="nav-item d-none d-md-block">
+                        <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#importKPIRealModal">
+                            <span class="badge bg-success"><i class="bi bi-file-earmark-arrow-up me-1"></i>Import KPI Real</span>
+                        </a>
+                    </li>
+                    <?php } ?>
                 </ul> <!--end::Start Navbar Links--> <!--begin::End Navbar Links-->
 
                 <ul class="navbar-nav ms-auto"> <!--begin::Navbar Search-->
@@ -559,6 +628,13 @@ function tmapil($bl, $th){
             </div> <!--end::App Content Header--> <!--begin::App Content-->
             <div class="app-content"> <!--begin::Container-->
                 <div class="container-fluid"> <!--begin::Row-->
+                    <?php if (isset($_SESSION['kpi_real_import_message'])) { ?>
+                        <div class="alert alert-<?= htmlspecialchars($_SESSION['kpi_real_import_message']['type']); ?> alert-dismissible fade show" role="alert">
+                            <?= htmlspecialchars($_SESSION['kpi_real_import_message']['text']); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        <?php unset($_SESSION['kpi_real_import_message']); ?>
+                    <?php } ?>
                     <div class="row"> <!-- Start col -->
                         <div class="col-lg-4 connectedSortable">
                             <div class="card mb-4">
@@ -1219,6 +1295,52 @@ function tmapil($bl, $th){
                                     </div>
                                 </div>
                             </div>
+                            <!-- Modal Verify KPI -->
+                            <?php if ($can_import_kpi_real) { ?>
+                            <div class="modal fade" id="importKPIRealModal" tabindex="-1" aria-labelledby="importKPIRealModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-success text-white">
+                                            <h5 class="modal-title fw-bold" id="importKPIRealModalLabel">
+                                                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Import KPI Real &mdash; <?= htmlspecialchars($nama_lngkpan); ?>
+                                            </h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <form method="POST" action="" enctype="multipart/form-data">
+                                            <input type="hidden" name="kpi_real_import_token" value="<?= htmlspecialchars($_SESSION['kpi_real_import_token']); ?>">
+                                            <div class="modal-body">
+                                                <?php if ($verified_status) { ?>
+                                                    <div class="alert alert-warning">
+                                                        <i class="bi bi-lock-fill me-1"></i>KPI ini sudah diverifikasi. Batalkan verifikasi sebelum mengimport data.
+                                                    </div>
+                                                <?php } ?>
+                                                <div class="alert alert-info">
+                                                    <strong>Cara singkat:</strong> Download template anggota, isi nilai/realisasi pada kolom berwarna kuning di sheet <strong>DATA KPI REAL</strong> (pilihan nilai dapat dilihat pada sheet <strong>PILIHAN NILAI</strong>), lalu upload kembali file tersebut.
+                                                    Format KPI lama yang memiliki sheet <strong>poin what</strong>, <strong>goals what</strong>, dan <strong>indikator what</strong> juga tetap didukung.
+                                                </div>
+                                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                                    <a href="template-kpi-real?id=<?= (int) $id_sf; ?>" class="btn btn-outline-primary" download>
+                                                        <i class="bi bi-download me-1"></i>Download Template Anggota
+                                                    </a>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="file_kpi_real" class="form-label fw-bold">File KPI Real</label>
+                                                    <input type="file" class="form-control" id="file_kpi_real" name="file_kpi_real" accept=".xlsx,.xls" required>
+                                                    <div class="form-text">Format: .xlsx atau .xls. Maksimal 5 MB.</div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                <button type="submit" name="import_kpi_real" class="btn btn-success" <?= $verified_status ? 'disabled' : ''; ?>>
+                                                    <i class="bi bi-upload me-1"></i>Import KPI Real
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php } ?>
+
                             <!-- Modal Verify KPI -->
                             <div class="modal fade" id="verifyModal" tabindex="-1" aria-labelledby="verifyModalLabel" aria-hidden="true">
                                 <div class="modal-dialog">

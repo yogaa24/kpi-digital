@@ -55,6 +55,7 @@ $routes = [
     'export_kpi_all_adminhrd' => 'app/exports/export_kpi_all_adminhrd.php',
     'export_kpi_summary' => 'app/exports/export_kpi_summary.php',
     'export_kpi_detail' => 'app/exports/export_kpi_detail.php',
+    'template-kpi-real' => 'app/exports/template_kpi_real.php',
     'export_kpisim_detail' => 'app/exports/export_kpisim_detail.php',
     'export_ss_summary' => 'app/exports/export_ss_summary.php',
     'export_ss_detail' => 'app/exports/export_ss_detail.php',
