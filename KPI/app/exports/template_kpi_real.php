@@ -149,9 +149,12 @@ if ($lastRow >= 2) {
     $dataSheet->getStyle("D2:D{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $dataSheet->getStyle("F2:G{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     
-    $dataSheet->getStyle("B2:B{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
-    $dataSheet->getStyle("D2:D{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
-    $dataSheet->getStyle("G2:H{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+    // Bobot ditampilkan sebagai angka 0-100 tanpa tanda persen agar mudah diisi.
+    $weightFormat = '0.##';
+    $dataSheet->getStyle("B2:B{$lastRow}")->getNumberFormat()->setFormatCode($weightFormat);
+    $dataSheet->getStyle("D2:D{$lastRow}")->getNumberFormat()->setFormatCode($weightFormat);
+    $dataSheet->getStyle("G2:G{$lastRow}")->getNumberFormat()->setFormatCode($weightFormat);
+    $dataSheet->getStyle("H2:H{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
 
     for ($r = 2; $r <= $lastRow; $r++) {
         $tipe = $dataSheet->getCell('F' . $r)->getValue();
@@ -166,7 +169,7 @@ if ($lastRow >= 2) {
 }
 
 // =========================================================
-// Sheet 1: PANDUAN
+// Sheet 2: PANDUAN
 // =========================================================
 $guideSheet = $spreadsheet->createSheet();
 $guideSheet->setTitle('PANDUAN');
@@ -187,9 +190,9 @@ $guideSheet->setCellValueExplicit('B4', (string) $targetUser['nik'], DataType::T
 $guideSheet->setCellValue('A5', 'Departemen');
 $guideSheet->setCellValue('B5', $targetUser['departement']);
 $guideSheet->setCellValue('A6', 'Bobot WHAT');
-$guideSheet->setCellValue('B6', $bobotWhat . ' %');
+$guideSheet->setCellValue('B6', $bobotWhat);
 $guideSheet->setCellValue('A7', 'Bobot HOW');
-$guideSheet->setCellValue('B7', $bobotHow . ' %');
+$guideSheet->setCellValue('B7', $bobotHow);
 
 $guideSheet->setCellValue('A9', 'Keterangan Template');
 $instructions = [
@@ -208,10 +211,10 @@ $guideSheet->getStyle('A3:B7')->getFont()->setName('Calibri')->setSize(11);
 $guideSheet->getStyle('A9:B16')->getFont()->setName('Calibri')->setSize(11);
 
 // =========================================================
-// Sheet 2: PILIHAN NILAI
+// Sheet 1: INDIKATOR NILAI
 // =========================================================
-$choiceSheet = $spreadsheet->createSheet();
-$choiceSheet->setTitle('PILIHAN NILAI');
+$choiceSheet = $spreadsheet->createSheet(1);
+$choiceSheet->setTitle('INDIKATOR NILAI');
 
 $choiceHeaders = ['JENIS', 'POIN KPI', 'INDIKATOR KPI', 'HASIL / PILIHAN', 'NILAI'];
 $choiceSheet->fromArray($choiceHeaders, null, 'A1');

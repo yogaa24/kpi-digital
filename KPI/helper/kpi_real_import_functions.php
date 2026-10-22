@@ -151,10 +151,11 @@ function importKPIRealResultsForMember($conn, $targetUserId, $editorUserId, $she
         }
     }
 
-    // Load PILIHAN NILAI if sheet exists
+    // Load INDIKATOR NILAI. Nama lama tetap didukung untuk kompatibilitas.
     $choicesByIndicator = [];
     if ($spreadsheet) {
-        $choiceSheet = $spreadsheet->getSheetByName('PILIHAN NILAI');
+        $choiceSheet = $spreadsheet->getSheetByName('INDIKATOR NILAI')
+            ?? $spreadsheet->getSheetByName('PILIHAN NILAI');
         if ($choiceSheet) {
             for ($r = 2; $r <= $choiceSheet->getHighestDataRow(); $r++) {
                 $cKind = strtoupper(trim((string) $choiceSheet->getCell('A' . $r)->getValue()));
@@ -313,7 +314,7 @@ function importKPIRealResultsForMember($conn, $targetUserId, $editorUserId, $she
                 $isNewItem = true;
                 $created++;
 
-                // Auto-populate choices from PILIHAN NILAI if available
+                // Auto-populate choices from INDIKATOR NILAI if available
                 $choiceKey = $kind . '|' . $kpiPoint . '|' . $indicatorPoint;
                 if (isset($choicesByIndicator[$choiceKey])) {
                     $order = 1;
@@ -386,7 +387,7 @@ function importKPIRealResultsForMember($conn, $targetUserId, $editorUserId, $she
 
                 if (!$indicator) {
                     $skipped++;
-                    $errors[] = "Baris $row: nilai/hasil tidak tersedia pada sheet PILIHAN NILAI.";
+                    $errors[] = "Baris $row: nilai/hasil tidak tersedia pada sheet INDIKATOR NILAI.";
                     continue;
                 }
                 $score = (float) $indicator['nilai'];
