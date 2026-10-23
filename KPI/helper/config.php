@@ -11,8 +11,8 @@ $conn = mysqli_connect($server, $user, $pass, $database);
 if (!$conn) {
     header("Location: error");
     die("Koneksi ke database gagal: " . mysqli_connect_error());
-    
 }
+mysqli_report(MYSQLI_REPORT_OFF);
 
 require_once __DIR__ . '/period_helper.php';
 require_once __DIR__ . '/karakter_helper.php';

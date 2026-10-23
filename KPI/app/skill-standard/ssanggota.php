@@ -12,9 +12,31 @@ if (!isset($_SESSION['id_user'])) {
 
     function getSSByTipe($conn, $id, $tipe, $period_ym = null, $is_simulasi = false)
     {
+        $id = intval($id);
+        $tipe = mysqli_real_escape_string($conn, $tipe);
+
+        // 1. Jika membaca periode bulan lalu, prioritaskan dari tabel arsip resmi (tbar_ss_archive) yang terverifikasi atasan
+        if ($period_ym !== null) {
+            $period_ym_safe = mysqli_real_escape_string($conn, $period_ym);
+            $bulan_my = date('m/Y', strtotime($period_ym . '-01'));
+            $q_arch = mysqli_query($conn, "SELECT rata_rata_umum, rata_rata_teknis, rata_rata_total 
+                                           FROM tbar_ss_archive 
+                                           WHERE id_user = $id 
+                                           AND (bulan = '$bulan_my' OR bulan = '$period_ym_safe')
+                                           ORDER BY id_ss_archive DESC LIMIT 1");
+            if ($q_arch && mysqli_num_rows($q_arch) > 0) {
+                $r_arch = mysqli_fetch_assoc($q_arch);
+                if ($tipe === 'umum' && floatval($r_arch['rata_rata_umum']) > 0) {
+                    return number_format((float)$r_arch['rata_rata_umum'], 2);
+                } elseif ($tipe === 'teknis' && floatval($r_arch['rata_rata_teknis']) > 0) {
+                    return number_format((float)$r_arch['rata_rata_teknis'], 2);
+                }
+            }
+        }
+
+        // 2. Jika tidak ada di arsip atau membaca bulan ini / simulasi, gunakan perhitungan detail
         $row3sd = 0;
         $totil = 0;
-        $tipe = mysqli_real_escape_string($conn, $tipe);
         
         $sqler = "SELECT id_poinss FROM tb_ss WHERE id_user=$id AND tipe_ss='$tipe'";
         $tewg = mysqli_query($conn, $sqler);
@@ -25,10 +47,9 @@ if (!isset($_SESSION['id_user'])) {
             if ($is_simulasi) {
                 $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_ss_simulasi WHERE id_user=$id AND id_ss=$id_poinss";
             } else if ($period_ym !== null) {
-                $period_ym = mysqli_real_escape_string($conn, $period_ym);
-                $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_ss_history WHERE id_user=$id AND id_ss=$id_poinss AND bulan='$period_ym'";
+                $period_ym_safe = mysqli_real_escape_string($conn, $period_ym);
+                $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_ss_history WHERE id_user=$id AND id_ss=$id_poinss AND bulan='$period_ym_safe'";
             } else {
-                // Default fallback (meskipun kita akan gunakan period_ym untuk bulan ini juga)
                 $fiub = "SELECT SUM(nilaiss) as total, COUNT(nilaiss) as totil FROM tb_sspoin WHERE id_user=$id AND id_ss=$id_poinss";
             }
             

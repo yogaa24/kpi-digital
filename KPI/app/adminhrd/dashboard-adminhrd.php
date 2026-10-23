@@ -1,4 +1,9 @@
 <?php
+if (isset($_GET['debug'])) {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
 // ============================================================
 // HANDLER AJAX — HARUS PALING ATAS, SEBELUM OUTPUT HTML APAPUN
 // ============================================================
@@ -9,6 +14,7 @@ if (!isset($_SESSION['id_user'])) {
 }
 
 require 'helper/config.php';
+mysqli_report(MYSQLI_REPORT_OFF);
 require 'helper/getUser.php';
 require 'helper/checkAdmin.php';
 require 'helper/sp_functions.php';
@@ -279,6 +285,20 @@ if (isset($_POST['action']) && $_POST['action'] === 'reset_kpi_all_users') {
 }
 // ============================================================
 
+if (!function_exists('updateExpiredSP')) {
+    function updateExpiredSP($conn) {
+        $today = date('Y-m-d');
+        try {
+            $stmt = mysqli_prepare($conn, "UPDATE tb_surat_peringatan SET status = 'selesai' WHERE status = 'aktif' AND masa_berlaku_selesai < ?");
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, "s", $today);
+                mysqli_stmt_execute($stmt);
+            }
+        } catch (Throwable $e) {
+            error_log("Error in updateExpiredSP: " . $e->getMessage());
+        }
+    }
+}
 updateExpiredSP($conn);
 
     // ========== HANDLER UNTUK SURAT PERINGATAN ==========
@@ -678,42 +698,116 @@ updateExpiredSP($conn);
                 <!-- Statistics Summary -->
                 <div class="row mb-4">
                     <?php
-                    $sql_stats = "SELECT 
-                                    COUNT(*) as total_karyawan,
-                                    SUM(CASE WHEN u.jabatan = 'Kadep' THEN 1 ELSE 0 END) as total_kadep,
-                                    SUM(CASE WHEN u.jabatan = 'Koordinator' THEN 1 ELSE 0 END) as total_Koordinator,
-                                    SUM(CASE WHEN u.jabatan = 'Manager' THEN 1 ELSE 0 END) as total_manager,
-                                    SUM(CASE WHEN u.jabatan = 'Karyawan' THEN 1 ELSE 0 END) as total_karyawan_biasa
-                                  FROM tb_users u
-                                  WHERE u.id != $id_user AND u.jabatan != 'Admin HRD'";
-                    $result_stats = mysqli_query($conn, $sql_stats);
-                    $stats = mysqli_fetch_assoc($result_stats);
+                    $stats = [
+                        'total_karyawan' => 0,
+                        'total_kadep' => 0,
+                        'total_Koordinator' => 0,
+                        'total_manager' => 0,
+                        'total_karyawan_biasa' => 0
+                    ];
+
+                    $safe_id_user = intval($id_user);
+                    try {
+                        $sql_stats = "SELECT 
+                                        COUNT(*) as total_karyawan,
+                                        SUM(CASE WHEN u.jabatan = 'Kadep' THEN 1 ELSE 0 END) as total_kadep,
+                                        SUM(CASE WHEN u.jabatan = 'Koordinator' THEN 1 ELSE 0 END) as total_Koordinator,
+                                        SUM(CASE WHEN u.jabatan = 'Manager' THEN 1 ELSE 0 END) as total_manager,
+                                        SUM(CASE WHEN u.jabatan = 'Karyawan' THEN 1 ELSE 0 END) as total_karyawan_biasa
+                                      FROM tb_users u
+                                      WHERE u.id != $safe_id_user AND u.jabatan != 'Admin HRD'";
+                        $result_stats = mysqli_query($conn, $sql_stats);
+                        if ($result_stats && ($row_stats = mysqli_fetch_assoc($result_stats))) {
+                            $stats = $row_stats;
+                        }
+                    } catch (Throwable $e) {
+                        error_log("Error query stats dashboard adminhrd: " . $e->getMessage());
+                    }
 
                     $today = date('Y-m-d');
-                    $sql_sp_aktif = "SELECT COUNT(*) as total_sp_aktif 
-                                     FROM tb_surat_peringatan 
-                                     WHERE status = 'aktif' 
-                                     AND masa_berlaku_mulai <= '$today' 
-                                     AND masa_berlaku_selesai >= '$today'";
-                    $result_sp_aktif = mysqli_query($conn, $sql_sp_aktif);
-                    $sp_aktif_count  = mysqli_fetch_assoc($result_sp_aktif)['total_sp_aktif'];
+                    $sp_aktif_count = 0;
+                    try {
+                        mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_surat_peringatan` (
+                            `id_sp` int(11) NOT NULL AUTO_INCREMENT,
+                            `id_user` int(11) NOT NULL,
+                            `jenis_sp` varchar(10) NOT NULL,
+                            `nomor_sp` varchar(100) NOT NULL,
+                            `tanggal_sp` date NOT NULL,
+                            `masa_berlaku_mulai` date NOT NULL,
+                            `masa_berlaku_selesai` date NOT NULL,
+                            `alasan` text NOT NULL,
+                            `alasan_2` text NULL,
+                            `aturan_dilanggar` text NULL,
+                            `tanggal_kejadian` date NULL,
+                            `keterangan` text NULL,
+                            `penandatangan` varchar(255) NULL,
+                            `jabatan_penandatangan` varchar(255) NULL,
+                            `tembusan` text NULL,
+                            `file_sp` varchar(255) NULL,
+                            `status` enum('aktif','selesai','dihapus') NOT NULL DEFAULT 'aktif',
+                            `created_by` int(11) NOT NULL,
+                            `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                            `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            PRIMARY KEY (`id_sp`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-                    $sql_lock_aktif = "SELECT COUNT(*) as total_lock 
-                                    FROM tb_kpi_lock_settings 
-                                    WHERE status = 'aktif' 
-                                    AND tanggal_mulai <= '$today' 
-                                    AND tanggal_selesai >= '$today'";
-                    $result_lock  = mysqli_query($conn, $sql_lock_aktif);
-                    $lock_aktif   = mysqli_fetch_assoc($result_lock)['total_lock'];
+                        $sql_sp_aktif = "SELECT COUNT(*) as total_sp_aktif 
+                                         FROM tb_surat_peringatan 
+                                         WHERE status = 'aktif' 
+                                         AND masa_berlaku_mulai <= '$today' 
+                                         AND masa_berlaku_selesai >= '$today'";
+                        $result_sp_aktif = mysqli_query($conn, $sql_sp_aktif);
+                        if ($result_sp_aktif && ($row_sp = mysqli_fetch_assoc($result_sp_aktif))) {
+                            $sp_aktif_count = intval($row_sp['total_sp_aktif'] ?? 0);
+                        }
+                    } catch (Throwable $e) {
+                        error_log("Error query sp_aktif dashboard adminhrd: " . $e->getMessage());
+                    }
 
-                    $sql_periode_aktif = "SELECT nama_periode, level_akses 
+                    $lock_aktif = 0;
+                    $periode_aktif = null;
+                    try {
+                        mysqli_query($conn, "CREATE TABLE IF NOT EXISTS `tb_kpi_lock_settings` (
+                            `id_lock` int(11) NOT NULL AUTO_INCREMENT,
+                            `nama_periode` varchar(255) NOT NULL,
+                            `tanggal_mulai` date NOT NULL,
+                            `tanggal_selesai` date NOT NULL,
+                            `is_recurring` tinyint(1) DEFAULT 1,
+                            `recurring_day_start` int(11) DEFAULT 1,
+                            `recurring_day_end` int(11) DEFAULT 31,
+                            `level_akses` text DEFAULT NULL,
+                            `izin_akses` text DEFAULT NULL,
+                            `keterangan` text DEFAULT NULL,
+                            `status` enum('aktif','nonaktif') DEFAULT 'aktif',
+                            `created_by` int(11) DEFAULT NULL,
+                            `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                            `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            PRIMARY KEY (`id_lock`)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+                        $sql_lock_aktif = "SELECT COUNT(*) as total_lock 
                                         FROM tb_kpi_lock_settings 
                                         WHERE status = 'aktif' 
                                         AND tanggal_mulai <= '$today' 
-                                        AND tanggal_selesai >= '$today'
-                                        ORDER BY created_at DESC LIMIT 1";
-                    $result_periode = mysqli_query($conn, $sql_periode_aktif);
-                    $periode_aktif  = mysqli_fetch_assoc($result_periode);
+                                        AND tanggal_selesai >= '$today'";
+                        $result_lock  = mysqli_query($conn, $sql_lock_aktif);
+                        if ($result_lock && ($row_lock = mysqli_fetch_assoc($result_lock))) {
+                            $lock_aktif = intval($row_lock['total_lock'] ?? 0);
+                        }
+
+                        $sql_periode_aktif = "SELECT nama_periode, level_akses 
+                                            FROM tb_kpi_lock_settings 
+                                            WHERE status = 'aktif' 
+                                            AND tanggal_mulai <= '$today' 
+                                            AND tanggal_selesai >= '$today'
+                                            ORDER BY created_at DESC LIMIT 1";
+                        $result_periode = mysqli_query($conn, $sql_periode_aktif);
+                        if ($result_periode && ($row_periode = mysqli_fetch_assoc($result_periode))) {
+                            $periode_aktif = $row_periode;
+                        }
+                    } catch (Throwable $e) {
+                        error_log("Error query lock_settings dashboard adminhrd: " . $e->getMessage());
+                    }
                     ?>
 
                     <!-- Status Lock KPI -->
@@ -745,7 +839,7 @@ updateExpiredSP($conn);
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-muted mb-1 small">Total Karyawan</h6>
-                                        <h3 class="fw-bold mb-0 text-primary"><?=$stats['total_karyawan']?></h3>
+                                        <h3 class="fw-bold mb-0 text-primary"><?= intval($stats['total_karyawan'] ?? 0) ?></h3>
                                         <small class="text-muted">Karyawan aktif</small>
                                     </div>
                                     <div class="text-primary" style="opacity:0.8;">
@@ -763,7 +857,7 @@ updateExpiredSP($conn);
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-muted mb-1 small">Kepala Departemen</h6>
-                                        <h3 class="fw-bold mb-0 text-danger"><?=$stats['total_kadep']?></h3>
+                                        <h3 class="fw-bold mb-0 text-danger"><?= intval($stats['total_kadep'] ?? 0) ?></h3>
                                         <small class="text-muted">Kadep</small>
                                     </div>
                                     <div class="text-danger" style="opacity:0.8;">
@@ -781,7 +875,7 @@ updateExpiredSP($conn);
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-muted mb-1 small">Koordinator</h6>
-                                        <h3 class="fw-bold mb-0 text-warning"><?=$stats['total_Koordinator']?></h3>
+                                        <h3 class="fw-bold mb-0 text-warning"><?= intval($stats['total_Koordinator'] ?? 0) ?></h3>
                                         <small class="text-muted">Tim koordinator</small>
                                     </div>
                                     <div class="text-warning" style="opacity:0.8;">
@@ -799,7 +893,7 @@ updateExpiredSP($conn);
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-muted mb-1 small">Manager</h6>
-                                        <h3 class="fw-bold mb-0" style="color:#6366f1;"><?=$stats['total_manager']?></h3>
+                                        <h3 class="fw-bold mb-0" style="color:#6366f1;"><?= intval($stats['total_manager'] ?? 0) ?></h3>
                                         <small class="text-muted">Level manager</small>
                                     </div>
                                     <div style="opacity:0.8; color:#6366f1;">
@@ -817,7 +911,7 @@ updateExpiredSP($conn);
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <h6 class="text-muted mb-1 small">Surat Peringatan</h6>
-                                        <h3 class="fw-bold mb-0 text-danger"><?=$sp_aktif_count?></h3>
+                                        <h3 class="fw-bold mb-0 text-danger"><?= intval($sp_aktif_count ?? 0) ?></h3>
                                         <small class="text-muted">SP Aktif</small>
                                     </div>
                                     <div class="text-danger" style="opacity:0.8;">

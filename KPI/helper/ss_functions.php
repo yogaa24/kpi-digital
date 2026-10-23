@@ -172,8 +172,14 @@ if (!function_exists('ssSyncCurrentMonthHistory')) {
                     id_ss = VALUES(id_ss),
                     kategori_ss = VALUES(kategori_ss),
                     poinss = VALUES(poinss),
-                    nilaiss = VALUES(nilaiss),
-                    deskripsi = VALUES(deskripsi)");
+                    nilaiss = CASE 
+                        WHEN VALUES(nilaiss) > 0 THEN VALUES(nilaiss) 
+                        ELSE nilaiss 
+                    END,
+                    deskripsi = CASE 
+                        WHEN VALUES(nilaiss) > 0 OR (VALUES(deskripsi) != '' AND VALUES(deskripsi) IS NOT NULL) THEN VALUES(deskripsi) 
+                        ELSE deskripsi 
+                    END");
         }
 
         return true;
@@ -213,14 +219,43 @@ if (!function_exists('ssGetScoresByMonth')) {
     function ssGetScoresByMonth($conn, $id_user, $bulan)
     {
         $id_user = intval($id_user);
-        $bulan = mysqli_real_escape_string($conn, $bulan);
+        $bulan_input = mysqli_real_escape_string($conn, $bulan);
         $scores = [];
 
+        // 1. Prioritaskan data arsip resmi terverifikasi (tbar_ss_archive & tbar_sspoin)
+        $bulan_my = (strpos($bulan, '-') !== false) ? date('m/Y', strtotime($bulan . '-01')) : $bulan;
+        $bulan_my_safe = mysqli_real_escape_string($conn, $bulan_my);
+
+        $q_arch = mysqli_query($conn, "SELECT sp.id_sspoin_ref, sp.nilaiss, sp.deskripsi 
+                                       FROM tbar_sspoin sp
+                                       INNER JOIN tbar_ss s ON s.id = sp.id_tbar_ss
+                                       INNER JOIN tbar_ss_archive a ON a.id_ss_archive = s.id_ss_archive
+                                       WHERE a.id_user = $id_user 
+                                       AND (a.bulan = '$bulan_my_safe' OR a.bulan = '$bulan_input')");
+        if ($q_arch && mysqli_num_rows($q_arch) > 0) {
+            $has_nonzero = false;
+            while ($row = mysqli_fetch_assoc($q_arch)) {
+                $ref_id = intval($row['id_sspoin_ref']);
+                $val = (float) $row['nilaiss'];
+                if ($val > 0) {
+                    $has_nonzero = true;
+                }
+                $scores[$ref_id] = [
+                    'nilaiss' => $val,
+                    'deskripsi' => $row['deskripsi']
+                ];
+            }
+            if ($has_nonzero) {
+                return $scores;
+            }
+        }
+
+        // 2. Fallback ke tb_ss_history jika belum terarsip
         if (!ssEnsureHistoryTable($conn)) {
             return $scores;
         }
 
-        $result = mysqli_query($conn, "SELECT id_sspoin, nilaiss, deskripsi FROM tb_ss_history WHERE id_user = $id_user AND bulan = '$bulan'");
+        $result = mysqli_query($conn, "SELECT id_sspoin, nilaiss, deskripsi FROM tb_ss_history WHERE id_user = $id_user AND bulan = '$bulan_input'");
         if ($result) {
             while ($row = mysqli_fetch_assoc($result)) {
                 $scores[$row['id_sspoin']] = [

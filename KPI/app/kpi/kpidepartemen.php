@@ -1,6 +1,11 @@
 <!-- kpidepartemen.php -->
 <!DOCTYPE html>
 <?php
+if (isset($_GET['debug'])) {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
 session_start();
 if (!isset($_SESSION['id_user'])) {
     header("Location: index");
@@ -290,10 +295,17 @@ $currentSSData = [];
 $previousSSData = [];
 $simulationSSData = [];
 if ($viewMode === 'ss') {
-    $currentSSData = getAllUserSSSummary($conn);
-    $previousSSMonth = sprintf('%04d-%02d', $tahunSebelumnya, $bulanSebelumnya);
-    $previousSSData = getAllUserSSSummaryByMonth($conn, $previousSSMonth);
-    $simulationSSData = getAllUserSSSimulationSummary($conn);
+    try {
+        if (function_exists('ssEnsureTipeColumn')) {
+            ssEnsureTipeColumn($conn);
+        }
+        $currentSSData = getAllUserSSSummary($conn);
+        $previousSSMonth = sprintf('%04d-%02d', $tahunSebelumnya, $bulanSebelumnya);
+        $previousSSData = getAllUserSSSummaryByMonth($conn, $previousSSMonth);
+        $simulationSSData = getAllUserSSSimulationSummary($conn);
+    } catch (Throwable $e) {
+        error_log("Error loading SS summary in kpidepartemen: " . $e->getMessage());
+    }
 }
 ?>
 
@@ -725,6 +737,7 @@ if ($viewMode === 'ss') {
                             <?php
                             $no = 1;
                             $ssUsersResult = mysqli_query($conn, $sqlUsers);
+                            if ($ssUsersResult):
                             while ($ssUser = mysqli_fetch_assoc($ssUsersResult)):
                                 $ssUserId = intval($ssUser['id']);
                                 $ssCurrent = $currentSSData[$ssUserId] ?? [];
@@ -762,6 +775,7 @@ if ($viewMode === 'ss') {
                                     </td>
                                 </tr>
                             <?php endwhile; ?>
+                            <?php endif; ?>
                             </tbody>
                         </table>
                     </div>

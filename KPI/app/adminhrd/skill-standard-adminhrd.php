@@ -1,4 +1,9 @@
 <?php
+if (isset($_GET['debug'])) {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
 session_start();
 if (!isset($_SESSION['id_user'])) {
     header("Location: index");
@@ -6,6 +11,7 @@ if (!isset($_SESSION['id_user'])) {
 }
 
 require 'helper/config.php';
+mysqli_report(MYSQLI_REPORT_OFF);
 require 'helper/getUser.php';
 require 'helper/checkAdmin.php';
 require_once 'helper/ss_functions.php';
@@ -43,15 +49,29 @@ $sql_users = "SELECT u.id, u.username, u.nama_lngkp, u.nik, u.bagian, u.departem
 $result_users = mysqli_query($conn, $sql_users);
 
 // Batch ambil summary SS seluruh user (sangat cepat & efisien)
-$all_ss_data = getAllUserSSSummary($conn);
 $current_ss_period = getAppCurrentPeriod();
 $previous_ss_period = getAppPreviousPeriod();
-$current_ss_label = ssMonthLabel($current_ss_period['formatted_ym']);
-$previous_ss_label = ssMonthLabel($previous_ss_period['formatted_ym']);
+$current_ss_label = function_exists('ssMonthLabel') ? ssMonthLabel($current_ss_period['formatted_ym']) : $current_ss_period['formatted_ym'];
+$previous_ss_label = function_exists('ssMonthLabel') ? ssMonthLabel($previous_ss_period['formatted_ym']) : $previous_ss_period['formatted_ym'];
 $ss_period_mode = (isset($_GET['periode']) && $_GET['periode'] === 'previous') ? 'previous' : 'current';
-$display_ss_data = $ss_period_mode === 'previous'
-    ? getAllUserSSSummaryByMonth($conn, $previous_ss_period['formatted_ym'])
-    : $all_ss_data;
+
+$all_ss_data = [];
+$display_ss_data = [];
+try {
+    if (function_exists('ssEnsureTipeColumn')) {
+        ssEnsureTipeColumn($conn);
+    }
+    if (function_exists('ssEnsureHistoryTable')) {
+        ssEnsureHistoryTable($conn);
+    }
+    $all_ss_data = function_exists('getAllUserSSSummary') ? getAllUserSSSummary($conn) : [];
+    $display_ss_data = $ss_period_mode === 'previous'
+        ? (function_exists('getAllUserSSSummaryByMonth') ? getAllUserSSSummaryByMonth($conn, $previous_ss_period['formatted_ym']) : [])
+        : $all_ss_data;
+} catch (Throwable $e) {
+    error_log("Error in skill-standard-adminhrd SS data: " . $e->getMessage());
+    $display_ss_data = $all_ss_data ?? [];
+}
 $display_ss_label = $ss_period_mode === 'previous' ? $previous_ss_label : $current_ss_label;
 
 // Ambil data untuk filter dropdown
@@ -358,11 +378,15 @@ $result_bagian = mysqli_query($conn, $sql_bagian);
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a href="ssanggotadetail?id=<?= $user['id'] ?>" 
-                                                               class="btn btn-sm btn-success"
-                                                               title="Lihat Detail SS">
-                                                                <i class="bi bi-eye"></i> Lihat
-                                                            </a>
+                                                            <?php if ($ss_period_mode !== 'previous') { ?>
+                                                                <a href="ssanggotadetail?id=<?= $user['id'] ?>" 
+                                                                   class="btn btn-sm btn-success"
+                                                                   title="Lihat Detail SS">
+                                                                    <i class="bi bi-eye"></i> Lihat
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <span class="text-muted">-</span>
+                                                            <?php } ?>
                                                         </center>
                                                     </td>
                                                 </tr>

@@ -1,4 +1,9 @@
 <?php
+if (isset($_GET['debug'])) {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -8,23 +13,106 @@ if (!isset($_SESSION['id_user'])) {
 }
 
 require 'helper/config.php';
+mysqli_report(MYSQLI_REPORT_OFF);
 require 'helper/getUser.php';
 require 'helper/checkAdmin.php';
-require 'helper/sp_functions.php';
-require 'helper/verified_functions.php';
+if (file_exists('helper/sp_functions.php')) {
+    require_once 'helper/sp_functions.php';
+}
+if (file_exists('helper/verified_functions.php')) {
+    require_once 'helper/verified_functions.php';
+}
+
+// Fallback functions jika helper belum lengkap/belum terupload di server live
+if (!function_exists('updateExpiredSP')) {
+    function updateExpiredSP($conn) {
+        $today = date('Y-m-d');
+        try {
+            mysqli_query($conn, "UPDATE tb_surat_peringatan SET status = 'selesai' WHERE status = 'aktif' AND masa_berlaku_selesai < '$today'");
+        } catch (Throwable $e) {}
+    }
+}
+if (!function_exists('getSPPenalty')) {
+    function getSPPenalty($jenis_sp) {
+        $penalties = ['SP1' => 2, 'SP2' => 3.5, 'SP3' => 5];
+        return $penalties[$jenis_sp] ?? 0;
+    }
+}
+if (!function_exists('getSPBadgeClass')) {
+    function getSPBadgeClass($jenis_sp) {
+        $badges = ['SP1' => 'warning', 'SP2' => 'danger', 'SP3' => 'dark'];
+        return $badges[$jenis_sp] ?? 'secondary';
+    }
+}
+if (!function_exists('ensureSPColumnsExist')) {
+    function ensureSPColumnsExist($conn) {}
+}
+
+// Auto-create tb_surat_peringatan jika belum ada
+try {
+    mysqli_query($conn, "CREATE TABLE IF NOT EXISTS tb_surat_peringatan (
+        id_sp INT AUTO_INCREMENT PRIMARY KEY,
+        id_user INT NOT NULL,
+        nomor_sp VARCHAR(100) NOT NULL,
+        jenis_sp ENUM('SP1', 'SP2', 'SP3') NOT NULL,
+        tanggal_sp DATE NOT NULL,
+        masa_berlaku_mulai DATE NOT NULL,
+        masa_berlaku_selesai DATE NOT NULL,
+        alasan TEXT NOT NULL,
+        alasan_2 TEXT NULL,
+        aturan_dilanggar TEXT NULL,
+        tanggal_kejadian DATE NULL,
+        keterangan TEXT NULL,
+        penandatangan VARCHAR(255) NULL,
+        jabatan_penandatangan VARCHAR(255) NULL,
+        tembusan TEXT NULL,
+        file_sp VARCHAR(255) NULL,
+        status ENUM('aktif', 'selesai', 'dihapus') DEFAULT 'aktif',
+        created_by INT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_user_status (id_user, status),
+        INDEX idx_masa_berlaku (masa_berlaku_mulai, masa_berlaku_selesai)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch (Throwable $e) {}
+
+// Auto-create tb_kpi_verified jika belum ada
+try {
+    mysqli_query($conn, "CREATE TABLE IF NOT EXISTS tb_kpi_verified (
+        id_kpi_verified INT AUTO_INCREMENT PRIMARY KEY,
+        id_user INT NOT NULL,
+        bulan VARCHAR(10) NOT NULL,
+        verified_by INT NOT NULL,
+        verified_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        keterangan TEXT NULL,
+        UNIQUE KEY unique_user_bulan (id_user, bulan),
+        INDEX idx_user (id_user),
+        INDEX idx_bulan (bulan)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch (Throwable $e) {}
 
 // Admin HRD dan Direktur (termasuk Diana Wulandari) bisa akses
-requireAdminHRDOrDirektur();
+if (function_exists('requireAdminHRDOrDirektur')) {
+    requireAdminHRDOrDirektur();
+}
 
 // Update SP yang sudah expired
-updateExpiredSP($conn);
+if (function_exists('updateExpiredSP')) {
+    updateExpiredSP($conn);
+}
 
 // Ambil nomor SP terakhir untuk auto-generate
-$q_last_sp = mysqli_query($conn, "SELECT nomor_sp FROM tb_surat_peringatan ORDER BY id_sp DESC LIMIT 1");
-$last_sp_row = mysqli_fetch_assoc($q_last_sp);
-$last_sp_nomor = $last_sp_row['nomor_sp'] ?? '0/KIU-HRD/' . date('Y');
-$last_sp_prefix = intval(explode('/', $last_sp_nomor)[0]);
-$next_sp_prefix = $last_sp_prefix + 1;
+$last_sp_nomor = '0/KIU-HRD/' . date('Y');
+$last_sp_prefix = 0;
+$next_sp_prefix = 1;
+try {
+    $q_last_sp = mysqli_query($conn, "SELECT nomor_sp FROM tb_surat_peringatan ORDER BY id_sp DESC LIMIT 1");
+    if ($q_last_sp && ($last_sp_row = mysqli_fetch_assoc($q_last_sp))) {
+        $last_sp_nomor = $last_sp_row['nomor_sp'] ?? $last_sp_nomor;
+        $last_sp_prefix = intval(explode('/', $last_sp_nomor)[0]);
+        $next_sp_prefix = $last_sp_prefix + 1;
+    }
+} catch (Throwable $e) {}
 
 // AJAX Handler untuk memuat data Surat Peringatan karyawan (Modal Kelola SP)
 if (isset($_GET['ajax_sp_list'])) {
@@ -370,110 +458,124 @@ function calculateUserKPISimFast($id_user, $sim_kpi_by_user, $sim_whats_sum, $si
 // 1. Bulk fetch active SPs
 $today = date('Y-m-d');
 $active_sps = [];
-$res_sp_bulk = mysqli_query($conn, "SELECT * FROM tb_surat_peringatan 
-    WHERE status = 'aktif' 
-    AND masa_berlaku_mulai <= '$today' 
-    AND masa_berlaku_selesai >= '$today'
-    ORDER BY CASE jenis_sp WHEN 'SP3' THEN 1 WHEN 'SP2' THEN 2 WHEN 'SP1' THEN 3 END");
-if ($res_sp_bulk) {
-    while ($row = mysqli_fetch_assoc($res_sp_bulk)) {
-        if (!isset($active_sps[$row['id_user']])) {
-            $active_sps[$row['id_user']] = $row;
+try {
+    $res_sp_bulk = mysqli_query($conn, "SELECT * FROM tb_surat_peringatan 
+        WHERE status = 'aktif' 
+        AND masa_berlaku_mulai <= '$today' 
+        AND masa_berlaku_selesai >= '$today'
+        ORDER BY CASE jenis_sp WHEN 'SP3' THEN 1 WHEN 'SP2' THEN 2 WHEN 'SP1' THEN 3 END");
+    if ($res_sp_bulk) {
+        while ($row = mysqli_fetch_assoc($res_sp_bulk)) {
+            if (!isset($active_sps[$row['id_user']])) {
+                $active_sps[$row['id_user']] = $row;
+            }
         }
     }
-}
+} catch (Throwable $e) {}
 
 // 2. Bulk fetch verified info bulan ini
 $bulan_ini = date('m/Y');
 $verified_map = [];
 $verifier_ids = [];
-$res_ver_bulk = mysqli_query($conn, "SELECT * FROM tb_kpi_verified WHERE bulan = '$bulan_ini'");
-if ($res_ver_bulk) {
-    while ($row = mysqli_fetch_assoc($res_ver_bulk)) {
-        $verified_map[$row['id_user']] = $row;
-        $verifier_ids[$row['verified_by']] = true;
-    }
-}
-
 $verifier_names = [];
-if (!empty($verifier_ids)) {
-    $ids_str = implode(',', array_map('intval', array_keys($verifier_ids)));
-    $res_vf_names = mysqli_query($conn, "SELECT id, nama_lngkp FROM tb_users WHERE id IN ($ids_str)");
-    if ($res_vf_names) {
-        while ($row = mysqli_fetch_assoc($res_vf_names)) {
-            $verifier_names[$row['id']] = $row['nama_lngkp'];
+try {
+    $res_ver_bulk = mysqli_query($conn, "SELECT * FROM tb_kpi_verified WHERE bulan = '$bulan_ini'");
+    if ($res_ver_bulk) {
+        while ($row = mysqli_fetch_assoc($res_ver_bulk)) {
+            $verified_map[$row['id_user']] = $row;
+            $verifier_ids[$row['verified_by']] = true;
         }
     }
-}
+
+    if (!empty($verifier_ids)) {
+        $ids_str = implode(',', array_map('intval', array_keys($verifier_ids)));
+        $res_vf_names = mysqli_query($conn, "SELECT id, nama_lngkp FROM tb_users WHERE id IN ($ids_str)");
+        if ($res_vf_names) {
+            while ($row = mysqli_fetch_assoc($res_vf_names)) {
+                $verifier_names[$row['id']] = $row['nama_lngkp'];
+            }
+        }
+    }
+} catch (Throwable $e) {}
 
 // 3. Bulk fetch bobot KPI real
 $bobot_map = [];
-$res_b_bulk = mysqli_query($conn, "SELECT id_user, bobotwhat, bobothow FROM tb_bobotkpi");
-if ($res_b_bulk) {
-    while ($row = mysqli_fetch_assoc($res_b_bulk)) {
-        $bobot_map[$row['id_user']] = $row;
+try {
+    $res_b_bulk = mysqli_query($conn, "SELECT id_user, bobotwhat, bobothow FROM tb_bobotkpi");
+    if ($res_b_bulk) {
+        while ($row = mysqli_fetch_assoc($res_b_bulk)) {
+            $bobot_map[$row['id_user']] = $row;
+        }
     }
-}
+} catch (Throwable $e) {}
 
 // 4. Bulk fetch tb_whats aggregated
 $whats_sum = [];
-$res_w_bulk = mysqli_query($conn, "SELECT id_user, id_kpi, SUM(total) as total FROM tb_whats GROUP BY id_user, id_kpi");
-if ($res_w_bulk) {
-    while ($row = mysqli_fetch_assoc($res_w_bulk)) {
-        $whats_sum[$row['id_user']][$row['id_kpi']] = (float)$row['total'];
+try {
+    $res_w_bulk = mysqli_query($conn, "SELECT id_user, id_kpi, SUM(total) as total FROM tb_whats GROUP BY id_user, id_kpi");
+    if ($res_w_bulk) {
+        while ($row = mysqli_fetch_assoc($res_w_bulk)) {
+            $whats_sum[$row['id_user']][$row['id_kpi']] = (float)$row['total'];
+        }
     }
-}
+} catch (Throwable $e) {}
 
 // 5. Bulk fetch tb_hows aggregated
 $hows_sum = [];
-$res_h_bulk = mysqli_query($conn, "SELECT id_user, id_kpi, SUM(total) as total FROM tb_hows GROUP BY id_user, id_kpi");
-if ($res_h_bulk) {
-    while ($row = mysqli_fetch_assoc($res_h_bulk)) {
-        $hows_sum[$row['id_user']][$row['id_kpi']] = (float)$row['total'];
+try {
+    $res_h_bulk = mysqli_query($conn, "SELECT id_user, id_kpi, SUM(total) as total FROM tb_hows GROUP BY id_user, id_kpi");
+    if ($res_h_bulk) {
+        while ($row = mysqli_fetch_assoc($res_h_bulk)) {
+            $hows_sum[$row['id_user']][$row['id_kpi']] = (float)$row['total'];
+        }
     }
-}
+} catch (Throwable $e) {}
 
 // 6. Bulk fetch tb_kpi
 $kpi_by_user = [];
-$res_k_bulk = mysqli_query($conn, "SELECT id, id_user, bobot, bobot2 FROM tb_kpi");
-if ($res_k_bulk) {
-    while ($row = mysqli_fetch_assoc($res_k_bulk)) {
-        $kpi_by_user[$row['id_user']][] = $row;
+try {
+    $res_k_bulk = mysqli_query($conn, "SELECT id, id_user, bobot, bobot2 FROM tb_kpi");
+    if ($res_k_bulk) {
+        while ($row = mysqli_fetch_assoc($res_k_bulk)) {
+            $kpi_by_user[$row['id_user']][] = $row;
+        }
     }
-}
+} catch (Throwable $e) {}
 
 // 7. Bulk fetch SIMULASI data
 $sim_bobot_map = [];
-$res_sb_bulk = mysqli_query($conn, "SELECT id_user, bobotwhat, bobothow FROM tbsim_bobotkpi");
-if ($res_sb_bulk) {
-    while ($row = mysqli_fetch_assoc($res_sb_bulk)) {
-        $sim_bobot_map[$row['id_user']] = $row;
-    }
-}
-
 $sim_whats_sum = [];
-$res_sw_bulk = mysqli_query($conn, "SELECT id_user, id_kpi, SUM(total) as total FROM tbsim_whats GROUP BY id_user, id_kpi");
-if ($res_sw_bulk) {
-    while ($row = mysqli_fetch_assoc($res_sw_bulk)) {
-        $sim_whats_sum[$row['id_user']][$row['id_kpi']] = (float)$row['total'];
-    }
-}
-
 $sim_hows_sum = [];
-$res_sh_bulk = mysqli_query($conn, "SELECT id_user, id_kpi, SUM(total) as total FROM tbsim_hows GROUP BY id_user, id_kpi");
-if ($res_sh_bulk) {
-    while ($row = mysqli_fetch_assoc($res_sh_bulk)) {
-        $sim_hows_sum[$row['id_user']][$row['id_kpi']] = (float)$row['total'];
-    }
-}
-
 $sim_kpi_by_user = [];
-$res_sk_bulk = mysqli_query($conn, "SELECT id, id_user, bobot, bobot2 FROM tbsim_kpi");
-if ($res_sk_bulk) {
-    while ($row = mysqli_fetch_assoc($res_sk_bulk)) {
-        $sim_kpi_by_user[$row['id_user']][] = $row;
+try {
+    $res_sb_bulk = mysqli_query($conn, "SELECT id_user, bobotwhat, bobothow FROM tbsim_bobotkpi");
+    if ($res_sb_bulk) {
+        while ($row = mysqli_fetch_assoc($res_sb_bulk)) {
+            $sim_bobot_map[$row['id_user']] = $row;
+        }
     }
-}
+
+    $res_sw_bulk = mysqli_query($conn, "SELECT id_user, id_kpi, SUM(total) as total FROM tbsim_whats GROUP BY id_user, id_kpi");
+    if ($res_sw_bulk) {
+        while ($row = mysqli_fetch_assoc($res_sw_bulk)) {
+            $sim_whats_sum[$row['id_user']][$row['id_kpi']] = (float)$row['total'];
+        }
+    }
+
+    $res_sh_bulk = mysqli_query($conn, "SELECT id_user, id_kpi, SUM(total) as total FROM tbsim_hows GROUP BY id_user, id_kpi");
+    if ($res_sh_bulk) {
+        while ($row = mysqli_fetch_assoc($res_sh_bulk)) {
+            $sim_hows_sum[$row['id_user']][$row['id_kpi']] = (float)$row['total'];
+        }
+    }
+
+    $res_sk_bulk = mysqli_query($conn, "SELECT id, id_user, bobot, bobot2 FROM tbsim_kpi");
+    if ($res_sk_bulk) {
+        while ($row = mysqli_fetch_assoc($res_sk_bulk)) {
+            $sim_kpi_by_user[$row['id_user']][] = $row;
+        }
+    }
+} catch (Throwable $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -626,8 +728,10 @@ if ($res_sk_bulk) {
                                                     AND u.jabatan != 'Admin HRD'
                                                     ORDER BY u.departement ASC";
                                         $result_dept = mysqli_query($conn, $sql_dept);
-                                        while($dept = mysqli_fetch_assoc($result_dept)) {
-                                            echo "<option value='".$dept['departement']."'>".$dept['departement']."</option>";
+                                        if ($result_dept) {
+                                            while($dept = mysqli_fetch_assoc($result_dept)) {
+                                                echo "<option value='".$dept['departement']."'>".$dept['departement']."</option>";
+                                            }
                                         }
                                         ?>
                                     </select>
@@ -745,9 +849,10 @@ if ($res_sk_bulk) {
                                     <tbody>
                                         <?php 
                                         $no = 1;
+                                        $curr_user_id = intval($id_user ?? ($_SESSION['id_user'] ?? 0));
                                         $sqlhd = "SELECT u.*
                                         FROM tb_users u
-                                        WHERE u.id != $id_user 
+                                        WHERE u.id != $curr_user_id 
                                         AND u.jabatan != 'Admin HRD'
                                         AND u.username != 'itboy'
                                         ORDER BY 
@@ -761,7 +866,8 @@ if ($res_sk_bulk) {
                                             u.nama_lngkp ASC";
                                         $sgdah = mysqli_query($conn, $sqlhd);
                                         
-                                        while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { 
+                                        if ($sgdah) {
+                                            while ($hasilsfa = mysqli_fetch_assoc($sgdah)) { 
                                             // Tentukan badge color berdasarkan jabatan
                                             $badge_color = 'secondary';
                                             $badge_icon = 'person-fill';
@@ -969,8 +1075,9 @@ if ($res_sk_bulk) {
                                             </td>
                                         </tr>
                                         <?php 
-                                            $no++;
-                                        } 
+                                                $no++;
+                                            } 
+                                        }
                                         ?>
                                     </tbody>
                                 </table>
