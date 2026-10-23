@@ -432,4 +432,185 @@ if (!function_exists('getAllUserSSSummary')) {
         return $data;
     }
 }
+
+if (!function_exists('getAllUserSSSummaryByMonth')) {
+    /**
+     * Mengambil ringkasan nilai SS historis seluruh user untuk satu bulan.
+     * Bentuk hasil dibuat sama dengan getAllUserSSSummary() agar mudah
+     * dibandingkan dengan nilai bulan berjalan tanpa query per karyawan.
+     */
+    function getAllUserSSSummaryByMonth($conn, $bulan, $user_ids = null)
+    {
+        if (!ssEnsureHistoryTable($conn)) {
+            return [];
+        }
+
+        $bulan_safe = mysqli_real_escape_string($conn, $bulan);
+        $where_user = "WHERE h.bulan = '$bulan_safe'";
+
+        if (!empty($user_ids)) {
+            if (is_array($user_ids)) {
+                $ids = array_filter(array_map('intval', $user_ids), function ($id) {
+                    return $id > 0;
+                });
+                if (empty($ids)) {
+                    return [];
+                }
+                $where_user .= ' AND h.id_user IN (' . implode(',', $ids) . ')';
+            } else {
+                $uid = intval($user_ids);
+                if ($uid <= 0) {
+                    return [];
+                }
+                $where_user .= " AND h.id_user = $uid";
+            }
+        }
+
+        $sql = "SELECT
+                    h.id_user,
+                    h.id_ss,
+                    COALESCE(s.tipe_ss, 'umum') AS tipe_ss,
+                    SUM(CASE WHEN h.nilaiss > 0 THEN h.nilaiss ELSE 0 END) AS sum_nilai,
+                    COUNT(CASE WHEN h.nilaiss > 0 THEN 1 ELSE NULL END) AS count_dinilai,
+                    COUNT(h.id_sspoin) AS total_poin
+                FROM tb_ss_history h
+                LEFT JOIN tb_ss s
+                    ON s.id_user = h.id_user AND s.id_poinss = h.id_ss
+                $where_user
+                GROUP BY h.id_user, h.id_ss, COALESCE(s.tipe_ss, 'umum')";
+        $result = mysqli_query($conn, $sql);
+        $data = [];
+
+        if (!$result) {
+            return $data;
+        }
+
+        while ($row = mysqli_fetch_assoc($result)) {
+            $uid = intval($row['id_user']);
+            if (!isset($data[$uid])) {
+                $data[$uid] = [
+                    'umum_avgs' => [],
+                    'teknis_avgs' => [],
+                    'all_avgs' => [],
+                    'avg_umum' => null,
+                    'avg_teknis' => null,
+                    'avg_total' => null,
+                ];
+            }
+
+            $count_dinilai = intval($row['count_dinilai']);
+            if ($count_dinilai === 0) {
+                continue;
+            }
+
+            $category_average = floatval($row['sum_nilai']) / $count_dinilai;
+            $tipe = $row['tipe_ss'] === 'teknis' ? 'teknis' : 'umum';
+            $data[$uid][$tipe . '_avgs'][] = $category_average;
+            $data[$uid]['all_avgs'][] = $category_average;
+        }
+
+        foreach ($data as &$user_data) {
+            $user_data['avg_umum'] = !empty($user_data['umum_avgs'])
+                ? round(array_sum($user_data['umum_avgs']) / count($user_data['umum_avgs']), 2)
+                : null;
+            $user_data['avg_teknis'] = !empty($user_data['teknis_avgs'])
+                ? round(array_sum($user_data['teknis_avgs']) / count($user_data['teknis_avgs']), 2)
+                : null;
+            $user_data['avg_total'] = !empty($user_data['all_avgs'])
+                ? round(array_sum($user_data['all_avgs']) / count($user_data['all_avgs']), 2)
+                : null;
+        }
+        unset($user_data);
+
+        return $data;
+    }
+}
+
+if (!function_exists('getAllUserSSSimulationSummary')) {
+    /**
+     * Mengambil ringkasan SS simulasi seluruh user secara batch.
+     */
+    function getAllUserSSSimulationSummary($conn, $user_ids = null)
+    {
+        if (!ssEnsureSimulasiTable($conn)) {
+            return [];
+        }
+
+        $where_user = '';
+        if (!empty($user_ids)) {
+            if (is_array($user_ids)) {
+                $ids = array_filter(array_map('intval', $user_ids), function ($id) {
+                    return $id > 0;
+                });
+                if (empty($ids)) {
+                    return [];
+                }
+                $where_user = 'WHERE sim.id_user IN (' . implode(',', $ids) . ')';
+            } else {
+                $uid = intval($user_ids);
+                if ($uid <= 0) {
+                    return [];
+                }
+                $where_user = "WHERE sim.id_user = $uid";
+            }
+        }
+
+        $sql = "SELECT
+                    sim.id_user,
+                    sim.id_ss,
+                    COALESCE(s.tipe_ss, 'umum') AS tipe_ss,
+                    SUM(CASE WHEN sim.nilaiss > 0 THEN sim.nilaiss ELSE 0 END) AS sum_nilai,
+                    COUNT(CASE WHEN sim.nilaiss > 0 THEN 1 ELSE NULL END) AS count_dinilai
+                FROM tb_ss_simulasi sim
+                LEFT JOIN tb_ss s
+                    ON s.id_user = sim.id_user AND s.id_poinss = sim.id_ss
+                $where_user
+                GROUP BY sim.id_user, sim.id_ss, COALESCE(s.tipe_ss, 'umum')";
+        $result = mysqli_query($conn, $sql);
+        $data = [];
+
+        if (!$result) {
+            return $data;
+        }
+
+        while ($row = mysqli_fetch_assoc($result)) {
+            $uid = intval($row['id_user']);
+            if (!isset($data[$uid])) {
+                $data[$uid] = [
+                    'umum_avgs' => [],
+                    'teknis_avgs' => [],
+                    'all_avgs' => [],
+                    'avg_umum' => null,
+                    'avg_teknis' => null,
+                    'avg_total' => null,
+                ];
+            }
+
+            $count_dinilai = intval($row['count_dinilai']);
+            if ($count_dinilai === 0) {
+                continue;
+            }
+
+            $category_average = floatval($row['sum_nilai']) / $count_dinilai;
+            $tipe = $row['tipe_ss'] === 'teknis' ? 'teknis' : 'umum';
+            $data[$uid][$tipe . '_avgs'][] = $category_average;
+            $data[$uid]['all_avgs'][] = $category_average;
+        }
+
+        foreach ($data as &$user_data) {
+            $user_data['avg_umum'] = !empty($user_data['umum_avgs'])
+                ? round(array_sum($user_data['umum_avgs']) / count($user_data['umum_avgs']), 2)
+                : null;
+            $user_data['avg_teknis'] = !empty($user_data['teknis_avgs'])
+                ? round(array_sum($user_data['teknis_avgs']) / count($user_data['teknis_avgs']), 2)
+                : null;
+            $user_data['avg_total'] = !empty($user_data['all_avgs'])
+                ? round(array_sum($user_data['all_avgs']) / count($user_data['all_avgs']), 2)
+                : null;
+        }
+        unset($user_data);
+
+        return $data;
+    }
+}
 ?>

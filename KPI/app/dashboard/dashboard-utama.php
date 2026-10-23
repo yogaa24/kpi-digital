@@ -715,7 +715,7 @@ if ($user_level >= 5) {
                                         <?php } elseif ($user_level == 4) { ?>
                                         <div class="col">
                                             <a href="kpidepartemen" class="btn btn-outline-success w-100">
-                                                <i class="bi bi-diagram-3-fill me-2"></i>KPI Departemen
+                                                <i class="bi bi-diagram-3-fill me-2"></i>KPI &amp; SS Departemen
                                             </a>
                                         </div>
                                         <?php } ?>

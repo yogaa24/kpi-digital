@@ -44,6 +44,15 @@ $result_users = mysqli_query($conn, $sql_users);
 
 // Batch ambil summary SS seluruh user (sangat cepat & efisien)
 $all_ss_data = getAllUserSSSummary($conn);
+$current_ss_period = getAppCurrentPeriod();
+$previous_ss_period = getAppPreviousPeriod();
+$current_ss_label = ssMonthLabel($current_ss_period['formatted_ym']);
+$previous_ss_label = ssMonthLabel($previous_ss_period['formatted_ym']);
+$ss_period_mode = (isset($_GET['periode']) && $_GET['periode'] === 'previous') ? 'previous' : 'current';
+$display_ss_data = $ss_period_mode === 'previous'
+    ? getAllUserSSSummaryByMonth($conn, $previous_ss_period['formatted_ym'])
+    : $all_ss_data;
+$display_ss_label = $ss_period_mode === 'previous' ? $previous_ss_label : $current_ss_label;
 
 // Ambil data untuk filter dropdown
 $sql_jabatan = "SELECT DISTINCT jabatan FROM tb_users WHERE jabatan IS NOT NULL AND jabatan != '' ORDER BY jabatan";
@@ -210,6 +219,22 @@ $result_bagian = mysqli_query($conn, $sql_bagian);
                         <div class="col-12">
                             <div class="card shadow-sm border-0">
                                 <div class="card-body">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                        <div>
+                                            <span class="fw-bold">Periode nilai:</span>
+                                            <span class="text-muted ms-1"><?= $display_ss_label ?></span>
+                                        </div>
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Pilih periode Skill Standard">
+                                            <a href="skill-standard-adminhrd?periode=current"
+                                               class="btn btn-outline-primary <?= $ss_period_mode === 'current' ? 'active' : '' ?>">
+                                                <i class="bi bi-calendar-check me-1"></i>Bulan Ini
+                                            </a>
+                                            <a href="skill-standard-adminhrd?periode=previous"
+                                               class="btn btn-outline-secondary <?= $ss_period_mode === 'previous' ? 'active' : '' ?>">
+                                                <i class="bi bi-calendar-minus me-1"></i>Bulan Lalu
+                                            </a>
+                                        </div>
+                                    </div>
                                     <div class="table-responsive">
                                         <table id="datatablenya" class="table table-hover table-bordered align-middle">
                                             <thead class="table-dark">
@@ -234,10 +259,11 @@ $result_bagian = mysqli_query($conn, $sql_bagian);
                                                 while ($user = mysqli_fetch_assoc($result_users)) { 
                                                     $uid = intval($user['id']);
                                                     $user_ss = $all_ss_data[$uid] ?? [];
+                                                    $user_display_ss = $display_ss_data[$uid] ?? [];
 
-                                                    $val_umum = $user_ss['avg_umum'] ?? null;
-                                                    $val_teknis = $user_ss['avg_teknis'] ?? null;
-                                                    $val_total = $user_ss['avg_total'] ?? null;
+                                                    $val_umum = $user_display_ss['avg_umum'] ?? null;
+                                                    $val_teknis = $user_display_ss['avg_teknis'] ?? null;
+                                                    $val_total = $user_display_ss['avg_total'] ?? null;
                                                     $total_kat = $user_ss['total_kat'] ?? intval($user['total_ss']);
                                                     $total_poin = $user_ss['total_poin'] ?? 0;
 

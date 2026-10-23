@@ -9,6 +9,7 @@ if (!isset($_SESSION['id_user'])) {
     require 'helper/config.php';
     require 'helper/getUser.php';
     require 'helper/getKPI.php';
+    require_once 'helper/ss_functions.php';
 }
 
 // Boleh diakses oleh level 4 (Kadep), level 5 (Direktur), level 6 (Wadir), level 7 (Admin HRD), atau ID 1 (Diana Wulandari)
@@ -16,6 +17,8 @@ if (!isset($leveel) || ($leveel != 4 && $leveel != 5 && $leveel != 6 && $leveel 
     header("Location: home-kpi-real");
     exit();
 }
+
+$viewMode = (isset($_GET['view']) && $_GET['view'] === 'ss') ? 'ss' : 'kpi';
 
 function getnilai($conn, $id)
 {
@@ -245,7 +248,7 @@ if ($isAllDeptViewer) {
                     AND (status_karyawan = 'AKTIF' OR (status_karyawan IS NULL AND status = 1))
                     ORDER BY CASE WHEN id = '$id_user' THEN 0 ELSE 1 END, departement ASC, nama_lngkp ASC";
     }
-    $pageTitle = "KPI Seluruh Departemen";
+    $pageTitle = ($viewMode === 'ss' ? 'Skill Standard' : 'KPI') . " Seluruh Departemen";
     $pageDesc  = $filterBagian != '' ? "Departemen: <strong>$filterBagian</strong>" : "Semua Departemen";
 
 } else {
@@ -277,10 +280,20 @@ if ($isAllDeptViewer) {
         $deptLabel   = $bagian;
     }
 
-    $pageTitle  = "KPI Departemen";
+    $pageTitle  = ($viewMode === 'ss' ? 'Skill Standard' : 'KPI') . " Departemen";
     $pageDesc   = "Departemen: <strong>" . htmlspecialchars($deptLabel) . "</strong>";
     $daftarDept = [];
     $filterBagian = '';
+}
+
+$currentSSData = [];
+$previousSSData = [];
+$simulationSSData = [];
+if ($viewMode === 'ss') {
+    $currentSSData = getAllUserSSSummary($conn);
+    $previousSSMonth = sprintf('%04d-%02d', $tahunSebelumnya, $bulanSebelumnya);
+    $previousSSData = getAllUserSSSummaryByMonth($conn, $previousSSMonth);
+    $simulationSSData = getAllUserSSSimulationSummary($conn);
 }
 ?>
 
@@ -289,7 +302,7 @@ if ($isAllDeptViewer) {
 <head>
     <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>KPI Departemen - KPI Digital</title>
+    <title>KPI &amp; SS Departemen - KPI Digital</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="title" content="KPI Digital">
     <meta name="author" content="Rvld">
@@ -344,18 +357,34 @@ if ($isAllDeptViewer) {
                 <div class="container-fluid">
 
                     <!-- Page Header -->
-                    <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 mb-3">
                         <div>
                             <h4 class="mb-0"><i class="bi bi-bar-chart-line-fill text-primary me-2"></i> <?= $pageTitle ?></h4>
-                            <small class="text-muted"><?= $pageDesc ?> &nbsp;|&nbsp; 
+                            <small class="text-muted"><?= $pageDesc ?> &nbsp;|&nbsp;
+                                <?php if ($viewMode === 'ss'): ?>
                                 Bulan Ini: <strong><?= $namaBulanIni . ' ' . $tahunIni ?></strong> &nbsp;|&nbsp;
                                 Bulan Lalu: <strong><?= $namaBulanSebelumnya . ' ' . $tahunSebelumnya ?></strong>
+                                <?php else: ?>
+                                Bulan Ini: <strong><?= $namaBulanIni . ' ' . $tahunIni ?></strong> &nbsp;|&nbsp;
+                                Bulan Lalu: <strong><?= $namaBulanSebelumnya . ' ' . $tahunSebelumnya ?></strong>
+                                <?php endif; ?>
                             </small>
                         </div>
                         <div class="d-flex align-items-center">
+                        <div class="btn-group btn-group-sm me-2" role="group" aria-label="Pilih data departemen">
+                            <a href="kpidepartemen?view=kpi<?= $filterBagian !== '' ? '&amp;bagian=' . urlencode($filterBagian) : '' ?>"
+                               class="btn btn-outline-primary <?= $viewMode === 'kpi' ? 'active' : '' ?>">
+                                <i class="bi bi-graph-up-arrow me-1"></i>KPI
+                            </a>
+                            <a href="kpidepartemen?view=ss<?= $filterBagian !== '' ? '&amp;bagian=' . urlencode($filterBagian) : '' ?>"
+                               class="btn btn-outline-info <?= $viewMode === 'ss' ? 'active' : '' ?>">
+                                <i class="bi bi-award-fill me-1"></i>Skill Standard
+                            </a>
+                        </div>
                         <?php if ($isAllDeptViewer): ?>
                         <!-- Filter Departemen untuk Direktur / All Dept Viewer -->
                         <form method="GET" action="kpidepartemen" class="form-inline">
+                            <input type="hidden" name="view" value="<?= $viewMode ?>">
                             <div class="input-group input-group-sm">
                                 <select name="bagian" class="form-control" onchange="this.form.submit()">
                                     <option value="">-- Semua Departemen --</option>
@@ -367,7 +396,7 @@ if ($isAllDeptViewer) {
                                 </select>
                                 <?php if ($filterBagian != ''): ?>
                                     <div class="input-group-append">
-                                        <a href="kpidepartemen" class="btn btn-outline-secondary btn-sm" title="Reset Filter">
+                                        <a href="kpidepartemen?view=<?= $viewMode ?>" class="btn btn-outline-secondary btn-sm" title="Reset Filter">
                                             <i class="bi bi-x-circle"></i>
                                         </a>
                                     </div>
@@ -378,12 +407,13 @@ if ($isAllDeptViewer) {
                         <button class="btn btn-outline-primary btn-sm ml-2" onclick="copyTableToClipboard('datatablenya')" style="white-space:nowrap;">
                             <i class="bi bi-clipboard"></i> Copy
                         </button>
-                        <a href="data-karyawan" class="btn btn-outline-secondary btn-sm ml-2" style="white-space:nowrap;">
+                        <a href="<?= $isAllDeptViewer ? 'data-karyawan' : 'dashboard-utama' ?>" class="btn btn-outline-secondary btn-sm ml-2" style="white-space:nowrap;">
                             <i class="bi bi-arrow-left"></i> Kembali
                         </a>
                         </div>
                     </div>
 
+                    <?php if ($viewMode === 'kpi'): ?>
                     <!-- Tabel KPI -->
                     <div class="table-responsive">
                         <table id="datatablenya" class="table align-middle table-hover table-bordered">
@@ -668,6 +698,75 @@ if ($isAllDeptViewer) {
                     </div>
                     <?php endif; ?>
 
+                    <?php else: ?>
+                    <!-- Tabel Skill Standard -->
+                    <div class="table-responsive">
+                        <table id="datatablenya" class="table align-middle table-hover table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th width="3%" rowspan="2"><center>No</center></th>
+                                    <th rowspan="2"><center>Nama Anggota</center></th>
+                                    <th width="15%" rowspan="2"><center>Bagian</center></th>
+                                    <th colspan="2"><center>Bulan Lalu (<?= $namaBulanSebelumnya ?>)</center></th>
+                                    <th colspan="2"><center>Bulan Ini (<?= $namaBulanIni ?>)</center></th>
+                                    <th colspan="2"><center>Simulasi</center></th>
+                                    <th width="9%" rowspan="2"><center>#</center></th>
+                                </tr>
+                                <tr>
+                                    <th width="8%"><center>Umum</center></th>
+                                    <th width="8%"><center>Teknis</center></th>
+                                    <th width="8%"><center>Umum</center></th>
+                                    <th width="8%"><center>Teknis</center></th>
+                                    <th width="8%"><center>Umum</center></th>
+                                    <th width="8%"><center>Teknis</center></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php
+                            $no = 1;
+                            $ssUsersResult = mysqli_query($conn, $sqlUsers);
+                            while ($ssUser = mysqli_fetch_assoc($ssUsersResult)):
+                                $ssUserId = intval($ssUser['id']);
+                                $ssCurrent = $currentSSData[$ssUserId] ?? [];
+                                $ssPrevious = $previousSSData[$ssUserId] ?? [];
+                                $ssSimulation = $simulationSSData[$ssUserId] ?? [];
+                            ?>
+                                <tr>
+                                    <td><center><?= $no++ ?></center></td>
+                                    <td style="padding-left:15px;">
+                                        <?= htmlspecialchars($ssUser['nama_lngkp']) ?>
+                                        <?php if ($ssUserId === intval($_SESSION['id_user'])): ?>
+                                            <span class="badge bg-primary">Saya</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><center><?= htmlspecialchars($ssUser['bagian']) ?></center></td>
+                                    <td><center><span class="badge bg-secondary"><?= isset($ssPrevious['avg_umum']) ? number_format($ssPrevious['avg_umum'], 2) : '-' ?></span></center></td>
+                                    <td><center><span class="badge bg-secondary"><?= isset($ssPrevious['avg_teknis']) ? number_format($ssPrevious['avg_teknis'], 2) : '-' ?></span></center></td>
+                                    <td><center><span class="badge bg-primary"><?= isset($ssCurrent['avg_umum']) ? number_format($ssCurrent['avg_umum'], 2) : '-' ?></span></center></td>
+                                    <td><center><span class="badge bg-success"><?= isset($ssCurrent['avg_teknis']) ? number_format($ssCurrent['avg_teknis'], 2) : '-' ?></span></center></td>
+                                    <td><center><span class="badge bg-warning text-dark"><?= isset($ssSimulation['avg_umum']) ? number_format($ssSimulation['avg_umum'], 2) : '-' ?></span></center></td>
+                                    <td><center><span class="badge bg-warning text-dark"><?= isset($ssSimulation['avg_teknis']) ? number_format($ssSimulation['avg_teknis'], 2) : '-' ?></span></center></td>
+                                    <td>
+                                        <?php if ($ssUserId !== intval($_SESSION['id_user']) && $ssUser['jabatan'] !== 'Direktur'): ?>
+                                        <center>
+                                            <a href="ssanggotadetail?id=<?= $ssUserId ?>"
+                                               class="btn btn-success btn-sm" title="Lihat/Edit Bulan Ini">
+                                                <i class="bi bi-eye fs-8"></i>
+                                            </a>
+                                            <a href="ssanggotadetail?id=<?= $ssUserId ?>&amp;tab=umum&amp;periode=next"
+                                               class="btn btn-warning btn-sm" title="Lihat/Edit Simulasi">
+                                                <i class="bi bi-clipboard-data fs-8"></i>
+                                            </a>
+                                        </center>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php endif; ?>
+
                 </div>
             </div>
         </main>
@@ -699,6 +798,7 @@ if ($isAllDeptViewer) {
                 ]
             });
 
+            <?php if ($viewMode === 'kpi'): ?>
             // ===== PIE CHART =====
             var pieOptions = {
                 series: [<?= $count_poor ?>, <?= $count_good ?>, <?= $count_very_good ?>, <?= $count_excellent ?>],
@@ -744,6 +844,7 @@ if ($isAllDeptViewer) {
                 }
             };
             new ApexCharts(document.querySelector("#kpiBarChart"), barOptions).render();
+            <?php endif; ?>
             <?php endif; ?>
         });
         
