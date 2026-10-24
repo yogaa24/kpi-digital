@@ -1,6 +1,10 @@
-<!-- kpianggota -->
-<!DOCTYPE html>
 <?php
+if (isset($_GET['debug'])) {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
+
 session_start();
 if (!isset($_SESSION['id_user'])) {
     header("Location: index");
@@ -8,10 +12,39 @@ if (!isset($_SESSION['id_user'])) {
 } else {
 
     require 'helper/config.php';
+    if (function_exists('mysqli_report')) {
+        mysqli_report(MYSQLI_REPORT_OFF);
+    }
     require 'helper/getUser.php';
-    require 'helper/sp_functions.php';
-    require 'helper/verified_functions.php';
-    require 'helper/kpi_real_import_functions.php';
+    if (file_exists('helper/sp_functions.php')) {
+        require_once 'helper/sp_functions.php';
+    }
+    if (file_exists('helper/verified_functions.php')) {
+        require_once 'helper/verified_functions.php';
+    }
+    if (file_exists('helper/kpi_real_import_functions.php')) {
+        require_once 'helper/kpi_real_import_functions.php';
+    }
+
+    // Fallbacks jika helper belum terupload di live server
+    if (!function_exists('updateExpiredSP')) {
+        function updateExpiredSP($conn) {}
+    }
+    if (!function_exists('calculateKPIWithSP')) {
+        function calculateKPIWithSP($conn, $id_user, $nilai_asli) {
+            return [
+                'nilai_akhir' => $nilai_asli,
+                'sp_data' => null,
+                'pengurangan' => 0,
+                'nilai_asli' => $nilai_asli
+            ];
+        }
+    }
+    if (!function_exists('checkKPIVerified')) {
+        function checkKPIVerified($conn, $id_user, $bulan = null) {
+            return false;
+        }
+    }
 
     $autoload_path = __DIR__ . '/../../vendor/autoload.php';
     $kpi_real_import_ready = is_file($autoload_path);
@@ -38,17 +71,26 @@ if (!isset($_SESSION['id_user'])) {
 
     $sqlang = "SELECT * FROM tb_users WHERE id='$id_sf'";
     $resulasft = mysqli_query($conn, $sqlang);
-    while ($hasilsfa = mysqli_fetch_assoc($resulasft)) {
-        $nama_lngkpan = $hasilsfa['nama_lngkp'];
-        $nikan = $hasilsfa['nik'];
-        $bagianan = $hasilsfa['bagian'];
-        $departementan = $hasilsfa['departement'];
-        $jabatanan = $hasilsfa['jabatan'];
-        $atasanan = $hasilsfa['atasan'];
-        $penilaian = $hasilsfa['penilai'];
+    $nama_lngkpan = '';
+    $nikan = '';
+    $bagianan = '';
+    $departementan = '';
+    $jabatanan = '';
+    $atasanan = '';
+    $penilaian = '';
+    if ($resulasft) {
+        while ($hasilsfa = mysqli_fetch_assoc($resulasft)) {
+            $nama_lngkpan = $hasilsfa['nama_lngkp'] ?? '';
+            $nikan = $hasilsfa['nik'] ?? '';
+            $bagianan = $hasilsfa['bagian'] ?? '';
+            $departementan = $hasilsfa['departement'] ?? '';
+            $jabatanan = $hasilsfa['jabatan'] ?? '';
+            $atasanan = $hasilsfa['atasan'] ?? '';
+            $penilaian = $hasilsfa['penilai'] ?? '';
+        }
     }
 
-    $can_import_kpi_real = canImportKPIRealForMember(
+    $can_import_kpi_real = function_exists('canImportKPIRealForMember') && canImportKPIRealForMember(
         $id_user,
         $id_sf,
         $leveel,
@@ -531,6 +573,7 @@ function tmapil($bl, $th){
     return $bulannnn;
 }
 } ?>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -1159,9 +1202,9 @@ function tmapil($bl, $th){
 
                             // Cek apakah user yang login adalah atasan dari user yang dilihat
                             $is_atasan = false;
-                            $user_info = mysqli_query($conn, "SELECT atasan FROM tb_users WHERE id = $id_sf"); // PERBAIKI: gunakan $id_sf
-                            $user_row = mysqli_fetch_assoc($user_info);
-                            if ($user_row['atasan'] == $nama_lngkp) { // Jika atasan user yang dilihat = user yang login
+                            $user_info = mysqli_query($conn, "SELECT atasan FROM tb_users WHERE id = $id_sf");
+                            $user_row = $user_info ? mysqli_fetch_assoc($user_info) : null;
+                            if ($user_row && isset($user_row['atasan']) && $user_row['atasan'] == $nama_lngkp) {
                                 $is_atasan = true;
                             }
                             ?>

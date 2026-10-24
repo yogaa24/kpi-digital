@@ -1,19 +1,57 @@
 <?php
-session_start();
+if (isset($_GET['debug'])) {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+}
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (!isset($_SESSION['id_user'])) {
     header("Location: index");
     exit();
 } else {
     require 'helper/config.php';
-    require_once 'helper/period_helper.php';
+    if (function_exists('mysqli_report')) {
+        mysqli_report(MYSQLI_REPORT_OFF);
+    }
+    if (file_exists('helper/period_helper.php')) {
+        require_once 'helper/period_helper.php';
+    }
     require 'helper/getUser.php';
-    require 'helper/getKPI.php';
-    require 'helper/getHow.php';
-    require 'helper/sp_functions.php';
+    if (file_exists('helper/sp_functions.php')) {
+        require_once 'helper/sp_functions.php';
+    }
+    if (file_exists('helper/verified_functions.php')) {
+        require_once 'helper/verified_functions.php';
+    }
+
+    // Fallback functions jika helper belum lengkap di live server
+    if (!function_exists('updateExpiredSP')) {
+        function updateExpiredSP($conn) {}
+    }
+    if (!function_exists('calculateKPIWithSP')) {
+        function calculateKPIWithSP($conn, $id_user, $nilai_asli) {
+            return [
+                'nilai_akhir' => $nilai_asli,
+                'sp_data' => null,
+                'pengurangan' => 0,
+                'nilai_asli' => $nilai_asli
+            ];
+        }
+    }
+    if (!function_exists('checkKPIVerified')) {
+        function checkKPIVerified($conn, $id_user, $bulan = null) {
+            return false;
+        }
+    }
 
     updateExpiredSP($conn);
 
-    $user_id = isset($id_sf) ? $id_sf : $id_user;
+    $sql = "SELECT * FROM tb_kpi WHERE id_user='$id_user'";
+    $id_sf = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+    $user_id = $id_sf > 0 ? $id_sf : $id_user;
 
     // PINDAHKAN BAGIAN INI KE ATAS (sebelum pengecekan archive)
     $blan = date('m/Y');
@@ -32,9 +70,7 @@ if (!isset($_SESSION['id_user'])) {
     $periode_archive = $bulan_archive . '/' . $tahun_archive;
 
     $cek_archive = mysqli_query($conn, "SELECT id_archive FROM tbar_archive WHERE bulan = '$periode_archive' AND id_user = $id_user");
-    $sudah_archive = mysqli_num_rows($cek_archive) > 0;
-
-    require 'helper/verified_functions.php';
+    $sudah_archive = ($cek_archive && mysqli_num_rows($cek_archive) > 0);
 
     // Cek status verified
     $bulan_sekarang = date('m/Y');
@@ -251,52 +287,62 @@ if (!isset($_SESSION['id_user'])) {
     }
     $zbotw = ($totalws * $bobotkpid) / 100;
     // Hitung nilai dengan SP
-    function getnilaiWithSPDisplay($conn, $id) {
-        // Hitung nilai asli (copy dari fungsi getnilai yang sudah ada)
-        $sql = "SELECT * FROM tb_kpi WHERE id_user='$id'";
-        $zboth = 0;
-        $zbotw = 0;
+    if (!function_exists('getnilaiWithSPDisplay')) {
+        function getnilaiWithSPDisplay($conn, $id) {
+            // Hitung nilai asli (copy dari fungsi getnilai yang sudah ada)
+            $sql = "SELECT * FROM tb_kpi WHERE id_user='$id'";
+            $zboth = 0;
+            $zbotw = 0;
 
-        $totalws = 0;
-        $resultsaf = mysqli_query($conn, $sql);
-        while ($hasils = mysqli_fetch_assoc($resultsaf)) {
-            $sql3s = "SELECT SUM(total) as total FROM tb_whats WHERE id_user=$id AND id_kpi=" . $hasils['id'];
-            $result3s = mysqli_query($conn, $sql3s);
-            $row3sd = mysqli_fetch_assoc($result3s);
-            $totalnilaisd = $row3sd['total'];
-            $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
-            $totalws += $nilaiws;
+            $totalws = 0;
+            $resultsaf = mysqli_query($conn, $sql);
+            if ($resultsaf) {
+                while ($hasils = mysqli_fetch_assoc($resultsaf)) {
+                    $sql3s = "SELECT SUM(total) as total FROM tb_whats WHERE id_user=$id AND id_kpi=" . $hasils['id'];
+                    $result3s = mysqli_query($conn, $sql3s);
+                    $row3sd = $result3s ? mysqli_fetch_assoc($result3s) : null;
+                    $totalnilaisd = $row3sd['total'] ?? 0;
+                    $nilaiws = ($totalnilaisd * $hasils['bobot']) / 100;
+                    $totalws += $nilaiws;
+                }
+            }
+            $bobotkpid = 0;
+            $sql5a = "SELECT bobotwhat as bw FROM tb_bobotkpi WHERE id_user=$id";
+            $result5a = mysqli_query($conn, $sql5a);
+            if ($result5a) {
+                while ($row5a = mysqli_fetch_assoc($result5a)) {
+                    $bobotkpid = $row5a['bw'];
+                }
+            }
+            $zbotw = ($totalws * $bobotkpid) / 100;
+            
+            $totalhfg = 0;
+            $resultfg = mysqli_query($conn, $sql);
+            if ($resultfg) {
+                while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
+                    $sql7fg = "SELECT SUM(total) as totalh FROM tb_hows WHERE id_user=$id AND id_kpi=" . $hasilfg['id'];
+                    $result7fg = mysqli_query($conn, $sql7fg);
+                    $row7fg = $result7fg ? mysqli_fetch_assoc($result7fg) : null;
+                    $totalnilaihfg = $row7fg['totalh'] ?? 0;
+                    $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
+                    $totalhfg += $nilaihfg;
+                }
+            }
+            $bobotkpias = 0;
+            $sql8a = "SELECT bobothow as bh FROM tb_bobotkpi WHERE id_user=$id";
+            $result8a = mysqli_query($conn, $sql8a);
+            if ($result8a) {
+                while ($row8a = mysqli_fetch_assoc($result8a)) {
+                    $bobotkpias = $row8a['bh'];
+                }
+            }
+            $zboth = ($totalhfg * $bobotkpias) / 100;
+            
+            $nilai_asli = $zboth + $zbotw;
+            
+            // Kurangi dengan SP jika ada
+            return calculateKPIWithSP($conn, $id, $nilai_asli);
         }
-        $bobotkpid = 0;
-        $sql5a = "SELECT bobotwhat as bw FROM tb_bobotkpi WHERE id_user=$id";
-        $result5a = mysqli_query($conn, $sql5a);
-        while ($row5a = mysqli_fetch_assoc($result5a)) {
-            $bobotkpid = $row5a['bw'];
-        }
-        $zbotw = ($totalws * $bobotkpid) / 100;
-        
-        $totalhfg = 0;
-        $resultfg = mysqli_query($conn, $sql);
-        while ($hasilfg = mysqli_fetch_assoc($resultfg)) {
-            $sql7fg = "SELECT SUM(total) as totalh FROM tb_hows WHERE id_user=$id AND id_kpi=" . $hasilfg['id'];
-            $result7fg = mysqli_query($conn, $sql7fg);
-            $row7fg = mysqli_fetch_assoc($result7fg);
-            $totalnilaihfg = $row7fg['totalh'];
-            $nilaihfg = ($totalnilaihfg * $hasilfg['bobot2']) / 100;
-            $totalhfg += $nilaihfg;
-        }
-        $bobotkpias = 0;
-        $sql8a = "SELECT bobothow as bh FROM tb_bobotkpi WHERE id_user=$id";
-        $result8a = mysqli_query($conn, $sql8a);
-        while ($row8a = mysqli_fetch_assoc($result8a)) {
-            $bobotkpias = $row8a['bh'];
-        }
-        $zboth = ($totalhfg * $bobotkpias) / 100;
-        
-        $nilai_asli = $zboth + $zbotw;
-        
-        // Kurangi dengan SP jika ada
-        return calculateKPIWithSP($conn, $id, $nilai_asli);
     }
     // ===============================================================================
     $totalhfg = 0;
@@ -348,49 +394,51 @@ if (!isset($_SESSION['id_user'])) {
     }
     $blan = date('m/Y');
     $busd = explode('/', $blan);
-    function tmapil($bl,$th){
-        $bulannnn = '';
+    if (!function_exists('tmapil')) {
+        function tmapil($bl,$th){
+            $bulannnn = '';
 
-        if ($bl == '00') {
-            $bulannnn = 'Desember ' . ($th - 1);
+            if ($bl == '00') {
+                $bulannnn = 'Desember ' . ($th - 1);
+            }
+            if ($bl == '01') {
+                $bulannnn = 'Januari ' . $th;
+            }
+            if ($bl == '02') {
+                $bulannnn = 'Februari ' . $th;
+            }
+            if ($bl == '03') {
+                $bulannnn = 'Maret ' . $th;
+            }
+            if ($bl == '04') {
+                $bulannnn = 'April ' . $th;
+            }
+            if ($bl == '05') {
+                $bulannnn = 'Mei ' . $th;
+            }
+            if ($bl == '06') {
+                $bulannnn = 'Juni ' . $th;
+            }
+            if ($bl == '07') {
+                $bulannnn = 'Juli ' . $th;
+            }
+            if ($bl == '08') {
+                $bulannnn = 'Agustus ' . $th;
+            }
+            if ($bl == '09') {
+                $bulannnn = 'September ' . $th;
+            }
+            if ($bl == '10') {
+                $bulannnn = 'Oktober ' . $th;
+            }
+            if ($bl == '11') {
+                $bulannnn = 'November ' . $th;
+            }
+            if ($bl == '12') {
+                $bulannnn = 'Desember ' . $th;
+            }
+            return $bulannnn;
         }
-        if ($bl == '01') {
-            $bulannnn = 'Januari ' . $th;
-        }
-        if ($bl == '02') {
-            $bulannnn = 'Februari ' . $th;
-        }
-        if ($bl == '03') {
-            $bulannnn = 'Maret ' . $th;
-        }
-        if ($bl == '04') {
-            $bulannnn = 'April ' . $th;
-        }
-        if ($bl == '05') {
-            $bulannnn = 'Mei ' . $th;
-        }
-        if ($bl == '06') {
-            $bulannnn = 'Juni ' . $th;
-        }
-        if ($bl == '07') {
-            $bulannnn = 'Juli ' . $th;
-        }
-        if ($bl == '08') {
-            $bulannnn = 'Agustus ' . $th;
-        }
-        if ($bl == '09') {
-            $bulannnn = 'September ' . $th;
-        }
-        if ($bl == '10') {
-            $bulannnn = 'Oktober ' . $th;
-        }
-        if ($bl == '11') {
-            $bulannnn = 'November ' . $th;
-        }
-        if ($bl == '12') {
-            $bulannnn = 'Desember ' . $th;
-        }
-        return $bulannnn;
     }
     
 
@@ -679,36 +727,38 @@ if (!isset($_SESSION['id_user'])) {
     }
 
     // Fungsi untuk mendapatkan feedback
-    function getFeedback($conn, $id_user_target, $bulan) {
-        $feedback_data = [
-            'self' => null,
-            'atasan' => null
-        ];
-        
-        // Feedback dari diri sendiri
-        $self_feedback = mysqli_query($conn, "SELECT * FROM tb_feedback WHERE 
-            id_user_pemberi = $id_user_target 
-            AND id_user_penerima = $id_user_target 
-            AND bulan = '$bulan'");
-        
-        if ($self_row = mysqli_fetch_assoc($self_feedback)) {
-            $feedback_data['self'] = $self_row;
+    if (!function_exists('getFeedback')) {
+        function getFeedback($conn, $id_user_target, $bulan) {
+            $feedback_data = [
+                'self' => null,
+                'atasan' => null
+            ];
+            
+            // Feedback dari diri sendiri
+            $self_feedback = mysqli_query($conn, "SELECT * FROM tb_feedback WHERE 
+                id_user_pemberi = $id_user_target 
+                AND id_user_penerima = $id_user_target 
+                AND bulan = '$bulan'");
+            
+            if ($self_feedback && ($self_row = mysqli_fetch_assoc($self_feedback))) {
+                $feedback_data['self'] = $self_row;
+            }
+            
+            // Feedback dari atasan
+            $atasan_feedback = mysqli_query($conn, "SELECT f.*, u.nama_lngkp as nama_pemberi 
+                FROM tb_feedback f
+                JOIN tb_users u ON f.id_user_pemberi = u.id
+                WHERE f.id_user_penerima = $id_user_target 
+                AND f.id_user_pemberi != $id_user_target 
+                AND f.bulan = '$bulan'
+                ORDER BY f.tanggal_buat DESC");
+            
+            if ($atasan_feedback && ($atasan_row = mysqli_fetch_assoc($atasan_feedback))) {
+                $feedback_data['atasan'] = $atasan_row;
+            }
+            
+            return $feedback_data;
         }
-        
-        // Feedback dari atasan
-        $atasan_feedback = mysqli_query($conn, "SELECT f.*, u.nama_lngkp as nama_pemberi 
-            FROM tb_feedback f
-            JOIN tb_users u ON f.id_user_pemberi = u.id
-            WHERE f.id_user_penerima = $id_user_target 
-            AND f.id_user_pemberi != $id_user_target 
-            AND f.bulan = '$bulan'
-            ORDER BY f.tanggal_buat DESC");
-        
-        if ($atasan_row = mysqli_fetch_assoc($atasan_feedback)) {
-            $feedback_data['atasan'] = $atasan_row;
-        }
-        
-        return $feedback_data;
     }
 }
 
