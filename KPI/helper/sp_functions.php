@@ -1,28 +1,36 @@
 <?php
 function getActiveSP($conn, $id_user) {
-    $today = date('Y-m-d');
-    $sql = "SELECT * FROM tb_surat_peringatan 
-            WHERE id_user = ? 
-            AND status = 'aktif' 
-            AND masa_berlaku_mulai <= ? 
-            AND masa_berlaku_selesai >= ?
-            ORDER BY 
-                CASE jenis_sp 
-                    WHEN 'SP3' THEN 1 
-                    WHEN 'SP2' THEN 2 
-                    WHEN 'SP1' THEN 3 
-                END
-            LIMIT 1";
-    
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "iss", $id_user, $today, $today);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    
-    if ($row = mysqli_fetch_assoc($result)) {
-        return $row;
+    try {
+        $today = date('Y-m-d');
+        $sql = "SELECT * FROM tb_surat_peringatan 
+                WHERE id_user = ? 
+                AND status = 'aktif' 
+                AND masa_berlaku_mulai <= ? 
+                AND masa_berlaku_selesai >= ?
+                ORDER BY 
+                    CASE jenis_sp 
+                        WHEN 'SP3' THEN 1 
+                        WHEN 'SP2' THEN 2 
+                        WHEN 'SP1' THEN 3 
+                    END
+                LIMIT 1";
+        
+        $stmt = mysqli_prepare($conn, $sql);
+        if (!$stmt) {
+            return null;
+        }
+        mysqli_stmt_bind_param($stmt, "iss", $id_user, $today, $today);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if ($result && $row = mysqli_fetch_assoc($result)) {
+            return $row;
+        }
+        return null;
+    } catch (Throwable $e) {
+        error_log("Error in getActiveSP: " . $e->getMessage());
+        return null;
     }
-    return null;
 }
 
 /**
@@ -79,6 +87,11 @@ function ensureSPColumnsExist($conn) {
     $checked = true;
 
     try {
+        $check_tbl = mysqli_query($conn, "SHOW TABLES LIKE 'tb_surat_peringatan'");
+        if (!$check_tbl || mysqli_num_rows($check_tbl) == 0) {
+            return;
+        }
+
         $required_columns = [
             'alasan_2' => "ALTER TABLE tb_surat_peringatan ADD COLUMN alasan_2 TEXT NULL AFTER alasan",
             'aturan_dilanggar' => "ALTER TABLE tb_surat_peringatan ADD COLUMN aturan_dilanggar TEXT NULL AFTER alasan_2",
